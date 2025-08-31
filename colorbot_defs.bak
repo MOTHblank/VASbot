@@ -1,0 +1,1533 @@
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, colorchooser, scrolledtext
+import threading, time, os, ctypes, json
+from ctypes import wintypes
+from PIL import Image, ImageTk
+import numpy as np
+import win32gui, win32api, win32con
+import pyautogui; pyautogui.FAILSAFE = False
+from core.script_runner import ScriptRunner
+from utils.windows_utils import _get_true_hwnd_rect
+
+try: ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except:
+    try: ctypes.windll.user32.SetProcessDPIAware()
+    except: pass
+
+
+
+def setup_visual_canvas_events(self):
+    """Setup events for the visual scripting canvas"""
+    self.visual_canvas.bind("<ButtonPress-1>", self.on_canvas_click)
+    self.visual_canvas.bind("<B1-Motion>", self.on_canvas_drag)
+    self.visual_canvas.bind("<ButtonRelease-1>", self.on_canvas_release)
+    self.visual_canvas.bind("<Double-Button-1>", self.on_node_double_click)
+    self.visual_canvas.bind("<Button-3>", self.show_node_context_menu)
+    self.visual_canvas.bind_all("<Delete>", self.delete_selected_node)
+    self.visual_canvas.bind_all("<BackSpace>", self.delete_selected_node)
+
+def create_start_node(self):
+    """Create the starting node that all scripts must begin from"""
+    node = {
+        "id": "start",
+        "type": "start",
+        "x": 50,
+        "y": 50,
+        "width": 120,
+        "height": 40,
+        "inputs": [],
+        "outputs": [{"name": "next", "x": 0, "y": 20}],
+        "params": {}
+    }
+    self.draw_node(node)
+    self.nodes.append(node)
+    return node
+
+def create_node(self, node_type, x, y, **params):
+    """Create a new node of the specified type"""
+    self.node_counter += 1
+    node_id = f"{node_type.lower()}_{self.node_counter}"
+    
+    # Define node properties based on type
+    if node_type == "Find & Click Color":
+        node = {
+            "id": node_id,
+            "type": "find_click_color",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 100,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "region_index": params.get("region_index", 0),
+                "hex_color": params.get("hex_color", "#FF0000"),
+                "tolerance": params.get("tolerance", 10),
+                "button": params.get("button", "left"),
+                "modifiers": params.get("modifiers", []),
+                "background": params.get("background", True)
+            }
+        }
+    elif node_type == "Click Region Center":
+        node = {
+            "id": node_id,
+            "type": "click_region",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 80,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "region_index": params.get("region_index", 0),
+                "button": params.get("button", "left"),
+                "modifiers": params.get("modifiers", []),
+                "background": params.get("background", True)
+            }
+        }
+    elif node_type == "Wait":
+        node = {
+            "id": node_id,
+            "type": "wait",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 70,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "seconds": params.get("seconds", 1.0)
+            }
+        }
+    elif node_type == "Random Wait":
+        node = {
+            "id": node_id,
+            "type": "random_wait",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 80,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "base_seconds": params.get("base_seconds", 1.0),
+                "variance_seconds": params.get("variance_seconds", 0.5)
+            }
+        }
+    elif node_type == "Drag":
+        node = {
+            "id": node_id,
+            "type": "drag",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 100,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "from_region_index": params.get("from_region_index", 0),
+                "to_region_index": params.get("to_region_index", 1),
+                "button": params.get("button", "left"),
+                "background": params.get("background", True),
+                "duration": params.get("duration", 0.5)
+            }
+        }
+    elif node_type == "Type Text":
+        node = {
+            "id": node_id,
+            "type": "type_text",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 80,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "text": params.get("text", ""),
+                "delay": params.get("delay", 0.05)
+            }
+        }
+    elif node_type == "Press Key":
+        node = {
+            "id": node_id,
+            "type": "press_key",
+            "x": x,
+            "y": y,
+            "width": 200,
+            "height": 80,
+            "inputs": [{"name": "prev", "x": 0, "y": 20}],
+            "outputs": [{"name": "next", "x": 200, "y": 20}],
+            "params": {
+                "key": params.get("key", "enter"),
+                "modifiers": params.get("modifiers", [])
+            }
+        }
+    
+    # Draw and add to nodes list
+    self.draw_node(node)
+    self.nodes.append(node)
+    return node
+
+def draw_node(self, node):
+    """Draw a node on the visual canvas"""
+    # Draw node background
+    fill_color = "#3498db" if node["type"] != "start" else "#2ecc71"
+    node["graphics"] = {
+        "bg": self.visual_canvas.create_rectangle(
+            node["x"], node["y"], 
+            node["x"] + node["width"], node["y"] + node["height"],
+            fill=fill_color, outline="#ecf0f1", width=2
+        ),
+        "title": self.visual_canvas.create_text(
+            node["x"] + node["width"] // 2, node["y"] + 15,
+            text=node["type"].replace("_", " ").title(),
+            fill="#ecf0f1", font=("Arial", 10, "bold")
+        )
+    }
+    
+    # Draw input/output points
+    node["graphics"]["inputs"] = []
+    for i, inp in enumerate(node["inputs"]):
+        x = node["x"] + inp["x"]
+        y = node["y"] + inp["y"]
+        node["graphics"]["inputs"].append(
+            self.visual_canvas.create_oval(
+                x - 5, y - 5, x + 5, y + 5,
+                fill="#2ecc71", outline="#ecf0f1"
+            )
+        )
+        if inp["name"] != "prev":  # Don't label the 'prev' connection
+            self.visual_canvas.create_text(
+                x - 15, y,
+                text=inp["name"], fill="#ecf0f1", anchor="e"
+            )
+    
+    node["graphics"]["outputs"] = []
+    for i, out in enumerate(node["outputs"]):
+        x = node["x"] + out["x"]
+        y = node["y"] + out["y"]
+        node["graphics"]["outputs"].append(
+            self.visual_canvas.create_oval(
+                x - 5, y - 5, x + 5, y + 5,
+                fill="#e74c3c", outline="#ecf0f1"
+            )
+        )
+        if out["name"] != "next":  # Don't label the 'next' connection
+            self.visual_canvas.create_text(
+                x + 15, y,
+                text=out["name"], fill="#ecf0f1", anchor="w"
+            )
+    
+    # Draw parameter values
+    if node["type"] != "start":
+        y_offset = 35
+        for key, value in node["params"].items():
+            if key in ["region_index", "from_region_index", "to_region_index"] and self.regions:
+                region_name = f"Region {value}"
+                if value < len(self.regions):
+                    region_name = f"Region {value} ({self.regions[value]['width']}x{self.regions[value]['height']})"
+                self.visual_canvas.create_text(
+                    node["x"] + 10, node["y"] + y_offset,
+                    text=f"{key.replace('_', ' ').title()}: {region_name}",
+                    fill="#ecf0f1", anchor="w", font=("Arial", 9)
+                )
+            elif key == "hex_color":
+                self.visual_canvas.create_rectangle(
+                    node["x"] + 10, node["y"] + y_offset - 8,
+                    node["x"] + 25, node["y"] + y_offset + 2,
+                    fill=value, outline="#ecf0f1"
+                )
+                self.visual_canvas.create_text(
+                    node["x"] + 30, node["y"] + y_offset,
+                    text=f"Color: {value}",
+                    fill="#ecf0f1", anchor="w", font=("Arial", 9)
+                )
+            else:
+                display_value = value
+                if isinstance(value, list) and value:
+                    display_value = ", ".join(value)
+                self.visual_canvas.create_text(
+                    node["x"] + 10, node["y"] + y_offset,
+                    text=f"{key.replace('_', ' ').title()}: {display_value}",
+                    fill="#ecf0f1", anchor="w", font=("Arial", 9)
+                )
+            y_offset += 15
+
+def on_nodes_frame_configure(self, event):
+    """Update scroll region when nodes frame changes size"""
+    self.visual_canvas.configure(scrollregion=self.visual_canvas.bbox("all"))
+
+def on_canvas_click(self, event):
+    """Handle canvas click events"""
+    # Convert canvas coordinates
+    x = self.visual_canvas.canvasx(event.x)
+    y = self.visual_canvas.canvasy(event.y)
+    
+    # Check if clicking on a node
+    for node in self.nodes:
+        if (node["x"] <= x <= node["x"] + node["width"] and 
+            node["y"] <= y <= node["y"] + node["height"]):
+            self.selected_node = node
+            self.drag_data["item"] = node["graphics"]["bg"]
+            self.drag_data["x"] = x - node["x"]
+            self.drag_data["y"] = y - node["y"]
+            
+            # Check if clicking on an input/output point
+            for i, inp in enumerate(node["inputs"]):
+                px = node["x"] + inp["x"]
+                py = node["y"] + inp["y"]
+                if (px - 5 <= x <= px + 5 and py - 5 <= y <= py + 5):
+                    self.connection_start = (node, "input", i)
+                    return
+            
+            for i, out in enumerate(node["outputs"]):
+                px = node["x"] + out["x"]
+                py = node["y"] + out["y"]
+                if (px - 5 <= x <= px + 5 and py - 5 <= y <= py + 5):
+                    self.connection_start = (node, "output", i)
+                    return
+            
+            # Start dragging the node
+            return
+    
+    # If not clicking on a node, check if clicking on a connection
+    for conn in self.connections:
+        # Simplified connection click detection
+        if self.is_point_near_connection(x, y, conn):
+            self.selected_connection = conn
+            return
+    
+    # Clear selection if clicking on empty space
+    self.selected_node = None
+    self.selected_connection = None
+    self.connection_start = None
+
+def on_canvas_drag(self, event):
+    """Handle dragging on the canvas"""
+    if self.connection_start:
+        # Drawing a connection
+        if not hasattr(self, "temp_connection"):
+            x1 = self.connection_start[0]["x"] + self.connection_start[0][f"{self.connection_start[1]}s"][self.connection_start[2]]["x"]
+            y1 = self.connection_start[0]["y"] + self.connection_start[0][f"{self.connection_start[1]}s"][self.connection_start[2]]["y"]
+            self.temp_connection = self.visual_canvas.create_line(
+                x1, y1, event.x, event.y,
+                fill="#ecf0f1", width=2, arrow=tk.LAST
+            )
+        else:
+            self.visual_canvas.coords(
+                self.temp_connection,
+                self.connection_start[0]["x"] + self.connection_start[0][f"{self.connection_start[1]}s"][self.connection_start[2]]["x"],
+                self.connection_start[0]["y"] + self.connection_start[0][f"{self.connection_start[1]}s"][self.connection_start[2]]["y"],
+                event.x, event.y
+            )
+        return
+    
+    if self.drag_data["item"] and self.selected_node:
+        # Move the node
+        x = self.visual_canvas.canvasx(event.x) - self.drag_data["x"]
+        y = self.visual_canvas.canvasy(event.y) - self.drag_data["y"]
+        
+        # Update node position
+        self.selected_node["x"] = x
+        self.selected_node["y"] = y
+        
+        # Redraw the node at new position
+        self.visual_canvas.coords(
+            self.selected_node["graphics"]["bg"],
+            x, y, x + self.selected_node["width"], y + self.selected_node["height"]
+        )
+        self.visual_canvas.coords(
+            self.selected_node["graphics"]["title"],
+            x + self.selected_node["width"] // 2, y + 15
+        )
+        
+        # Update input/output points
+        for i, inp in enumerate(self.selected_node["inputs"]):
+            px = x + inp["x"]
+            py = y + inp["y"]
+            self.visual_canvas.coords(
+                self.selected_node["graphics"]["inputs"][i],
+                px - 5, py - 5, px + 5, py + 5
+            )
+            # Update parameter text positions
+            if i == 0 and self.selected_node["type"] != "start":
+                self.visual_canvas.delete(self.selected_node["graphics"].get("param_text", []))
+                y_offset = 35
+                param_graphics = []
+                for key, value in self.selected_node["params"].items():
+                    param_graphics.append(
+                        self.visual_canvas.create_text(
+                            x + 10, y + y_offset,
+                            text=f"{key.replace('_', ' ').title()}: {value}",
+                            fill="#ecf0f1", anchor="w", font=("Arial", 9)
+                        )
+                    )
+                    y_offset += 15
+                self.selected_node["graphics"]["param_text"] = param_graphics
+        
+        for i, out in enumerate(self.selected_node["outputs"]):
+            px = x + out["x"]
+            py = y + out["y"]
+            self.visual_canvas.coords(
+                self.selected_node["graphics"]["outputs"][i],
+                px - 5, py - 5, px + 5, py + 5
+            )
+        
+        # Update any connections to this node
+        self.update_connections_for_node(self.selected_node)
+
+def on_canvas_release(self, event):
+    """Handle releasing mouse button on canvas"""
+    if self.temp_connection:
+        # Try to connect to a target point
+        x = self.visual_canvas.canvasx(event.x)
+        y = self.visual_canvas.canvasy(event.y)
+        
+        target_node = None
+        target_type = None
+        target_index = None
+        
+        for node in self.nodes:
+            if node == self.connection_start[0]:
+                continue
+                
+            for i, inp in enumerate(node["inputs"]):
+                px = node["x"] + inp["x"]
+                py = node["y"] + inp["y"]
+                if (px - 7 <= x <= px + 7 and py - 7 <= y <= py + 7):
+                    target_node = node
+                    target_type = "input"
+                    target_index = i
+                    break
+            
+            if target_node:
+                break
+        
+        # Create connection if valid
+        if target_node and self.connection_start[1] == "output" and target_type == "input":
+            # Check if connection already exists
+            exists = False
+            for conn in self.connections:
+                if (conn["from_node"] == self.connection_start[0] and 
+                    conn["from_port"] == self.connection_start[2] and
+                    conn["to_node"] == target_node and
+                    conn["to_port"] == target_index):
+                    exists = True
+                    break
+            
+            if not exists:
+                connection = {
+                    "from_node": self.connection_start[0],
+                    "from_port": self.connection_start[2],
+                    "to_node": target_node,
+                    "to_port": target_index,
+                    "graphics": None
+                }
+                self.connections.append(connection)
+                self.draw_connection(connection)
+        
+        # Clean up
+        self.visual_canvas.delete(self.temp_connection)
+        del self.temp_connection
+    
+    # Reset drag data
+    self.drag_data["item"] = None
+    self.connection_start = None
+
+def draw_connection(self, connection):
+    """Draw a connection between two nodes"""
+    from_node = connection["from_node"]
+    to_node = connection["to_node"]
+    from_port = from_node["outputs"][connection["from_port"]]
+    to_port = to_node["inputs"][connection["to_port"]]
+    
+    x1 = from_node["x"] + from_port["x"]
+    y1 = from_node["y"] + from_port["y"]
+    x2 = to_node["x"] + to_port["x"]
+    y2 = to_node["y"] + to_port["y"]
+    
+    # Create a nice curved line
+    ctrl_x1 = x1 + (x2 - x1) * 0.5
+    ctrl_y1 = y1
+    ctrl_x2 = x1 + (x2 - x1) * 0.5
+    ctrl_y2 = y2
+    
+    line = self.visual_canvas.create_line(
+        x1, y1, ctrl_x1, ctrl_y1, ctrl_x2, ctrl_y2, x2, y2,
+        fill="#ecf0f1", width=2, smooth=True, arrow=tk.LAST
+    )
+    
+    connection["graphics"] = line
+
+def update_connections_for_node(self, node):
+    """Update all connections attached to a node"""
+    for conn in self.connections:
+        if conn["from_node"] == node or conn["to_node"] == node:
+            self.visual_canvas.delete(conn["graphics"])
+            self.draw_connection(conn)
+
+def is_point_near_connection(self, x, y, conn):
+    """Check if a point is near a connection for selection"""
+    # Simplified version - in a real implementation, you'd calculate the distance to the curve
+    from_node = conn["from_node"]
+    to_node = conn["to_node"]
+    from_port = from_node["outputs"][conn["from_port"]]
+    to_port = to_node["inputs"][conn["to_port"]]
+    
+    x1 = from_node["x"] + from_port["x"]
+    y1 = from_node["y"] + from_port["y"]
+    x2 = to_node["x"] + to_port["x"]
+    y2 = to_node["y"] + to_port["y"]
+    
+    # Calculate distance to line segment
+    A = x - x1
+    B = y - y1
+    C = x2 - x1
+    D = y2 - y1
+    
+    dot = A * C + B * D
+    len_sq = C * C + D * D
+    param = -1
+    
+    if len_sq != 0:
+        param = dot / len_sq
+    
+    xx, yy = x1, y1
+    
+    if param > 1:
+        xx, yy = x2, y2
+    elif param > 0:
+        xx = x1 + param * C
+        yy = y1 + param * D
+    
+    dx = x - xx
+    dy = y - yy
+    
+    return (dx * dx + dy * dy) < 25  # Within 5 pixels
+
+def delete_selected_node(self, event=None):
+    """Delete the selected node and its connections"""
+    if self.selected_node and self.selected_node["type"] != "start":
+        # Remove connections involving this node
+        self.connections = [conn for conn in self.connections 
+                          if conn["from_node"] != self.selected_node and 
+                             conn["to_node"] != self.selected_node]
+        
+        # Delete node graphics
+        for item in self.selected_node["graphics"].values():
+            if isinstance(item, list):
+                for subitem in item:
+                    self.visual_canvas.delete(subitem)
+            else:
+                self.visual_canvas.delete(item)
+        
+        # Remove node from list
+        self.nodes.remove(self.selected_node)
+        self.selected_node = None
+
+def show_node_context_menu(self, event):
+    """Show context menu for nodes"""
+    if self.selected_node:
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_command(label="Edit Parameters", command=self.edit_selected_node)
+        menu.add_command(label="Delete Node", command=self.delete_selected_node)
+        menu.tk_popup(event.x_root, event.y_root)
+
+def edit_selected_node(self):
+    """Open parameter editor for selected node"""
+    if not self.selected_node or self.selected_node["type"] == "start":
+        return
+    
+    edit_dialog = tk.Toplevel(self.root)
+    edit_dialog.title(f"Edit {self.selected_node['type'].replace('_', ' ').title()}")
+    edit_dialog.geometry("400x300")
+    edit_dialog.configure(bg='#2c3e50')
+    
+    frame = tk.Frame(edit_dialog, bg='#34495e', padx=15, pady=15)
+    frame.pack(fill=tk.BOTH, expand=True)
+    
+    params = self.selected_node["params"]
+    entries = {}
+    
+    row = 0
+    for param, value in params.items():
+        tk.Label(frame, text=f"{param.replace('_', ' ').title()}:", 
+                fg='#ecf0f1', bg='#34495e').grid(row=row, column=0, sticky='e', padx=5, pady=5)
+        
+        if param == "region_index" or param.endswith("_region_index"):
+            # Region selector
+            region_names = [f"Region {i}" for i in range(len(self.regions))]
+            var = tk.StringVar(value=f"Region {value}")
+            combo = ttk.Combobox(frame, textvariable=var, values=region_names, state="readonly")
+            combo.grid(row=row, column=1, sticky='ew', padx=5, pady=5)
+            entries[param] = (var, lambda v=var, p=param: int(v.get().split()[1]))
+        elif param == "hex_color":
+            # Color picker
+            color_var = tk.StringVar(value=value)
+            color_frame = tk.Frame(frame, bg='#2c3e50')
+            color_frame.grid(row=row, column=1, sticky='ew', padx=5, pady=5)
+            
+            color_btn = tk.Button(color_frame, text="Choose Color", bg=value, fg='white' if self._is_color_bright(value) else 'black',
+                                command=lambda cv=color_var: self._choose_node_color(cv))
+            color_btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            entries[param] = (color_var, lambda cv=color_var: cv.get())
+        elif param == "button":
+            # Button selector
+            var = tk.StringVar(value=value)
+            combo = ttk.Combobox(frame, textvariable=var, 
+                               values=["left", "right", "middle"], state="readonly")
+            combo.grid(row=row, column=1, sticky='ew', padx=5, pady=5)
+            entries[param] = (var, lambda v=var: v.get())
+        elif param == "modifiers":
+            # Modifiers checkboxes
+            mods_frame = tk.Frame(frame, bg='#34495e')
+            mods_frame.grid(row=row, column=1, sticky='w', padx=5, pady=5)
+            
+            shift_var = tk.BooleanVar(value="shift" in value)
+            ctrl_var = tk.BooleanVar(value="ctrl" in value)
+            alt_var = tk.BooleanVar(value="alt" in value)
+            
+            tk.Checkbutton(mods_frame, text="Shift", variable=shift_var, bg='#34495e').pack(side=tk.LEFT)
+            tk.Checkbutton(mods_frame, text="Ctrl", variable=ctrl_var, bg='#34495e').pack(side=tk.LEFT)
+            tk.Checkbutton(mods_frame, text="Alt", variable=alt_var, bg='#34495e').pack(side=tk.LEFT)
+            
+            entries[param] = ((shift_var, ctrl_var, alt_var), 
+                            lambda s=shift_var, c=ctrl_var, a=alt_var: 
+                            [mod for mod, var in [('shift', s), ('ctrl', c), ('alt', a)] if var.get()])
+        elif isinstance(value, bool):
+            # Boolean toggle
+            var = tk.BooleanVar(value=value)
+            chk = tk.Checkbutton(frame, variable=var, bg='#34495e')
+            chk.grid(row=row, column=1, sticky='w', padx=5, pady=5)
+            entries[param] = (var, lambda v=var: v.get())
+        else:
+            # Regular text entry
+            var = tk.StringVar(value=str(value))
+            entry = tk.Entry(frame, textvariable=var)
+            entry.grid(row=row, column=1, sticky='ew', padx=5, pady=5)
+            entries[param] = (var, lambda v=var: type(value)(v.get()) if value != "" else v.get())
+        
+        row += 1
+    
+    # Configure column to expand
+    frame.columnconfigure(1, weight=1)
+    
+    # Buttons
+    btn_frame = tk.Frame(frame, bg='#34495e')
+    btn_frame.grid(row=row, column=0, columnspan=2, pady=10)
+    
+    def apply_changes():
+        for param, (var, getter) in entries.items():
+            self.selected_node["params"][param] = getter()
+        self.redraw_node(self.selected_node)
+        edit_dialog.destroy()
+    
+    tk.Button(btn_frame, text="Apply", command=apply_changes, 
+             bg='#27ae60', fg='white').pack(side=tk.LEFT, padx=5)
+    tk.Button(btn_frame, text="Cancel", command=edit_dialog.destroy, 
+             bg='#e74c3c', fg='white').pack(side=tk.LEFT, padx=5)
+
+def redraw_node(self, node):
+    """Redraw a node with updated parameters"""
+    # Delete existing graphics
+    for item in node["graphics"].values():
+        if isinstance(item, list):
+            for subitem in item:
+                self.visual_canvas.delete(subitem)
+        else:
+            self.visual_canvas.delete(item)
+    
+    # Draw the node again
+    self.draw_node(node)
+
+def _is_color_bright(self, hex_color):
+    """Check if a hex color is bright (for text contrast)"""
+    r = int(hex_color[1:3], 16)
+    g = int(hex_color[3:5], 16)
+    b = int(hex_color[5:7], 16)
+    brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return brightness > 128
+
+def _choose_node_color(self, color_var):
+    """Open color picker for node parameter"""
+    color = colorchooser.askcolor(color=color_var.get())
+    if color[1]:
+        color_var.set(color[1])
+        # Update the color button if it exists
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Button) and widget.cget("bg") == color_var.get():
+                widget.config(bg=color[1], fg='white' if self._is_color_bright(color[1]) else 'black')
+
+def switch_script_mode(self):
+    """Switch between visual and text script modes"""
+    if self.script_mode.get() == "visual":
+        # Hide text editor, show visual canvas
+        self.text_editor_frame.pack_forget()
+        self.visual_canvas_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(10,5))
+    else:
+        # Convert visual script to text
+        self.convert_visual_to_text()
+        # Hide visual canvas, show text editor
+        self.visual_canvas_frame.pack_forget()
+        self.text_editor_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(10,5))
+
+def convert_visual_to_text(self):
+    """Convert the visual script to Python code"""
+    # First, build an execution order from the connections
+    execution_order = self.get_execution_order()
+    
+    # Start with the basic script structure
+    code = "# Enhanced Color Bot Script with Region Management\n"
+    code += "while bot.is_running:\n"
+    
+    # Add embedded regions if any exist
+    if self.regions:
+        code += "    # ============ EMBEDDED REGIONS ============\n"
+        code += "    # Auto-generated region definitions\n"
+        code += f"    # Created: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        if self.captured_image:
+            code += f"    # Image size: {self.captured_image.width}x{self.captured_image.height}\n"
+        if self.window_var.get():
+            code += f"    # Window: {self.window_var.get()}\n"
+        code += "    \n"
+        code += "    bot.gui.regions = [\n"
+        for i, region in enumerate(self.regions):
+            code += f"        {{'x': {region['x']}, 'y': {region['y']}, 'width': {region['width']}, 'height': {region['height']}, 'color': '{region['color']}'}},\n"
+        code += "    ]\n"
+        code += "    bot.gui.update_region_selector()\n"
+        code += "    bot.log('Loaded embedded regions')\n"
+        code += "    # ============ END EMBEDDED REGIONS ============\n"
+        code += "    \n"
+    
+    # Add the actual script actions
+    for node in execution_order:
+        if node["type"] == "find_click_color":
+            params = [
+                f"hex_color='{node['params']['hex_color']}'",
+                f"region_index={node['params']['region_index']}",
+                f"tolerance={node['params']['tolerance']}",
+                f"button='{node['params']['button']}'"
+            ]
+            if node['params']['modifiers']:
+                mods = ", ".join([f"'{m}'" for m in node['params']['modifiers']])
+                params.append(f"modifiers=[{mods}]")
+            params.append(f"background={node['params']['background']}")
+            
+            code += f"    if bot.find_and_click_color({', '.join(params)}):\n"
+            code += "        bot.wait(0.5)\n"
+            code += "    else:\n"
+            code += f"        bot.log('Color {node['params']['hex_color']} not found')\n"
+        
+        elif node["type"] == "click_region":
+            params = [
+                f"region_index={node['params']['region_index']}",
+                f"button='{node['params']['button']}'"
+            ]
+            if node['params']['modifiers']:
+                mods = ", ".join([f"'{m}'" for m in node['params']['modifiers']])
+                params.append(f"modifiers=[{mods}]")
+            params.append(f"background={node['params']['background']}")
+            
+            code += f"    bot.click_region({', '.join(params)})\n"
+        
+        elif node["type"] == "wait":
+            code += f"    bot.wait({node['params']['seconds']})\n"
+        
+        elif node["type"] == "random_wait":
+            code += f"    bot.random_wait({node['params']['base_seconds']}, {node['params']['variance_seconds']})\n"
+        
+        elif node["type"] == "drag":
+            params = [
+                f"from_region_index={node['params']['from_region_index']}",
+                f"to_region_index={node['params']['to_region_index']}",
+                f"button='{node['params']['button']}'",
+                f"background={node['params']['background']}",
+                f"duration={node['params']['duration']}"
+            ]
+            code += f"    bot.drag({', '.join(params)})\n"
+        
+        elif node["type"] == "type_text":
+            params = [
+                f"text='{node['params']['text']}'",
+                f"delay={node['params']['delay']}"
+            ]
+            code += f"    bot.type_text({', '.join(params)})\n"
+        
+        elif node["type"] == "press_key":
+            params = [
+                f"key='{node['params']['key']}'"
+            ]
+            if node['params']['modifiers']:
+                mods = ", ".join([f"'{m}'" for m in node['params']['modifiers']])
+                params.append(f"modifiers=[{mods}]")
+            code += f"    bot.press_key({', '.join(params)})\n"
+    
+    # Insert the code into the editor
+    self.script_editor.delete("1.0", tk.END)
+    self.script_editor.insert(tk.END, code)
+
+def get_execution_order(self):
+    """Determine the execution order of nodes based on connections"""
+    # Start with the start node
+    order = []
+    visited = set()
+    
+    # Find the start node
+    start_node = next((node for node in self.nodes if node["type"] == "start"), None)
+    if not start_node:
+        return order
+    
+    # Perform a breadth-first search to get execution order
+    queue = []
+    
+    # Find all nodes connected to the start node
+    for conn in self.connections:
+        if conn["from_node"] == start_node and conn["from_port"] == 0:
+            queue.append((conn["to_node"], 0))
+    
+    while queue:
+        node, depth = queue.pop(0)
+        if node["id"] not in visited:
+            visited.add(node["id"])
+            order.append(node)
+            
+            # Add connected nodes to queue
+            for conn in self.connections:
+                if conn["from_node"] == node and conn["from_port"] == 0:
+                    queue.append((conn["to_node"], depth + 1))
+    
+    return order
+
+def add_visual_action(self):
+    """Add the selected action as a visual node"""
+    action = self.action_var.get()
+    region = self.region_var.get()
+    
+    # Get region index
+    region_index = 0
+    if region and region.startswith("Region "):
+        try:
+            region_index = int(region.split()[1])
+        except:
+            pass
+    
+    # Get modifiers
+    modifiers = []
+    if self.shift_var.get():
+        modifiers.append("shift")
+    if self.ctrl_var.get():
+        modifiers.append("ctrl")
+    
+    # Get other parameters
+    button = self.button_var.get().lower()
+    background = self.background_var.get()
+    
+    # Create node at a reasonable position
+    x = 300 + len(self.nodes) * 50
+    y = 50 + len(self.nodes) * 50
+    
+    if action == "Find & Click Color":
+        try:
+            tolerance = int(self.tolerance_var.get())
+        except:
+            tolerance = 10
+            
+        self.create_node(
+            action, x, y,
+            region_index=region_index,
+            hex_color=self.current_color,
+            tolerance=tolerance,
+            button=button,
+            modifiers=modifiers,
+            background=background
+        )
+    elif action == "Click Region Center":
+        self.create_node(
+            action, x, y,
+            region_index=region_index,
+            button=button,
+            modifiers=modifiers,
+            background=background
+        )
+    elif action == "Wait":
+        try:
+            seconds = float(self.wait_var.get())
+        except:
+            seconds = 1.0
+            
+        self.create_node(
+            action, x, y,
+            seconds=seconds
+        )
+    elif action == "Random Wait":
+        try:
+            base = float(self.wait_var.get())
+        except:
+            base = 1.0
+            
+        self.create_node(
+            action, x, y,
+            base_seconds=base,
+            variance_seconds=base * 0.5
+        )
+    elif action == "Drag":
+        # For drag, we need two regions - assume the next region as target
+        to_region = (region_index + 1) % len(self.regions) if self.regions else 0
+        
+        self.create_node(
+            action, x, y,
+            from_region_index=region_index,
+            to_region_index=to_region,
+            button=button,
+            background=background,
+            duration=0.5
+        )
+    elif action == "Type Text":
+        self.create_node(
+            action, x, y,
+            text="text",
+            delay=0.05
+        )
+    elif action == "Press Key":
+        self.create_node(
+            action, x, y,
+            key="enter",
+            modifiers=modifiers
+        )
+def safe_update_region_selector(self):
+    """Safely update region selector with error handling"""
+    try:
+        if hasattr(self, 'region_combo') and self.region_combo:
+            names = [f"Region {i}" for i in range(len(self.regions))]
+            self.region_combo['values'] = names
+            if names:
+                self.region_var.set(names[0])
+            else:
+                self.region_var.set("")
+    except Exception as e:
+        print(f"Error updating region selector: {e}")
+def update_action_parameters(self, event=None):
+    """Update parameter controls based on selected action"""
+    # Clear existing parameter controls
+    for widget in self.param_frame.winfo_children():
+        widget.destroy()
+    
+    action = self.action_var.get()
+    
+    # Add appropriate parameter controls
+    if action in ["Find & Click Color", "Click Region Center", "Drag", "Type Text", "Press Key"]:
+        # Region selector
+        tk.Label(self.param_frame, text="Region:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.region_var = tk.StringVar()
+        self.region_combo = ttk.Combobox(self.param_frame, textvariable=self.region_var, 
+                                       state="readonly", width=15)
+        self.region_combo.pack(side=tk.LEFT, padx=5)
+        if hasattr(self, 'regions'):
+            self.update_region_selector()
+    
+    if action in ["Find & Click Color", "Click Region Center", "Drag"]:
+        # Button selector
+        tk.Label(self.param_frame, text="Button:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.button_var = tk.StringVar(value="Left")
+        button_combo = ttk.Combobox(self.param_frame, textvariable=self.button_var, 
+                                  values=["Left", "Right", "Middle"], 
+                                  state="readonly", width=8)
+        button_combo.pack(side=tk.LEFT, padx=5)
+    
+    if action == "Find & Click Color":
+        tk.Label(self.param_frame, text="Tolerance:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.tolerance_var = tk.StringVar(value="10")
+        tk.Entry(self.param_frame, textvariable=self.tolerance_var, width=5).pack(side=tk.LEFT, padx=5)
+
+    if action == "Press Key":
+        tk.Label(self.param_frame, text="Key:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.key_var = tk.StringVar(value="enter")
+        key_combo = ttk.Combobox(self.param_frame, textvariable=self.key_var, 
+                               values=["enter", "space", "tab", "escape", "backspace"], 
+                               state="readonly", width=10)
+        key_combo.pack(side=tk.LEFT, padx=5)    
+    
+    if action in ["Find & Click Color", "Click Region Center", "Drag", "Press Key"]:
+        self.shift_var = tk.BooleanVar(value=False)
+        self.ctrl_var = tk.BooleanVar(value=False)
+        self.alt_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(self.param_frame, text="Shift", variable=self.shift_var, 
+                      fg='#ecf0f1', bg='#34495e', selectcolor='#34495e').pack(side=tk.LEFT, padx=5)
+        tk.Checkbutton(self.param_frame, text="Ctrl", variable=self.ctrl_var, 
+                      fg='#ecf0f1', bg='#34495e', selectcolor='#34495e').pack(side=tk.LEFT, padx=5)
+        tk.Checkbutton(self.param_frame, text="Alt", variable=self.alt_var, 
+                      fg='#ecf0f1', bg='#34495e', selectcolor='#34495e').pack(side=tk.LEFT, padx=5)
+    
+    if action == "Wait":
+        tk.Label(self.param_frame, text="Seconds:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.wait_var = tk.StringVar(value="1.0")
+        tk.Entry(self.param_frame, textvariable=self.wait_var, width=8).pack(side=tk.LEFT, padx=5)
+    
+    elif action == "Random Wait":
+        tk.Label(self.param_frame, text="Base Seconds:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.base_wait_var = tk.StringVar(value="1.0")
+        tk.Entry(self.param_frame, textvariable=self.base_wait_var, width=8).pack(side=tk.LEFT, padx=5)
+        tk.Label(self.param_frame, text="Variance:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
+        self.variance_wait_var = tk.StringVar(value="0.5")
+        tk.Entry(self.param_frame, textvariable=self.variance_wait_var, width=8).pack(side=tk.LEFT, padx=5)
+    
+    def create_player_section(self, parent):
+        frame = tk.Frame(parent, bg='#34495e', relief=tk.RAISED, bd=2); frame.pack(fill=tk.X, pady=5)
+        tk.Label(frame, text="▶️ Script Player", font=('Arial',16,'bold'), fg='#ecf0f1', bg='#34495e').pack(pady=(15,10))
+        ctrls = tk.Frame(frame, bg='#34495e'); ctrls.pack(pady=10)
+        player_buttons = [("▶️ Run (F5)", self.play_script, '#27ae60', 12), ("⏸️ Pause (F6)", self.pause_resume_script, '#f39c12', 12), ("⏹️ Stop (F7)", self.stop_script, '#e74c3c', 12), ("🚨 Emergency (ESC)", self.emergency_stop, '#c0392b', 15)]
+        for i, (text, cmd, color, width) in enumerate(player_buttons):
+            btn = tk.Button(ctrls, text=text, command=cmd, bg=color, fg='white', font=('Arial',12,'bold'), width=width, padx=5)
+            btn.pack(side=tk.LEFT, padx=5)
+            if i == 1:
+                self.pause_button = btn
+                btn.config(state=tk.DISABLED)
+            elif i == 0:
+                self.play_button = btn
+        self.status_var = tk.StringVar(value="Ready")
+        tk.Label(frame, textvariable=self.status_var, fg='#ecf0f1', bg='#34495e', font=('Arial',12)).pack(fill=tk.X, pady=5)
+
+    def save_regions(self):
+        if not self.regions:
+            messagebox.showwarning("Warning", "No regions to save!")
+            return
+        filename = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")], title="Save Regions")
+        if filename:
+            try:
+                data = {'regions': self.regions, 'window_title': self.window_var.get(), 'image_size': [self.captured_image.width, self.captured_image.height] if self.captured_image else None, 'created_at': time.strftime('%Y-%m-%d %H:%M:%S'), 'version': '2.1'}
+                with open(filename, 'w') as f: json.dump(data, f, indent=2)
+                self.status_var.set(f"📤 Regions saved: {os.path.basename(filename)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save regions: {e}")
+    
+    def load_regions(self):
+        filename = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")], title="Load Regions")
+        if filename:
+            try:
+                with open(filename, 'r') as f: data = json.load(f)
+                if 'regions' not in data:
+                    messagebox.showerror("Error", "Invalid regions file format!")
+                    return
+                if self.captured_image and 'image_size' in data:
+                    if data['image_size'] != [self.captured_image.width, self.captured_image.height]:
+                        if not messagebox.askyesno("Size Mismatch", f"Saved regions: {data['image_size'][0]}x{data['image_size'][1]}\nCurrent image: {self.captured_image.width}x{self.captured_image.height}\n\nLoad anyway?"):
+                            return
+                self.regions = data['regions']
+                if self.captured_image: self.draw_regions()
+                self.status_var.set(f"📥 Loaded {len(self.regions)} regions")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load regions: {e}")
+    
+    def embed_regions_in_script(self):
+        if not self.regions:
+            messagebox.showwarning("Warning", "No regions to embed!")
+            return
+        code = f"# ============ EMBEDDED REGIONS ============\n# Auto-generated region definitions\n# Created: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        if self.captured_image: code += f"# Image size: {self.captured_image.width}x{self.captured_image.height}\n"
+        if self.window_var.get(): code += f"# Window: {self.window_var.get()}\n"
+        code += "\nbot.gui.regions = [\n"
+        for i, region in enumerate(self.regions):
+            code += f"    {{'x': {region['x']}, 'y': {region['y']}, 'width': {region['width']}, 'height': {region['height']}, 'color': '{region['color']}'}},\n"
+        code += "]\nbot.gui.update_region_selector()\nbot.log('Loaded embedded regions')\n# ============ END EMBEDDED REGIONS ============\n\n"
+        
+        current = self.script_editor.get("1.0", tk.END)
+        lines = current.split('\n')
+        insert_pos = next((i for i, line in enumerate(lines) if line.strip().startswith('while ') or (line.strip() and not line.strip().startswith('#'))), 0)
+        lines.insert(insert_pos, code)
+        self.script_editor.delete("1.0", tk.END)
+        self.script_editor.insert(tk.END, '\n'.join(lines))
+        self.status_var.set(f"🔗 Embedded {len(self.regions)} regions in script")
+    
+    def save_script(self):
+        code = self.script_editor.get("1.0", tk.END)
+        if not code.strip(): messagebox.showerror("Error", "Script is empty."); return
+        has_embedded = "# ============ EMBEDDED REGIONS ============" in code
+        if self.regions and not has_embedded:
+            response = messagebox.askyesnocancel("Include Regions?", f"Embed {len(self.regions)} regions in script?\n\nYes: Portable script\nNo: Script only\nCancel: Don't save")
+            if response is None: return
+            elif response: self.embed_regions_in_script(); code = self.script_editor.get("1.0", tk.END)
+        filename = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python Files", "*.py")])
+        if filename:
+            try:
+                with open(filename, 'w') as f: f.write(code)
+                self.status_var.set(f"💾 Script saved: {os.path.basename(filename)}")
+            except Exception as e: messagebox.showerror("Error", f"Failed to save script: {e}")
+    
+    def load_script(self):
+        filename = filedialog.askopenfilename(filetypes=[("Python Files", "*.py")])
+        if filename:
+            try:
+                with open(filename, 'r') as f: code = f.read()
+                has_embedded = "# ============ EMBEDDED REGIONS ============" in code
+                self.script_editor.delete("1.0", tk.END)
+                self.script_editor.insert(tk.END, code)
+                self.status_var.set(f"📂 Script loaded: {os.path.basename(filename)}")
+                if has_embedded: messagebox.showinfo("Embedded Regions", "Script contains embedded regions that will load when run.")
+            except Exception as e: messagebox.showerror("Error", f"Failed to load script: {e}")
+        
+    def capture_window(self):
+        hwnd_str = self.window_var.get()
+        if not hwnd_str: messagebox.showwarning("Warning", "Select a window first!"); return
+        try:
+            hwnd = int(hwnd_str.split("HWND: ")[-1].rstrip(')'))
+        except: messagebox.showerror("Error", "Invalid window format."); return
+        
+        try:
+            if not win32gui.IsWindow(hwnd): messagebox.showerror("Error", "Window no longer exists."); return
+            if not win32gui.IsWindowVisible(hwnd): win32gui.ShowWindow(hwnd, win32con.SW_SHOW); time.sleep(0.5)
+            
+            self.root.iconify(); time.sleep(0.5)
+            left, top, right, bottom = _get_true_hwnd_rect(hwnd)
+            width, height = right - left, bottom - top
+            
+            if width <= 0 or height <= 0 or width > 5000 or height > 5000:
+                self.root.deiconify(); messagebox.showerror("Error", f"Invalid dimensions: {width}x{height}"); return
+                
+            self.window_offset = (left, top)
+            self.captured_image = pyautogui.screenshot(region=(left, top, width, height))
+            
+            if self.captured_image is None or np.all(np.array(self.captured_image) == 0):
+                raise Exception("Screenshot failed or black image")
+                
+            self.selected_window = hwnd
+            self.root.deiconify()
+            self.display_x = self.display_y = 0; self.display_width = self.display_height = 1
+            self.reset_zoom()
+            
+            if self.regions and not self.validate_regions_for_window():
+                if not messagebox.askyesno("Region Validation", "Some regions outside window bounds. Keep anyway?"):
+                    self.regions = []; self.update_region_selector()
+            
+            self.status_var.set(f"✅ Window captured: {width}x{height}")
+            
+        except Exception as e:
+            self.root.deiconify(); messagebox.showerror("Capture Error", f"Failed: {e}")
+            
+    def validate_regions_for_window(self):
+        if not self.captured_image or not self.regions: return True
+        img_w, img_h = self.captured_image.width, self.captured_image.height
+        return all(0 <= r['x'] < img_w and 0 <= r['y'] < img_h and r['x'] + r['width'] <= img_w and r['y'] + r['height'] <= img_h for r in self.regions)
+
+    def show_window_info(self):        
+        hwnd_str = self.window_var.get()
+        if not hwnd_str: messagebox.showwarning("Warning", "No window selected!"); return
+        try: hwnd = int(hwnd_str.split("HWND: ")[-1].rstrip(')'))
+        except: messagebox.showerror("Error", "Invalid window format."); return
+        
+        try:
+            title = win32gui.GetWindowText(hwnd) if win32gui.IsWindow(hwnd) else "Invalid"
+            style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE) if win32gui.IsWindow(hwnd) else 0
+            is_max = bool(style & win32con.WS_MAXIMIZE)
+            
+            window_rect = wintypes.RECT(); win32gui.GetWindowRect(hwnd, ctypes.byref(window_rect))
+            calc_rect = _get_true_hwnd_rect(hwnd)
+            
+            regions_summary = f"{len(self.regions)} regions" if self.regions else "No regions"
+            info = f"""Window: {title}
+HWND: {hwnd}
+Maximized: {is_max}
+Window Rect: ({window_rect.left}, {window_rect.top}) - ({window_rect.right}, {window_rect.bottom})
+Calculated: ({calc_rect[0]}, {calc_rect[1]}) - ({calc_rect[2]}, {calc_rect[3]})
+Regions: {regions_summary}"""
+            
+            dialog = tk.Toplevel(self.root); dialog.title("Window Info"); dialog.geometry("500x300")
+            text = scrolledtext.ScrolledText(dialog, wrap=tk.WORD, font=('Consolas', 10))
+            text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            text.insert(tk.END, info); text.config(state=tk.DISABLED)
+            tk.Button(dialog, text="Close", command=dialog.destroy).pack(pady=10)
+        except Exception as e: messagebox.showerror("Error", f"Failed to get window info: {e}")
+
+    def add_action_to_script(self):
+        action, region = self.action_var.get(), self.region_var.get()
+        button, use_shift, use_ctrl, use_bg = self.button_var.get().lower(), self.shift_var.get(), self.ctrl_var.get(), self.background_var.get()
+        args = []
+        
+        if action in ["Find & Click Color", "Click Region Center"]:
+            if not region: messagebox.showerror("Error", "Select a region."); return
+            args.append(f"region_index={int(region.split(' ')[1])}")
+            
+        if action == "Find & Click Color": 
+            args.insert(0, f"hex_color='{self.current_color}'")
+            try: args.append(f"tolerance={int(self.tolerance_var.get())}")
+            except: pass
+            
+        if action in ["Find & Click Color", "Click Region Center"]:
+            args.append(f"button='{button}'")
+            mods = [f"'{mod}'" for mod, use in [('shift', use_shift), ('ctrl', use_ctrl)] if use]
+            if mods: args.append(f"modifiers=[{','.join(mods)}]")
+            args.append(f"background={use_bg}")
+            
+        if action == "Find & Click Color": 
+            code = f"if bot.find_and_click_color({', '.join(args)}):\n    bot.wait(0.5)\nelse:\n    bot.log('Color {self.current_color} not found')\n"
+        elif action == "Click Region Center": 
+            code = f"bot.click_region({', '.join(args)})\n"
+        elif action == "Wait":
+            try: code = f"bot.wait({float(self.wait_var.get())})\n"
+            except: messagebox.showerror("Error", "Invalid wait time."); return
+        elif action == "Random Wait":
+            try: 
+                base = float(self.wait_var.get())
+                code = f"bot.random_wait({base}, {base * 0.5})\n"
+            except: messagebox.showerror("Error", "Invalid wait time."); return
+        else: return
+            
+        try:
+            line = self.script_editor.get("insert linestart", "insert lineend")
+            indent = ' ' * (len(line) - len(line.lstrip()))
+            self.script_editor.insert(tk.INSERT, indent + code.replace("\n", f"\n{indent}"))
+        except: self.script_editor.insert(tk.INSERT, code)
+        
+    def indent_selection(self, reverse=False):
+        try:
+            start, end = self.script_editor.tag_ranges("sel")
+            for line in range(int(start.string.split('.')[0]), int(end.string.split('.')[0])+1):
+                if reverse:
+                    if self.script_editor.get(f"{line}.0", f"{line}.4") == "    ": 
+                        self.script_editor.delete(f"{line}.0", f"{line}.4")
+                else: 
+                    self.script_editor.insert(f"{line}.0", "    ")
+        except: pass
+        
+    def update_region_selector(self):
+        """Update region selector combobox with current regions"""
+        names = [f"Region {i}" for i in range(len(self.regions))]
+        self.region_combo['values'] = names
+        if names:
+            self.region_var.set(names[0])  # Set to first region instead of last
+        else:
+            self.region_var.set("")
+        
+    def canvas_to_image_coords(self, cx, cy):
+        if not self.captured_image or not hasattr(self, 'display_x') or self.display_width == 0 or self.display_height == 0:
+            return 0, 0
+        
+        if self.zoom_level <= self.min_zoom:
+            rel_x = max(0, min(1, (cx - self.display_x) / self.display_width))
+            rel_y = max(0, min(1, (cy - self.display_y) / self.display_height))
+            ix, iy = int(rel_x * self.captured_image.width), int(rel_y * self.captured_image.height)
+        else:
+            if self.display_width == 0 or self.display_height == 0: return 0, 0
+            rel_x, rel_y = cx / self.display_width, cy / self.display_height
+            vw, vh = self.view_rect[2] - self.view_rect[0], self.view_rect[3] - self.view_rect[1]
+            if vw == 0 or vh == 0: return 0, 0
+            ix = int(self.view_rect[0] + rel_x * vw)
+            iy = int(self.view_rect[1] + rel_y * vh)
+        
+        return max(0, min(self.captured_image.width - 1, ix)), max(0, min(self.captured_image.height - 1, iy))
+
+    def on_mouse_wheel(self, e):
+        if not self.captured_image or not hasattr(self, 'display_x') or self.display_width == 0: return
+        
+        factor = 1.1 if (e.num == 4 or e.delta > 0) else 1/1.1
+        new_zoom = max(self.min_zoom, min(self.max_zoom, self.zoom_level * factor))
+        if new_zoom == self.zoom_level: return
+        
+        ix, iy = self.canvas_to_image_coords(e.x, e.y)
+        self.zoom_level = new_zoom
+        
+        if self.zoom_level > self.min_zoom:
+            vw, vh = self.captured_image.width / self.zoom_level, self.captured_image.height / self.zoom_level
+            cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+            if cw == 0 or ch == 0: return
+            mouse_rel_x, mouse_rel_y = e.x / cw, e.y / ch
+            self.view_rect = [ix - mouse_rel_x * vw, iy - mouse_rel_y * vh, 0, 0]
+            self.view_rect[2], self.view_rect[3] = self.view_rect[0] + vw, self.view_rect[1] + vh
+        
+        self.update_canvas_display()
+
+    def start_selection(self, e):
+        if not self.captured_image or not hasattr(self, 'display_x') or self.display_width == 0: return
+        if self.eyedropper_mode: self.pick_color_at_event(e); return
+        if self.selection_mode: self.start_pos = (e.x, e.y)
+
+    def end_selection(self, e):
+        if not self.start_pos or not self.captured_image or not hasattr(self, 'display_x') or self.display_width == 0: return
+        x1i, y1i = self.canvas_to_image_coords(self.start_pos[0], self.start_pos[1])
+        x2i, y2i = self.canvas_to_image_coords(e.x, e.y)
+        self.start_pos = None; self.canvas.delete("selection")
+        x1, y1, x2, y2 = min(x1i, x2i), min(y1i, y2i), max(x1i, x2i), max(y1i, y2i)
+        
+        if x2 - x1 > 5 and y2 - y1 > 5: 
+            self.regions.append({'x': x1, 'y': y1, 'width': x2 - x1, 'height': y2 - y1, 'color': self.current_color})
+            self.draw_regions()
+            self.status_var.set(f"✅ Region {len(self.regions)-1} added: ({x1},{y1}) {x2-x1}x{y2-y1}")
+
+    def pick_color_at_event(self, e):
+        if not self.captured_image or not hasattr(self, 'display_x') or self.display_width == 0: return
+        try:
+            ix, iy = self.canvas_to_image_coords(e.x, e.y)
+            if 0 <= ix < self.captured_image.width and 0 <= iy < self.captured_image.height:
+                px = self.captured_image.getpixel((ix, iy))
+                self.set_current_color('#{:02x}{:02x}{:02x}'.format(px[0], px[1], px[2]))
+                self.status_var.set(f"💧 Color picked: {self.current_color}")
+        except Exception as e: pass
+        finally: self.toggle_eyedropper_mode(force_off=True)
+
+    def on_canvas_motion(self, e):
+        if not self.captured_image or not hasattr(self, 'display_x') or self.display_width == 0: return
+        try:
+            ix, iy = self.canvas_to_image_coords(e.x, e.y)
+            if 0 <= ix < self.captured_image.width and 0 <= iy < self.captured_image.height:
+                px = self.captured_image.getpixel((ix, iy))
+                hex_color = '#{:02x}{:02x}{:02x}'.format(px[0], px[1], px[2])
+                self.status_var.set(f"Pixel: ({ix},{iy}) | RGB: {px} | Hex: {hex_color} | Zoom: {self.zoom_level:.1f}x")
+        except: pass
+
+    def update_canvas_display(self):
+        if not self.captured_image: return
+        try:
+            cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+            if cw <= 1 or ch <= 1: self.root.after(100, self.update_canvas_display); return
+            
+            if self.zoom_level <= self.min_zoom:
+                img_ratio, canvas_ratio = self.captured_image.width / self.captured_image.height, cw / ch
+                if img_ratio > canvas_ratio:
+                    self.display_width, self.display_height = cw, int(cw / img_ratio)
+                else:
+                    self.display_width, self.display_height = int(ch * img_ratio), ch
+                self.display_width, self.display_height = max(1, self.display_width), max(1, self.display_height)
+                self.display_x, self.display_y = (cw - self.display_width) / 2, (ch - self.display_height) / 2
+                resized = self.captured_image.resize((self.display_width, self.display_height), Image.Resampling.LANCZOS)
+                self.view_rect = [0, 0, self.captured_image.width, self.captured_image.height]
+            else:
+                vw, vh = self.captured_image.width / self.zoom_level, self.captured_image.height / self.zoom_level
+                self.view_rect[0] = max(0, min(self.view_rect[0], self.captured_image.width - vw))
+                self.view_rect[1] = max(0, min(self.view_rect[1], self.captured_image.height - vh))
+                self.view_rect[2], self.view_rect[3] = self.view_rect[0] + vw, self.view_rect[1] + vh
+                self.display_x = self.display_y = 0
+                self.display_width, self.display_height = max(1, cw), max(1, ch)
+                crop = tuple(map(int, [max(0, self.view_rect[0]), max(0, self.view_rect[1]), min(self.captured_image.width, self.view_rect[2]), min(self.captured_image.height, self.view_rect[3])]))
+                resized = self.captured_image.crop(crop).resize((cw, ch), Image.Resampling.LANCZOS)
+            
+            self.canvas_image = ImageTk.PhotoImage(resized)
+            self.canvas.delete("all")
+            self.canvas.create_image(self.display_x + self.display_width/2, self.display_y + self.display_height/2, image=self.canvas_image)
+            self.draw_regions()
+        except Exception as e: pass
+
+    def image_to_canvas_coords(self, ix, iy):
+        if not hasattr(self, 'display_x') or self.display_width == 0 or self.display_height == 0: return 0, 0
+        if self.zoom_level <= self.min_zoom:
+            rel_x, rel_y = ix / self.captured_image.width, iy / self.captured_image.height
+            return self.display_x + rel_x * self.display_width, self.display_y + rel_y * self.display_height
+        else:
+            vw, vh = self.view_rect[2] - self.view_rect[0], self.view_rect[3] - self.view_rect[1]
+            if vw == 0 or vh == 0: return 0, 0
+            rel_x, rel_y = (ix - self.view_rect[0]) / vw, (iy - self.view_rect[1]) / vh
+            return rel_x * self.display_width, rel_y * self.display_height
+    
+    def start_pan(self, e):
+        if self.zoom_level <= self.min_zoom: return
+        self.panning = True
+        self.pan_start_x, self.pan_start_y = e.x, e.y
+        self.pan_start_view_x, self.pan_start_view_y = self.view_rect[0], self.view_rect[1]
+        self.canvas.config(cursor="fleur")
+        
+    def do_pan(self, e):
+        if not self.panning: return
+        dx, dy = e.x - self.pan_start_x, e.y - self.pan_start_y
+        vw, vh = self.view_rect[2] - self.view_rect[0], self.view_rect[3] - self.view_rect[1]
+        self.view_rect[0] = self.pan_start_view_x - dx * (vw / self.canvas.winfo_width())
+        self.view_rect[1] = self.pan_start_view_y - dy * (vh / self.canvas.winfo_height())
+        self.update_canvas_display()
+        
+    def end_pan(self, e): 
+        self.panning = False
+        self.canvas.config(cursor="arrow")
+    
+    def reset_zoom(self, e=None):
+        if self.zoom_level == self.min_zoom: return
+        self.zoom_level = self.min_zoom
+        self.update_canvas_display()
+        self.status_var.set("🔍 Zoom reset.")
+            
+    def toggle_eyedropper_mode(self, force_off=False):
+        if not self.captured_image: messagebox.showwarning("Warning", "Capture a window first!"); return
+        if force_off or self.eyedropper_mode: 
+            self.eyedropper_mode = False
+            self.status_var.set("Eyedropper OFF.")
+            self.canvas.config(cursor="arrow")
+        else:
+            if self.selection_mode: self.toggle_selection_mode(force_off=True)
+            self.eyedropper_mode = True
+            self.status_var.set("💧 Eyedropper ON - Click to pick color.")
+            self.canvas.config(cursor="crosshair")
+            
+    def toggle_selection_mode(self, force_off=False):
+        if not self.captured_image: messagebox.showwarning("Warning", "Capture a window first!"); return
+        if force_off or self.selection_mode: 
+            self.selection_mode = False
+            self.status_var.set("Selection mode OFF.")
+            self.canvas.config(cursor="arrow")
+        else:
+            if self.eyedropper_mode: self.toggle_eyedropper_mode(force_off=True)
+            self.selection_mode = True
+            self.status_var.set("🎯 Selection mode ON - Click and drag to create region.")
+            self.canvas.config(cursor="crosshair")
+            
+    def bound_mouse_to_window(self):
+        if not self.selected_window or self.bounding_active: return
+        try:
+            left, top, right, bottom = _get_true_hwnd_rect(self.selected_window)
+            rect = wintypes.RECT(left, top, right, bottom)
+            ctypes.windll.user32.ClipCursor(ctypes.byref(rect))
+            self.bounding_active = True
+            self.status_var.set("🖱️ Mouse bounded to target window")
+        except Exception as e: pass
+    
+    def release_mouse_bound(self):
+        if not self.bounding_active: return
+        try:
+            ctypes.windll.user32.ClipCursor(None)
+            self.bounding_active = False
+            self.status_var.set("🖱️ Mouse bound released")
+        except: pass
+            
+    def play_script(self):
+        if self.script_mode.get() == "visual":
+            # Run the visual script
+            visual_script = {
+                "nodes": self.nodes,
+                "connections": self.connections
+            }
+            self.script_runner.run_script(visual_script=visual_script)
+        else:
+            # Run the text script
+            code = self.script_editor.get("1.0", tk.END)
+            if not code.strip():
+                messagebox.showwarning("Warning", "Script is empty.")
+                return
+            if not self.selected_window:
+                messagebox.showwarning("Warning", "Capture a window first.")
+                return
+            self.script_runner.run_script(code)
+        
+        # Update UI state
+        self.is_playing, self.is_paused = True, False
+        self.play_button.config(state=tk.DISABLED)
+        self.pause_button.config(text="⏸️ Pause (F6)", state=tk.NORMAL)
+        self.output_console.config(state=tk.NORMAL)
+        self.output_console.delete('1.0', tk.END)
+        self.output_console.config(state=tk.DISABLED)
+        self.bound_mouse_to_window()
+        
+    def pause_resume_script(self):
+        if not hasattr(self, 'is_playing') or not self.is_playing: return
+        self.is_paused = not self.is_paused
+        if self.is_paused: 
+            self.script_runner.pause()
+            self.pause_button.config(text="▶️ Resume (F6)")
+            self.status_var.set("⏸️ Script paused")
+        else: 
+            self.script_runner.resume()
+            self.pause_button.config(text="⏸️ Pause (F6)")
+            self.status_var.set("▶️ Script resumed")
+            
+    def stop_script(self):
+        if not hasattr(self, 'is_playing') or not self.is_playing: return
+        self.script_runner.stop()
+        self._on_script_finished_ui()
+        
+    def log_message(self, m): 
+        self.root.after(0, self._log_message_ui, m)
+        
+    def _log_message_ui(self, m):
+        self.output_console.config(state=tk.NORMAL)
+        self.output_console.insert(tk.END, m + "\n")
+        self.output_console.config(state=tk.DISABLED)
+        self.output_console.see(tk.END)
+        
+    def on_script_finished(self): 
+        self.root.after(0, self._on_script_finished_ui)
+        
+    def _on_script_finished_ui(self):
+        self.is_playing, self.is_paused = False, False
+        self.play_button.config(state=tk.NORMAL)
+        self.pause_button.config(text="⏸️ Pause (F6)", state=tk.DISABLED)
+        self.release_mouse_bound()
+        if "stopped" not in self.status_var.get(): 
+            self.status_var.set("✅ Script finished. Ready for next run!")
+                
+    def load_window_list(self):
+        if not win32gui: self.status_var.set("Error: win32gui not available"); return
+        windows, debug_info = [], []
+        
+        def enum_cb(hwnd, w):
+            try:
+                title = win32gui.GetWindowText(hwnd)
+                if title and title.strip() and win32gui.IsWindowVisible(hwnd):
+                    w.append((hwnd, title))
+            except Exception as e: debug_info.append(f"Error with HWND {hwnd}: {str(e)}")
+            return True
+        
+        try:
+            win32gui.EnumWindows(enum_cb, windows)
+            if not windows:
+                def enum_minimal(hwnd, w):
+                    try:
+                        title = win32gui.GetWindowText(hwnd)
+                        if title: w.append((hwnd, title))
+                    except: pass
+                    return True
+                win32gui.EnumWindows(enum_minimal, windows)
+            
+            windows.sort(key=lambda x: x[1].lower())
+            window_strings = [f"{title} (HWND: {hwnd})" for hwnd, title in windows]
+            self.window_combo['values'] = window_strings
+            
+            if windows:
+                self.status_var.set(f"Found {len(windows)} windows.")
+                if window_strings: self.window_var.set(window_strings[0])
+            else:
+                self.status_var.set("No windows found.")
+                
+        except Exception as e:
+            self.status_var.set(f"Error loading windows: {e}")
+            
+    def choose_color(self):
+        color = colorchooser.askcolor(color=self.current_color)
+        if color[1]:
+            self.set_current_color(color[1])
+            self.status_var.set(f"Color selected: {color[1]}")
+    
+    def update_selection(self, e):
+        if not self.start_pos: return
+        self.canvas.delete("selection")
+        self.canvas.create_rectangle(self.start_pos[0], self.start_pos[1], e.x, e.y, outline=self.current_color, width=2, tags="selection")
+    
+    def clear_regions(self):
+        if self.regions and not messagebox.askyesno("Confirm Clear", f"Clear all {len(self.regions)} regions?"): return
+        self.regions = []
+        self.canvas.delete("region")
+        self.status_var.set("🧹 All regions cleared.")
+        self.update_region_selector()
+    
+    def on_canvas_configure(self, e):
+        if hasattr(self, '_resize_timer'): self.root.after_cancel(self._resize_timer)
+        self._resize_timer = self.root.after(100, self.update_canvas_display)
+    
+    def set_current_color(self, color):
+        self.current_color = color
+        self.color_button.config(bg=color)
+        r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+        brightness = (r * 299 + g * 587 + b * 114) / 1000
+        self.color_button.config(fg='white' if brightness < 128 else 'black')
+
+    def draw_regions(self):
+        self.canvas.delete("region")
+        if not hasattr(self, 'display_x'): return
+        
+        for i, region in enumerate(self.regions):
+            x1, y1 = self.image_to_canvas_coords(region['x'], region['y'])
+            x2, y2 = self.image_to_canvas_coords(region['x'] + region['width'], region['y'] + region['height'])
+            
+            cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+            if x2 > 0 and x1 < cw and y2 > 0 and y1 < ch:
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline=region['color'], width=3, tags="region")
+                info_text = f"R{i}: {region['width']}x{region['height']}"
+                text_bg_width, text_y = len(info_text) * 7, max(y1 - 20, 0)
+                self.canvas.create_rectangle(x1, text_y, x1 + text_bg_width, y1, fill='black', outline=region['color'], tags="region")
+                self.canvas.create_text(x1 + 2, text_y + 10, text=info_text, anchor='w', fill=region['color'], font=('Arial', 9, 'bold'), tags="region")
+        
+        self.update_region_selector()

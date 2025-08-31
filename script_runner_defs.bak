@@ -1,0 +1,277 @@
+"""DEPRECATED MODULE
+Use `from core.script_runner import ScriptRunner` instead.
+This file is only a compatibility shim."""
+from warnings import warn
+from core.script_runner import ScriptRunner  # re-export
+
+warn(
+    "script_runner_defs is deprecated; import ScriptRunner from core.script_runner instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+__all__ = ["ScriptRunner"]
+from core.script_runner import ScriptRunner
+
+__all__ = ["ScriptRunner"]
+
+Use `from core.script_runner import ScriptRunner` instead.
+This file remains only for backward compatibility and re-exports ScriptRunner.
+"""
+from warnings import warn
+from core.script_runner import ScriptRunner
+
+warn("script_runner_defs is deprecated; use core.script_runner instead.", DeprecationWarning, stacklevel=2)
+
+
+__all__ = ["ScriptRunner"]
+
+", DeprecationWarning)
+
+import traceback
+from datetime import datetime
+import tkinter as tk  # Add this import
+from bot_api import BotAPI
+
+
+
+(self, visual_script):
+    """Execute a visual script"""
+    try:
+        # Set up script environment
+        script_globals = {
+            'bot': self.bot_api,
+            'time': time,
+            'print': self.bot_api.log,
+            '__builtins__': __builtins__,
+            'debug': self._debug_mode
+        }
+        
+        # Pre-script setup
+        self._message_queue.put(('state', 'running'))
+        self.log("=== Visual script execution started ===")
+        self._start_time = time.time()
+        
+        # Convert visual script to executable code
+        code = self._visual_script_to_code(visual_script)
+        
+        # Execute the generated code
+        exec(code, script_globals)
+        
+        # Post-script cleanup
+        self._execution_time = time.time() - self._start_time
+        self.log(f"=== Visual script completed in {self._execution_time:.2f} seconds ===")
+        self.log(f"Performance: {self._actions_count} actions, {self._errors_count} errors")
+        if self._debug_mode:
+            self.log("=== Performance Metrics ===")
+            for entry in self._performance_log:
+                self.log(f"  {entry}")
+    except KeyboardInterrupt:
+        self.log("Script interrupted by user")
+        self._message_queue.put(('state', 'stopped'))
+    except SystemExit:
+        self.log("Script exited normally")
+        self._message_queue.put(('state', 'stopped'))
+    except Exception as e:
+        self._errors_count += 1
+        self._last_error = str(e)
+        error_details = traceback.format_exc()
+        self.log(f"SCRIPT ERROR: {self._last_error}")
+        self.log(f"Error details:\n{error_details}")
+        self._message_queue.put(('state', 'error'))
+    finally:
+        # Ensure cleanup happens
+        if self.bot_api and self.bot_api.is_running:
+            self.bot_api.is_running = False
+            self.log("Script execution finished.")
+        # Notify GUI on main thread
+        if hasattr(self.gui, 'on_script_finished'):
+            self.gui.on_script_finished()
+        # Final state update
+        if self._script_state not in ["stopped", "error"]:
+            self._message_queue.put(('state', 'idle'))
+
+    def _visual_script_to_code(self, visual_script):
+        """Convert visual script representation to executable Python code"""
+        # This would generate Python code from the visual script structure
+        # For example:
+        code = "# Generated from visual script\n"
+        code += "while bot.is_running:\n"
+        
+        # Add embedded regions if needed
+        if hasattr(self.gui, 'regions') and self.gui.regions:
+            code += "    # ============ EMBEDDED REGIONS ============\n"
+            code += "    bot.gui.regions = [\n"
+            for i, region in enumerate(self.gui.regions):
+                code += f"        {{'x': {region['x']}, 'y': {region['y']}, 'width': {region['width']}, 'height': {region['height']}, 'color': '{region['color']}'}},\n"
+            code += "    ]\n"
+            code += "    bot.gui.update_region_selector()\n"
+            code += "    # ============ END EMBEDDED REGIONS ============\n"
+            code += "    \n"
+        
+        # Add the actual script steps based on node execution order
+        execution_order = self._get_visual_execution_order(visual_script)
+        
+        for node in execution_order:
+            if node["type"] == "find_click_color":
+                params = [
+                    f"hex_color='{node['params']['hex_color']}'",
+                    f"region_index={node['params']['region_index']}",
+                    f"tolerance={node['params']['tolerance']}",
+                    f"button='{node['params']['button']}'"
+                ]
+                if node['params']['modifiers']:
+                    mods = ", ".join([f"'{m}'" for m in node['params']['modifiers']])
+                    params.append(f"modifiers=[{mods}]")
+                params.append(f"background={node['params']['background']}")
+                
+                code += f"    if bot.find_and_click_color({', '.join(params)}):\n"
+                code += "        bot.wait(0.5)\n"
+                code += "    else:\n"
+                code += f"        bot.log('Color {node['params']['hex_color']} not found')\n"
+            
+            elif node["type"] == "click_region":
+                params = [
+                    f"region_index={node['params']['region_index']}",
+                    f"button='{node['params']['button']}'"
+                ]
+                if node['params']['modifiers']:
+                    mods = ", ".join([f"'{m}'" for m in node['params']['modifiers']])
+                    params.append(f"modifiers=[{mods}]")
+                params.append(f"background={node['params']['background']}")
+                
+                code += f"    bot.click_region({', '.join(params)})\n"
+            
+            elif node["type"] == "wait":
+                code += f"    bot.wait({node['params']['seconds']})\n"
+            
+            elif node["type"] == "random_wait":
+                code += f"    bot.random_wait({node['params']['base_seconds']}, {node['params']['variance_seconds']})\n"
+            
+            # Add more node types as needed...
+        
+        return code
+
+    def _get_visual_execution_order(self, visual_script):
+        """Determine execution order from visual script connections"""
+        # This would implement a graph traversal to determine the correct order
+        # For simplicity, we'll assume a linear flow from start node
+        order = []
+        visited = set()
+        
+        # Find the start node
+        start_node = next((node for node in visual_script["nodes"] if node["type"] == "start"), None)
+        if not start_node:
+            return order
+        
+        # Follow connections to determine order
+        current = start_node
+        while True:
+            # Find the next node connected to current
+            next_node = None
+            for conn in visual_script["connections"]:
+                if conn["from_node"] == current and conn["from_port"] == 0:
+                    next_node = conn["to_node"]
+                    break
+            
+            if not next_node or next_node["id"] in visited:
+                break
+                
+            visited.add(next_node["id"])
+            order.append(next_node)
+            current = next_node
+        
+        return order
+        
+    def _process_gui_messages(self):
+        """Process messages from the script thread in the GUI context"""
+        self._process_message_queue()
+        
+        # Schedule the next check if script is still running
+        if self.is_running():
+            self.gui.root.after(100, self._process_gui_messages)
+            
+    def pause(self):
+        """Pauses the script's execution."""
+        if self.is_running() and not self.is_paused():
+            self._pause_event.clear()  # Clearing the event causes wait() to block
+            self._message_queue.put(('status', "⏸️ Script paused. Press F6 to resume."))
+            self.log("Script paused by user")
+            self._message_queue.put(('state', 'paused'))
+            
+    def resume(self):
+        """Resumes a paused script."""
+        if self.is_running() and self.is_paused():
+            self._pause_event.set()  # Setting the event unblocks wait()
+            self._message_queue.put(('status', "▶️ Script resumed..."))
+            self.log("Script resumed by user")
+            self._message_queue.put(('state', 'running'))
+            
+    def stop(self):
+        """Stops the script's execution."""
+        if self.is_running():
+            # Set stop flag
+            self._stop_event.set()
+            self.bot_api._is_running = False
+            
+            # Unblock if paused so it can check the stop flag
+            self._pause_event.set()
+            
+            # Update status
+            self._message_queue.put(('status', "⏹️ Script stopping..."))
+            self.log("Script stop requested by user")
+            self._message_queue.put(('state', 'stopped'))
+            
+            # Wait a short time for graceful shutdown
+            try:
+                self.script_thread.join(timeout=2.0)
+                if self.script_thread.is_alive():
+                    self._message_queue.put(('status', "⚠️ Script force stopped (thread still running)"))
+                else:
+                    self._message_queue.put(('status', "⏹️ Script stopped successfully"))
+            except:
+                self._message_queue.put(('status', "⏹️ Script stopped"))
+                
+    def is_running(self):
+        """Check if a script is currently running."""
+        return (self.script_thread is not None and 
+                self.script_thread.is_alive() and 
+                self.bot_api is not None and 
+                self.bot_api.is_running)
+                
+    def is_paused(self):
+        """Check if the script is currently paused."""
+        return self.is_running() and not self._pause_event.is_set()
+        
+    def get_script_state(self):
+        """Get the current script state"""
+        return self._script_state
+        
+    def get_performance_stats(self):
+        """Get performance statistics for the last run"""
+        return {
+            'execution_time': self._execution_time,
+            'actions_count': self._actions_count,
+            'errors_count': self._errors_count,
+            'last_error': self._last_error,
+            'performance_log': self._performance_log.copy()
+        }
+        
+    def cleanup(self):
+        """Clean up resources when shutting down."""
+        if self.is_running():
+            self.stop()
+        
+        # Wait for thread to finish
+        if self.script_thread and self.script_thread.is_alive():
+            try:
+                self.script_thread.join(timeout=5.0)
+            except:
+                pass
+                
+        # Clear message queue
+        while not self._message_queue.empty():
+            try:
+                self._message_queue.get_nowait()
+            except queue.Empty:
+                break
