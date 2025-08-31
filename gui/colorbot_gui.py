@@ -6,6 +6,7 @@ import os
 import ctypes
 from ctypes import wintypes
 import json
+import copy
 
 from PIL import Image, ImageTk
 import numpy as np
@@ -178,12 +179,12 @@ class ColorBotGUI:
         tk.Button(r3, text="🧩 Add Node", command=self.add_node_to_visual, bg='#2980b9', fg='white', font=('Arial',12,'bold')).pack(side=tk.LEFT, expand=True, fill=tk.X, ipady=5, padx=5)
         self.background_var = tk.BooleanVar(value=True); tk.Checkbutton(r3, text="Background Input", variable=self.background_var, fg='#ecf0f1', bg='#34495e', selectcolor='#34495e', font=('Arial',10,'bold')).pack(side=tk.LEFT, padx=10)
         # --- Notebook with Code and Visual tabs ---
-        nb = ttk.Notebook(rframe)
-        nb.pack(fill=tk.BOTH, expand=True, padx=15, pady=(10,15))
+        self.scripting_notebook = ttk.Notebook(rframe)
+        self.scripting_notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=(10,15))
 
         # --------- Code tab ---------
-        code_tab = tk.Frame(nb, bg='#34495e')
-        nb.add(code_tab, text='📝 Code')
+        code_tab = tk.Frame(self.scripting_notebook, bg='#34495e')
+        self.scripting_notebook.add(code_tab, text='📝 Code')
 
         code_pane = tk.PanedWindow(code_tab, orient=tk.VERTICAL, sashrelief=tk.RAISED, bg='#34495e')
         code_pane.pack(fill=tk.BOTH, expand=True)
@@ -197,8 +198,8 @@ class ColorBotGUI:
         cframe = tk.Frame(code_pane, bg='#34495e'); tk.Label(cframe, text="Output Console", font=('Arial',12,'bold'), fg='#ecf0f1', bg='#34495e').pack(anchor=tk.W)
         self.output_console = scrolledtext.ScrolledText(cframe, wrap=tk.WORD, height=5, state=tk.DISABLED, bg='#1c2833', fg='#aed6f1', font=('Consolas',9)); self.output_console.pack(fill=tk.BOTH, expand=True); code_pane.add(cframe)
         # --------- Visual tab ---------
-        vframe = tk.Frame(nb, bg='#34495e')
-        nb.add(vframe, text='🧩 Visual')
+        vframe = tk.Frame(self.scripting_notebook, bg='#34495e')
+        self.scripting_notebook.add(vframe, text='🧩 Visual')
         tk.Label(vframe, text="🧩 Visual Script Canvas", font=('Arial',12,'bold'), fg='#ecf0f1', bg='#34495e').pack(anchor=tk.W)
         self.visual_canvas = VisualCanvas(vframe, self)
         self.visual_canvas.pack(fill=tk.BOTH, expand=True)
@@ -275,32 +276,108 @@ class ColorBotGUI:
         self.script_editor.insert(tk.END, '\n'.join(lines))
         self.status_var.set(f"🔗 Embedded {len(self.regions)} regions in script")
         
-    def save_script(self):
-        code = self.script_editor.get("1.0", tk.END)
-        if not code.strip(): messagebox.showerror("Error", "Script is empty."); return
-        has_embedded = "# ============ EMBEDDED REGIONS ============" in code
-        if self.regions and not has_embedded:
-            response = messagebox.askyesnocancel("Include Regions?", f"Embed {len(self.regions)} regions in script?\nYes: Portable script\nNo: Script only\nCancel: Don't save")
-            if response is None: return
-            elif response: self.embed_regions_in_script(); code = self.script_editor.get("1.0", tk.END)
-        filename = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python Files", "*.py")])
-        if filename:
-            try:
-                with open(filename, 'w') as f: f.write(code)
-                self.status_var.set(f"💾 Script saved: {os.path.basename(filename)}")
-            except Exception as e: messagebox.showerror("Error", f"Failed to save script: {e}")
+    def save_script(self, event=None):
+        selected_tab = self.scripting_notebook.tab(self.scripting_notebook.select(), "text")
+
+        if selected_tab == '🧩 Visual':
+            if not self.visual_canvas.nodes:
+                messagebox.showwarning("Warning", "Visual script is empty.")
+                return
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("Visual Script JSON", "*.json")],
+                title="Save Visual Script"
+            )
+            if filename:
+                try:
+                    # Deep copy to avoid modifying the live canvas objects
+                    nodes_to_save = copy.deepcopy(self.visual_canvas.nodes)
+                    connections_to_save = copy.deepcopy(self.visual_canvas.connections)
+
+                    visual_script = {
+                        "nodes": nodes_to_save,
+                        "connections": connections_to_save,
+                    }
+                    # Remove non-serializable tkinter objects from the script
+                    for node in visual_script["nodes"]:
+                        node.pop("graphics", None)
+                    for conn in visual_script["connections"]:
+                        conn.pop("graphics", None)
+
+                    with open(filename, 'w') as f:
+                        json.dump(visual_script, f, indent=2)
+                    self.status_var.set(f"💾 Visual script saved: {os.path.basename(filename)}")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to save visual script: {e}")
+        else:  # Code tab
+            code = self.script_editor.get("1.0", tk.END)
+            if not code.strip():
+                messagebox.showerror("Error", "Script is empty.")
+                return
+            has_embedded = "# ============ EMBEDDED REGIONS ============" in code
+            if self.regions and not has_embedded:
+                response = messagebox.askyesnocancel("Include Regions?", f"Embed {len(self.regions)} regions in script?\nYes: Portable script\nNo: Script only\nCancel: Don't save")
+                if response is None: return
+                elif response: self.embed_regions_in_script(); code = self.script_editor.get("1.0", tk.END)
             
-    def load_script(self):
-        filename = filedialog.askopenfilename(filetypes=[("Python Files", "*.py")])
-        if filename:
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".py",
+                filetypes=[("Python Files", "*.py")],
+                title="Save Code Script"
+            )
+            if filename:
+                try:
+                    with open(filename, 'w') as f: f.write(code)
+                    self.status_var.set(f"💾 Script saved: {os.path.basename(filename)}")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to save script: {e}")
+
+    def load_script(self, event=None):
+        filename = filedialog.askopenfilename(
+            filetypes=[("All Scripts", "*.py *.json"), ("Python Files", "*.py"), ("Visual Scripts", "*.json")]
+        )
+        if not filename:
+            return
+
+        if filename.lower().endswith(".json"):
             try:
-                with open(filename, 'r') as f: code = f.read()
+                with open(filename, 'r') as f:
+                    visual_script = json.load(f)
+
+                # Switch to visual tab
+                for i in range(self.scripting_notebook.index("end")):
+                    if self.scripting_notebook.tab(i, "text") == '🧩 Visual':
+                        self.scripting_notebook.select(i)
+                        break
+
+                if hasattr(self.visual_canvas, 'load_from_dict'):
+                    self.visual_canvas.load_from_dict(visual_script)
+                    self.status_var.set(f"📂 Visual script loaded: {os.path.basename(filename)}")
+                else:
+                    messagebox.showerror("Error", "Visual canvas does not support loading scripts.")
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load visual script: {e}\n\n{e}")
+
+        elif filename.lower().endswith(".py"):
+            try:
+                with open(filename, 'r') as f:
+                    code = f.read()
+
+                # Switch to code tab
+                for i in range(self.scripting_notebook.index("end")):
+                    if self.scripting_notebook.tab(i, "text") == '📝 Code':
+                        self.scripting_notebook.select(i)
+                        break
+
                 has_embedded = "# ============ EMBEDDED REGIONS ============" in code
                 self.script_editor.delete("1.0", tk.END)
                 self.script_editor.insert(tk.END, code)
                 self.status_var.set(f"📂 Script loaded: {os.path.basename(filename)}")
-                if has_embedded: messagebox.showinfo("Embedded Regions", "Script contains embedded regions that will load when run.")
-            except Exception as e: messagebox.showerror("Error", f"Failed to load script: {e}")
+                if has_embedded:
+                    messagebox.showinfo("Embedded Regions", "Script contains embedded regions that will load when run.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load script: {e}")
             
     def capture_window(self):
         hwnd_str = self.window_var.get()
@@ -628,17 +705,37 @@ Regions: {regions_summary}"""
         except: pass
         
     def play_script(self):
-        code = self.script_editor.get("1.0", tk.END)
-        if not code.strip(): messagebox.showwarning("Warning", "Script is empty."); return
-        if not self.selected_window: messagebox.showwarning("Warning", "Capture a window first."); return
-        self.is_playing, self.is_paused = True, False
+        if not self.selected_window:
+            messagebox.showwarning("Warning", "Capture a window first.")
+            return
+
+        self.is_playing, self.is_paused = False, False
         self.play_button.config(state=tk.DISABLED)
         self.pause_button.config(text="⏸️ Pause (F6)", state=tk.NORMAL)
         self.output_console.config(state=tk.NORMAL)
         self.output_console.delete('1.0', tk.END)
         self.output_console.config(state=tk.DISABLED)
         self.bound_mouse_to_window()
-        self.script_runner.run_script(code)
+
+        selected_tab = self.scripting_notebook.tab(self.scripting_notebook.select(), "text")
+
+        if selected_tab == '🧩 Visual':
+            if not self.visual_canvas.nodes:
+                messagebox.showwarning("Warning", "Visual script is empty.")
+                self._on_script_finished_ui() # Reset UI state
+                return
+            visual_script = {
+                "nodes": self.visual_canvas.nodes,
+                "connections": self.visual_canvas.connections,
+            }
+            self.script_runner.run_script(visual_script=visual_script)
+        else:  # Code tab
+            code = self.script_editor.get("1.0", tk.END)
+            if not code.strip():
+                messagebox.showwarning("Warning", "Script is empty.")
+                self._on_script_finished_ui() # Reset UI state
+                return
+            self.script_runner.run_script(script_code=code)
         
     def pause_resume_script(self):
         if not hasattr(self, 'is_playing') or not self.is_playing: return
