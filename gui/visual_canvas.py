@@ -107,8 +107,11 @@ class VisualCanvas(tk.Frame):
                 "y": y,
                 "width": 200,
                 "height": 100,
-                "inputs": [{"name": "prev", "x": 0, "y": 20}],
-                "outputs": [{"name": "next", "x": 200, "y": 20}],
+                "inputs": [{"name": "prev", "x": 0, "y": 50}],
+                "outputs": [
+                    {"name": "Success", "x": 200, "y": 35},
+                    {"name": "Failure", "x": 200, "y": 65},
+                ],
                 "params": {
                     "region_index": params.get("region_index", 0),
                     "hex_color": params.get("hex_color", "#FF0000"),
@@ -146,6 +149,18 @@ class VisualCanvas(tk.Frame):
                 "inputs": [{"name": "prev", "x": 0, "y": 20}],
                 "outputs": [{"name": "next", "x": 180, "y": 20}],
                 "params": {"seconds": params.get("seconds", 1.0)},
+            }
+        elif node_type == "Log":
+            node = {
+                "id": node_id,
+                "type": "log",
+                "x": x,
+                "y": y,
+                "width": 220,
+                "height": 60,
+                "inputs": [{"name": "prev", "x": 0, "y": 30}],
+                "outputs": [{"name": "next", "x": 220, "y": 30}],
+                "params": {"message": params.get("message", "Log message")},
             }
         else:
             raise ValueError(f"Unknown node_type '{node_type}'")
@@ -185,6 +200,13 @@ class VisualCanvas(tk.Frame):
             node["graphics"]["inputs"].append(
                 vc.create_oval(x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5, fill="#2ecc71", outline="#ecf0f1")
             )
+            if inp.get("name"):
+                vc.create_text(
+                    node["x"] + inp["x"] + 10,
+                    node["y"] + inp["y"],
+                    text=inp["name"],
+                    fill="#ecf0f1", anchor="w", font=("Arial", 8),
+                )
 
         node["graphics"]["outputs"] = []
         for i, out in enumerate(node["outputs"]):
@@ -193,6 +215,13 @@ class VisualCanvas(tk.Frame):
             node["graphics"]["outputs"].append(
                 vc.create_oval(x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5, fill="#e74c3c", outline="#ecf0f1")
             )
+            if out.get("name"):
+                vc.create_text(
+                    node["x"] + out["x"] - 10,
+                    node["y"] + out["y"],
+                    text=out["name"],
+                    fill="#ecf0f1", anchor="e", font=("Arial", 8),
+                )
 
         # Quick param text (one per line)
         y_offset = 35

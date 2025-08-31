@@ -160,7 +160,8 @@ class ColorBotGUI:
         r1 = tk.Frame(bframe, bg='#34495e'); r1.pack(fill=tk.X)
         tk.Label(r1, text="Action:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
         self.action_var = tk.StringVar(value="Find & Click Color")
-        ttk.Combobox(r1, textvariable=self.action_var, values=["Find & Click Color","Click Region Center","Wait","Random Wait"], state="readonly", width=20).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        action_combo = ttk.Combobox(r1, textvariable=self.action_var, values=["Find & Click Color","Click Region Center","Wait","Random Wait", "Log"], state="readonly", width=20)
+        action_combo.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
         tk.Label(r1, text="Target:", fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
         self.region_var = tk.StringVar(); self.region_combo = ttk.Combobox(r1, textvariable=self.region_var, state="readonly", width=15); self.region_combo.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
         r2 = tk.Frame(bframe, bg='#34495e'); r2.pack(fill=tk.X, pady=5)
@@ -445,9 +446,18 @@ Regions: {regions_summary}"""
         action = self.action_var.get()
         region_index = 0
         try:
-            region_index = int(self.region_var.get().split()[0]) if self.region_var.get() else 0
-        except ValueError:
-            pass
+            region_str = self.region_var.get()
+            if region_str and ' ' in region_str:
+                region_index = int(region_str.split(' ')[1])
+            elif region_str:
+                # Handle case where user might just type a number
+                region_index = int(region_str)
+            else:
+                region_index = 0
+        except (ValueError, IndexError):
+            region_index = 0
+            self.status_var.set("⚠️ Invalid region format. Using index 0.")
+
         params = {}
         if action == "Find & Click Color":
             params = {
@@ -469,6 +479,8 @@ Regions: {regions_summary}"""
             params = {"seconds": float(self.wait_var.get() or 1.0)}
         elif action == "Random Wait":
             params = {"base_seconds": float(self.wait_var.get() or 1.0), "variance_seconds": 0.5}
+        elif action == "Log":
+            params = {"message": "Your message here"}
         else:
             return
         # Place new node below last one
@@ -504,6 +516,9 @@ Regions: {regions_summary}"""
                 base = float(self.wait_var.get())
                 code = f"bot.random_wait({base}, {base * 0.5})\n"
             except: messagebox.showerror("Error", "Invalid wait time."); return
+        elif action == "Log":
+            # This is a placeholder; a better implementation would have a dedicated entry for the message
+            code = "bot.log('User message logged.')\n"
         else: return
         try:
             line = self.script_editor.get("insert linestart", "insert lineend")
