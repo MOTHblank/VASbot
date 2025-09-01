@@ -511,19 +511,33 @@ Regions: {regions_summary}"""
         button, use_shift, use_ctrl = self.button_var.get().lower(), self.shift_var.get(), self.ctrl_var.get()
         args = []
         if action in ["Find & Click Color", "Click Region Center"]:
-            if not region: messagebox.showerror("Error", "Select a region."); return
-            args.append(f"region_index={int(region.split(' ')[1])}")
-        if action == "Find & Click Color": 
+            if not region:
+                messagebox.showerror("Error", "Select a region.")
+                return
+            try:
+                args.append(f"region_index={int(region.split(' ')[1])}")
+            except (ValueError, IndexError):
+                messagebox.showerror("Error", "Invalid region selected.")
+                return
+
+        if action == "Find & Click Color":
             args.insert(0, f"hex_color='{self.current_color}'")
-            try: args.append(f"tolerance={int(self.tolerance_var.get())}")
-            except: pass
+            try:
+                args.append(f"tolerance={int(self.tolerance_var.get())}")
+            except ValueError:
+                pass  # Ignore invalid tolerance
+
         if action in ["Find & Click Color", "Click Region Center"]:
             args.append(f"button='{button}'")
             mods = [f"'{mod}'" for mod, use in [('shift', use_shift), ('ctrl', use_ctrl)] if use]
-            if mods: args.append(f"modifiers=[{','.join(mods)}]")
-        if action == "Find & Click Color": 
+            if mods:
+                args.append(f"modifiers=[{','.join(mods)}]")
+
+        # The 'background' parameter is no longer a user-configurable option.
+        # The bot.py functions will use their default behavior.
+        if action == "Find & Click Color":
             code = f"if bot.find_and_click_color({', '.join(args)}):\n    bot.wait(0.5)\nelse:\n    bot.log('Color {self.current_color} not found')\n"
-        elif action == "Click Region Center": 
+        elif action == "Click Region Center":
             code = f"bot.click_region({', '.join(args)})\n"
         elif action == "Wait":
             try: code = f"bot.wait({float(self.wait_var.get())})\n"

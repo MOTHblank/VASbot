@@ -202,7 +202,7 @@ class ScriptRunner:
             mods = f", modifiers={params.get('modifiers', [])}" if params.get("modifiers") else ""
             find_call = (f"bot.find_and_click_color(hex_color='{params['hex_color']}', "
                          f"region_index={params['region_index']}, tolerance={params['tolerance']}, "
-                         f"button='{params['button']}', background={params['background']}{mods})")
+                         f"button='{params['button']}'{mods})")
 
             generated_code.append(f"if {find_call}:")
             # Success branch (output port 0)
@@ -223,7 +223,7 @@ class ScriptRunner:
 
         elif node_type == "click_region":
             mods = f", modifiers={params.get('modifiers', [])}" if params.get("modifiers") else ""
-            generated_code.append(f"bot.click_region(region_index={params['region_index']}, button='{params['button']}', background={params['background']}{mods})")
+            generated_code.append(f"bot.click_region(region_index={params['region_index']}, button='{params['button']}'{mods})")
             if 0 in adj.get(node_id, {}):
                 next_node_id = adj[node_id][0]
                 generated_code.extend(self._generate_code_from_node(next_node_id, nodes, adj, visited))
