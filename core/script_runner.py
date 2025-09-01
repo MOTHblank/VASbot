@@ -247,6 +247,10 @@ class ScriptRunner:
 
     def _execute_visual_script(self, visual_script):
         python_code = self._visual_script_to_code(visual_script)
+        self.log("--- Generated Python Script ---")
+        for i, line in enumerate(python_code.split('\n')):
+            self.log(f"{i+1:02d} | {line}")
+        self.log("-----------------------------")
         self._execute(python_code)
 
     def run_script(self, script_code=None, visual_script=None):
