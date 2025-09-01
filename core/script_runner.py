@@ -32,6 +32,10 @@ class ScriptRunner:
         # Debugging
         self._debug_mode = False
         self._performance_log = []
+
+    def is_running(self):
+        """Check if the script thread is currently running."""
+        return self.script_thread is not None and self.script_thread.is_alive()
         
     def enable_debug_mode(self):
         """Enable debug mode for detailed logging and performance metrics"""
@@ -136,51 +140,122 @@ class ScriptRunner:
             # Final state update
             if self._script_state not in ["stopped", "error"]:
                 self._message_queue.put(('state', 'idle'))
-                
-    def _visual_script_to_code(self, visual_script):
-        """Convert visual script dict into Python code string (subset)."""
-        code = "# generated from visual script\nwhile bot.is_running:\n"
-        order = self._get_visual_execution_order(visual_script)
-        for node in order:
-            t = node["type"]
-            p = node.get("params", {})
-            if t == "find_click_color":
-                mods = f", modifiers={p['modifiers']}" if p.get("modifiers") else ""
-                code += f"    bot.find_and_click_color(hex_color='{p['hex_color']}', region_index={p['region_index']}, tolerance={p['tolerance']}, button='{p['button']}', background={p['background']}{mods})\n"
-                code += "    bot.wait(0.5)\n"
-            elif t == "click_region":
-                mods = f", modifiers={p['modifiers']}" if p.get("modifiers") else ""
-                code += f"    bot.click_region(region_index={p['region_index']}, button='{p['button']}', background={p['background']}{mods})\n"
-            elif t == "wait":
-                code += f"    bot.wait({p['seconds']})\n"
-            elif t == "random_wait":
-                code += f"    bot.random_wait({p['base_seconds']}, {p['variance_seconds']})\n"
-        return code
 
-    def _get_visual_execution_order(self, visual_script):
-        """Simple linear traversal based on connections starting from 'start'."""
+    def stop(self):
+        """Signal the script thread to stop."""
+        if self.is_running():
+            self.log("⏹️ Stop signal sent to script.")
+            self._stop_event.set()
+
+    def _visual_script_to_code(self, visual_script: dict) -> str:
+        """Convert visual script dict into a runnable Python code string."""
         nodes = {n['id']: n for n in visual_script['nodes']}
-        conn_map = {c['from_node']: c['to_node'] for c in visual_script['connections'] if c['from_port'] == 0}
-        order = []
-        current = next((n['id'] for n in visual_script['nodes'] if n['type'] == 'start'), None)
-        visited = set()
-        while current and current in conn_map and current not in visited:
-            next_id = conn_map[current]
-            if next_id in nodes:
-                order.append(nodes[next_id])
-                visited.add(next_id)
-                current = next_id
+        connections = visual_script['connections']
+
+        # Build an adjacency list for the graph: from_node_id -> {from_port_idx: to_node_id}
+        adj = {node_id: {} for node_id in nodes}
+        for conn in connections:
+            # Ensure from_node exists before adding
+            if conn['from_node'] in adj:
+                adj[conn['from_node']][conn['from_port']] = conn['to_node']
+
+        start_node_id = next((n['id'] for n in nodes.values() if n['type'] == 'start'), None)
+        if not start_node_id:
+            self.log("Visual script error: 'start' node not found.")
+            return ""
+
+        # Generate the sequence of code lines by traversing the graph
+        code_lines = self._generate_code_from_node(start_node_id, nodes, adj, set())
+
+        # Indent and wrap the generated code in the main `while` loop
+        indented_code = "\n".join([f"    {line}" for line in code_lines if line]) if code_lines else "    pass"
+        return f"# Generated from visual script\nwhile bot.is_running:\n{indented_code}\n    bot.wait(0.05) # Prevent CPU-hogging loops"
+
+    def _generate_code_from_node(self, node_id: str, nodes: dict, adj: dict, visited: set) -> list[str]:
+        """Recursively generate code lines for a node and its successors, handling branches."""
+        if node_id in visited:
+            # A cycle is detected. This represents the end of an iteration path in the main `while` loop.
+            # We stop generating code for this path, and the `while bot.is_running` loop will handle the next iteration.
+            return []
+
+        # For linear paths, add node to visited. For branches, a copy is made.
+        visited.add(node_id)
+
+        node = nodes.get(node_id)
+        if not node:
+            return [f"# Error: Node with id {node_id} not found."]
+
+        node_type = node["type"]
+        params = node.get("params", {})
+        generated_code = []
+
+        # --- Code generation logic for each node type ---
+
+        if node_type == "start":
+            # Start node simply connects to the next node in the sequence
+            if 0 in adj.get(node_id, {}):
+                next_node_id = adj[node_id][0]
+                generated_code.extend(self._generate_code_from_node(next_node_id, nodes, adj, visited))
+
+        elif node_type == "find_click_color":
+            # This node type has conditional logic (Success/Failure)
+            mods = f", modifiers={params.get('modifiers', [])}" if params.get("modifiers") else ""
+            find_call = (f"bot.find_and_click_color(hex_color='{params['hex_color']}', "
+                         f"region_index={params['region_index']}, tolerance={params['tolerance']}, "
+                         f"button='{params['button']}'{mods})")
+
+            generated_code.append(f"if {find_call}:")
+            # Success branch (output port 0)
+            if 0 in adj.get(node_id, {}):
+                next_node_id = adj[node_id][0]
+                # Pass a copy of visited set to allow separate branches to merge later
+                success_code = self._generate_code_from_node(next_node_id, nodes, adj, visited.copy())
+                generated_code.extend([f"    {line}" for line in success_code] if success_code else ["    pass"])
             else:
-                break
-        return order
+                generated_code.append("    pass")
+
+            # Failure branch (output port 1)
+            if 1 in adj.get(node_id, {}):
+                generated_code.append("else:")
+                next_node_id = adj[node_id][1]
+                failure_code = self._generate_code_from_node(next_node_id, nodes, adj, visited.copy())
+                generated_code.extend([f"    {line}" for line in failure_code] if failure_code else ["    pass"])
+
+        elif node_type == "click_region":
+            mods = f", modifiers={params.get('modifiers', [])}" if params.get("modifiers") else ""
+            generated_code.append(f"bot.click_region(region_index={params['region_index']}, button='{params['button']}'{mods})")
+            if 0 in adj.get(node_id, {}):
+                next_node_id = adj[node_id][0]
+                generated_code.extend(self._generate_code_from_node(next_node_id, nodes, adj, visited))
+
+        elif node_type == "wait":
+            generated_code.append(f"bot.wait({params.get('seconds', 1.0)})")
+            if 0 in adj.get(node_id, {}):
+                next_node_id = adj[node_id][0]
+                generated_code.extend(self._generate_code_from_node(next_node_id, nodes, adj, visited))
+
+        elif node_type == "log":
+            message = params.get('message', '').replace("'", "\\'") # basic escaping
+            generated_code.append(f"bot.log('{message}')")
+            if 0 in adj.get(node_id, {}):
+                next_node_id = adj[node_id][0]
+                generated_code.extend(self._generate_code_from_node(next_node_id, nodes, adj, visited))
+
+        # Other node types would be added here...
+
+        return generated_code
 
     def _execute_visual_script(self, visual_script):
         python_code = self._visual_script_to_code(visual_script)
+        self.log("--- Generated Python Script ---")
+        for i, line in enumerate(python_code.split('\n')):
+            self.log(f"{i+1:02d} | {line}")
+        self.log("-----------------------------")
         self._execute(python_code)
 
     def run_script(self, script_code=None, visual_script=None):
         if self.is_running():
-            self._message_queue.put(('status', "⚠️ A script is already running."))
+            self.log("Script execution requested, but a script is already running.")
             return
     
         # Reset control events
@@ -262,5 +337,3 @@ class ScriptRunner:
         
         self.script_thread.start()
         self._message_queue.put(('status', "▶️ Script running... Use hotkeys for control!"))
-        # Start processing messages in the GUI thread
-        self._process_gui_messages()
