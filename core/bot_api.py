@@ -29,7 +29,10 @@ class BotAPI:
         self._debug_mode = False
         
     @property
-    def is_running(self): 
+    def is_running(self):
+        """Check if the script is in a running state, not paused or stopped."""
+        if hasattr(self, '_stop_event') and self._stop_event.is_set():
+            return False
         return self._is_running
         
     def enable_debug(self):
@@ -204,6 +207,7 @@ class BotAPI:
         Click at a specific position within a region, ensuring the click stays within region bounds.
         If no offset is provided, clicks at the center of the region.
         """
+        if not self.is_running: return False
         if region_index >= len(self.gui.regions): 
             self.log(f"Error: Region {region_index} does not exist.")
             return False
@@ -258,6 +262,7 @@ class BotAPI:
 
     def click_region(self, region_index, button='left', modifiers=[], background=True):
         """Enhanced region clicking with strict confinement to region bounds"""
+        if not self.is_running: return False
         if region_index >= len(self.gui.regions): 
             self.log(f"Error: Region {region_index} does not exist.")
             return False
@@ -267,6 +272,7 @@ class BotAPI:
 
     def find_and_click_color(self, hex_color, region_index, button='left', modifiers=[], background=True, tolerance=10):
         """Enhanced color finding with improved accuracy and strict region confinement"""
+        if not self.is_running: return False
         if region_index >= len(self.gui.regions): 
             self.log(f"Error: Region {region_index} does not exist.")
             return False
@@ -352,6 +358,7 @@ class BotAPI:
 
     def get_pixel_color(self, region_index, x_offset=None, y_offset=None):
         """Get the color of a pixel in a region (useful for debugging)"""
+        if not self.is_running: return None
         if region_index >= len(self.gui.regions): 
             self.log(f"Error: Region {region_index} does not exist.")
             return None
@@ -385,6 +392,7 @@ class BotAPI:
 
     def move_mouse(self, region_index, x_offset=None, y_offset=None, background=True):
         """Move mouse to a specific position within a region, ensuring it stays within bounds"""
+        if not self.is_running: return False
         if region_index >= len(self.gui.regions): 
             self.log(f"Error: Region {region_index} does not exist.")
             return False
@@ -429,6 +437,7 @@ class BotAPI:
 
     def is_point_in_any_region(self, x, y):
         """Check if a screen coordinate is within any defined region"""
+        if not self.is_running: return False
         if not self.gui.regions:
             return False
             
@@ -458,6 +467,7 @@ class BotAPI:
 
     def is_color_present(self, hex_color, region_index, tolerance=10):
         """Check if a color is present in a region without clicking"""
+        if not self.is_running: return False
         if region_index >= len(self.gui.regions): 
             self.log(f"Error: Region {region_index} does not exist.")
             return False
@@ -494,6 +504,7 @@ class BotAPI:
 
     def wait_for_color(self, hex_color, region_index, timeout=30, tolerance=10, check_interval=0.5):
         """Wait for a color to appear in a region"""
+        if not self.is_running: return False
         self.log(f"Waiting for color {hex_color} in Region {region_index} (timeout: {timeout}s)")
         
         start_time = time.time()
@@ -514,6 +525,7 @@ class BotAPI:
 
     def drag(self, from_region_index, to_region_index, button='left', background=True, duration=0.5):
         """Drag from one region to another"""
+        if not self.is_running: return False
         if from_region_index >= len(self.gui.regions) or to_region_index >= len(self.gui.regions):
             self.log(f"Error: Invalid region index for drag operation")
             return False
@@ -580,9 +592,11 @@ class BotAPI:
 
     def type_text(self, text, delay=0.05):
         """Type text with optional delay between characters"""
+        if not self.is_running: return False
         try:
             if delay > 0:
                 for char in text:
+                    if not self.is_running: break
                     pyautogui.write(char)
                     self.wait(delay)
             else:
@@ -597,6 +611,7 @@ class BotAPI:
 
     def press_key(self, key, modifiers=[]):
         """Press a key with optional modifiers"""
+        if not self.is_running: return False
         try:
             for mod in modifiers:
                 pyautogui.keyDown(mod)
@@ -616,6 +631,7 @@ class BotAPI:
 
     def scroll(self, region_index, clicks=3, direction='up', background=True):
         """Scroll in a region"""
+        if not self.is_running: return False
         if region_index >= len(self.gui.regions):
             self.log(f"Error: Region {region_index} does not exist.")
             return False

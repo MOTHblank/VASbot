@@ -54,6 +54,7 @@ class ColorBotGUI:
         self.setup_ui()
         self.load_window_list()
         self.setup_hotkeys()
+        self.poll_script_runner_queue()
         
     def setup_hotkeys(self):
         bindings = [('<F5>', self.play_script), ('<F6>', self.pause_resume_script), ('<F7>', self.stop_script),
@@ -849,6 +850,11 @@ Regions: {regions_summary}"""
         brightness = (r * 299 + g * 587 + b * 114) / 1000
         self.color_button.config(fg='white' if brightness < 128 else 'black')
         
+    def poll_script_runner_queue(self):
+        """Periodically check the script runner's message queue for updates."""
+        self.script_runner._process_message_queue()
+        self.root.after(100, self.poll_script_runner_queue)
+
     def draw_regions(self):
         self.canvas.delete("region")
         if not hasattr(self, 'display_x'): return

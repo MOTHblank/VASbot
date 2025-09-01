@@ -32,6 +32,10 @@ class ScriptRunner:
         # Debugging
         self._debug_mode = False
         self._performance_log = []
+
+    def is_running(self):
+        """Check if the script thread is currently running."""
+        return self.script_thread is not None and self.script_thread.is_alive()
         
     def enable_debug_mode(self):
         """Enable debug mode for detailed logging and performance metrics"""
@@ -136,7 +140,13 @@ class ScriptRunner:
             # Final state update
             if self._script_state not in ["stopped", "error"]:
                 self._message_queue.put(('state', 'idle'))
-                
+
+    def stop(self):
+        """Signal the script thread to stop."""
+        if self.is_running():
+            self.log("⏹️ Stop signal sent to script.")
+            self._stop_event.set()
+
     def _visual_script_to_code(self, visual_script: dict) -> str:
         """Convert visual script dict into a runnable Python code string."""
         nodes = {n['id']: n for n in visual_script['nodes']}
@@ -241,7 +251,7 @@ class ScriptRunner:
 
     def run_script(self, script_code=None, visual_script=None):
         if self.is_running():
-            self._message_queue.put(('status', "⚠️ A script is already running."))
+            self.log("Script execution requested, but a script is already running.")
             return
     
         # Reset control events
@@ -323,5 +333,3 @@ class ScriptRunner:
         
         self.script_thread.start()
         self._message_queue.put(('status', "▶️ Script running... Use hotkeys for control!"))
-        # Start processing messages in the GUI thread
-        self._process_gui_messages()
