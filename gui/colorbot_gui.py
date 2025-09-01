@@ -27,7 +27,7 @@ class ColorBotGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("2009scape Color Bot - High-Precision Automation v2.1")
-        self.root.geometry("1400x900")
+        self.root.geometry("1600x900")
         self.root.configure(bg='#2c3e50')
         if not self.check_dependencies():
             return

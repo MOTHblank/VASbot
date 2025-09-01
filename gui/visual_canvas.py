@@ -395,23 +395,24 @@ class VisualCanvas(tk.Frame):
             entries[param] = entry
 
         def on_ok():
-            for param, entry in entries.items():
-                new_value = entry.get()
-                current_type = type(node["params"].get(param, ""))
-                try:
-                    if current_type == bool:
-                        node["params"][param] = new_value.lower() in ("true", "1", "yes")
-                    elif current_type == list:
-                        # For now, treat lists as comma-separated strings
-                        node["params"][param] = [s.strip() for s in new_value.split(',') if s.strip()]
-                    else:
-                        node["params"][param] = current_type(new_value)
-                except (ValueError, TypeError):
-                    # Keep original value if conversion fails
-                    print(f"Could not convert '{new_value}' to {current_type}")
+            try:
+                for param, entry in entries.items():
+                    new_value = entry.get()
+                    # Use the type of the default value for robustness
+                    current_type = type(node["params"].get(param))
+                    try:
+                        if current_type == bool:
+                            node["params"][param] = new_value.lower() in ("true", "1", "yes")
+                        elif current_type == list:
+                            node["params"][param] = [s.strip() for s in new_value.split(',') if s.strip()]
+                        else:
+                            node["params"][param] = current_type(new_value)
+                    except (ValueError, TypeError):
+                        self.gui.status_var.set(f"Invalid value for {param}: '{new_value}'")
 
-            self.redraw_node(node)
-            dialog.destroy()
+                self.redraw_node(node)
+            finally:
+                dialog.destroy()
 
         button_frame = tk.Frame(dialog, bg="#34495e")
         button_frame.pack(pady=10)
