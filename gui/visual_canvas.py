@@ -118,7 +118,6 @@ class VisualCanvas(tk.Frame):
                     "tolerance": params.get("tolerance", 10),
                     "button": params.get("button", "left"),
                     "modifiers": params.get("modifiers", []),
-                    "background": params.get("background", True),
                 },
             }
         elif node_type == "Click Region Center":
@@ -135,7 +134,6 @@ class VisualCanvas(tk.Frame):
                     "region_index": params.get("region_index", 0),
                     "button": params.get("button", "left"),
                     "modifiers": params.get("modifiers", []),
-                    "background": params.get("background", True),
                 },
             }
         elif node_type == "Wait":
@@ -224,10 +222,11 @@ class VisualCanvas(tk.Frame):
                 )
 
         # Quick param text (one per line)
+        node["graphics"]["params"] = []
         y_offset = 35
         if node["type"] != "start":
             for key, value in node["params"].items():
-                vc.create_text(
+                param_text_id = vc.create_text(
                     node["x"] + 10,
                     node["y"] + y_offset,
                     text=f"{key.replace('_', ' ').title()}: {value}",
@@ -235,6 +234,7 @@ class VisualCanvas(tk.Frame):
                     anchor="w",
                     font=("Arial", 8),
                 )
+                node["graphics"]["params"].append(param_text_id)
                 y_offset += 12
 
     def draw_connection(self, conn: Dict[str, Any]):
@@ -329,19 +329,21 @@ class VisualCanvas(tk.Frame):
         self.drag_data["item"] = None
 
     def _move_node(self, node: Dict[str, Any], new_x: int, new_y: int):
+        dx, dy = new_x - node["x"], new_y - node["y"]
+        if dx == 0 and dy == 0:
+            return
+
         # Update stored coords
         node["x"], node["y"] = new_x, new_y
         vc = self.visual_canvas
-        vc.coords(node["graphics"]["bg"], new_x, new_y, new_x + node["width"], new_y + node["height"])
-        vc.coords(node["graphics"]["title"], new_x + node["width"] // 2, new_y + 15)
-        for idx, inp in enumerate(node["inputs"]):
-            x_pt = new_x + inp["x"]
-            y_pt = new_y + inp["y"]
-            vc.coords(node["graphics"]["inputs"][idx], x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5)
-        for idx, out in enumerate(node["outputs"]):
-            x_pt = new_x + out["x"]
-            y_pt = new_y + out["y"]
-            vc.coords(node["graphics"]["outputs"][idx], x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5)
+
+        # Move all graphical elements by the delta
+        for key, item in node["graphics"].items():
+            if isinstance(item, list):
+                for sub_item in item:
+                    vc.move(sub_item, dx, dy)
+            else:
+                vc.move(item, dx, dy)
 
         self.update_connections_for_node(node)
 
@@ -479,9 +481,16 @@ class VisualCanvas(tk.Frame):
         """Update connection lines attached to a specific node."""
         vc = self.visual_canvas
         for conn in self.connections:
-            if conn["from_node"] == node["id"] or conn["to_node"] == node["id"]:
-                if "graphics" in conn and vc.winfo_exists() and conn["graphics"] in vc.find_all():
-                    self.draw_connection(conn)  # Redrawing is simpler
+            if conn.get("graphics") and (conn["from_node"] == node["id"] or conn["to_node"] == node["id"]):
+                from_node = next((n for n in self.nodes if n["id"] == conn["from_node"]), None)
+                to_node = next((n for n in self.nodes if n["id"] == conn["to_node"]), None)
+                if not from_node or not to_node: continue
+
+                x1 = from_node["x"] + from_node["outputs"][conn["from_port"]]["x"]
+                y1 = from_node["y"] + from_node["outputs"][conn["from_port"]]["y"]
+                x2 = to_node["x"] + to_node["inputs"][conn["to_port"]]["x"]
+                y2 = to_node["y"] + to_node["inputs"][conn["to_port"]]["y"]
+                vc.coords(conn["graphics"], x1, y1, x2, y2)
 
     def _get_io_point_at(self, x: int, y: int) -> Optional[Tuple[Dict[str, Any], str, int]]:
         """Check if (x,y) is over an input/output point."""

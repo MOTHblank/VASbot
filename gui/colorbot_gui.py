@@ -179,7 +179,6 @@ class ColorBotGUI:
         r3 = tk.Frame(bframe, bg='#34495e'); r3.pack(fill=tk.X, pady=5)
         tk.Button(r3, text="➕ Add to Script", command=self.add_action_to_script, bg='#2ecc71', fg='white', font=('Arial',12,'bold')).pack(side=tk.LEFT, expand=True, fill=tk.X, ipady=5)
         tk.Button(r3, text="🧩 Add Node", command=self.add_node_to_visual, bg='#2980b9', fg='white', font=('Arial',12,'bold')).pack(side=tk.LEFT, expand=True, fill=tk.X, ipady=5, padx=5)
-        self.background_var = tk.BooleanVar(value=True); tk.Checkbutton(r3, text="Background Input", variable=self.background_var, fg='#ecf0f1', bg='#34495e', selectcolor='#34495e', font=('Arial',10,'bold')).pack(side=tk.LEFT, padx=10)
         # --- Notebook with Code and Visual tabs ---
         self.scripting_notebook = ttk.Notebook(rframe)
         self.scripting_notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=(10,15))
@@ -466,15 +465,13 @@ Regions: {regions_summary}"""
                 "hex_color": self.current_color,
                 "tolerance": int(self.tolerance_var.get() or 10),
                 "button": self.button_var.get().lower(),
-                "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk],
-                "background": self.background_var.get()
+                "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk]
             }
         elif action == "Click Region Center":
             params = {
                 "region_index": region_index,
                 "button": self.button_var.get().lower(),
-                "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk],
-                "background": self.background_var.get()
+                "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk]
             }
         elif action == "Wait":
             params = {"seconds": float(self.wait_var.get() or 1.0)}
@@ -491,7 +488,7 @@ Regions: {regions_summary}"""
 
     def add_action_to_script(self):
         action, region = self.action_var.get(), self.region_var.get()
-        button, use_shift, use_ctrl, use_bg = self.button_var.get().lower(), self.shift_var.get(), self.ctrl_var.get(), self.background_var.get()
+        button, use_shift, use_ctrl = self.button_var.get().lower(), self.shift_var.get(), self.ctrl_var.get()
         args = []
         if action in ["Find & Click Color", "Click Region Center"]:
             if not region: messagebox.showerror("Error", "Select a region."); return
@@ -504,7 +501,6 @@ Regions: {regions_summary}"""
             args.append(f"button='{button}'")
             mods = [f"'{mod}'" for mod, use in [('shift', use_shift), ('ctrl', use_ctrl)] if use]
             if mods: args.append(f"modifiers=[{','.join(mods)}]")
-            args.append(f"background={use_bg}")
         if action == "Find & Click Color": 
             code = f"if bot.find_and_click_color({', '.join(args)}):\n    bot.wait(0.5)\nelse:\n    bot.log('Color {self.current_color} not found')\n"
         elif action == "Click Region Center": 
