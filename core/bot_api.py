@@ -17,6 +17,8 @@ try:
 except ImportError: 
     win32gui = win32api = win32con = None
 
+from utils.windows_utils import _get_true_hwnd_rect
+
 # --- Enhanced Ctypes structures for SendInput and DWM ---
 user32 = ctypes.windll.user32
 dwmapi = ctypes.windll.dwmapi
@@ -112,6 +114,8 @@ class BotAPI:
     def _send_input_click(self, x, y, button='left', modifiers=[]):
         """Enhanced background clicking using SendInput with improved accuracy"""
         try:
+            screen_width = win32api.GetSystemMetrics(0)
+            screen_height = win32api.GetSystemMetrics(1)
             # Clamp coordinates to window bounds
             hwnd = self.gui.selected_window
             left, top, right, bottom = _get_true_hwnd_rect(hwnd)
@@ -535,6 +539,8 @@ class BotAPI:
         hwnd = self.gui.selected_window
         
         try:
+            screen_width = win32api.GetSystemMetrics(0)
+            screen_height = win32api.GetSystemMetrics(1)
             left, top, right, bottom = _get_true_hwnd_rect(hwnd)
             
             # Calculate positions

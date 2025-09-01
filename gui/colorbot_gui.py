@@ -441,50 +441,70 @@ Regions: {regions_summary}"""
         
     def add_node_to_visual(self):
         """Create a node on the visual canvas based on current Action Builder fields."""
+        self.status_var.set("Attempting to add node...")
         if not hasattr(self, 'visual_canvas'):
+            self.status_var.set("Error: Visual canvas not found!")
             return
+
         action = self.action_var.get()
+        self.status_var.set(f"Action selected: {action}")
+
         region_index = 0
         try:
             region_str = self.region_var.get()
             if region_str and ' ' in region_str:
                 region_index = int(region_str.split(' ')[1])
+                self.status_var.set(f"Region parsed: {region_index}")
             elif region_str:
-                # Handle case where user might just type a number
                 region_index = int(region_str)
+                self.status_var.set(f"Region parsed as int: {region_index}")
             else:
+                self.status_var.set("No region selected, using index 0.")
                 region_index = 0
-        except (ValueError, IndexError):
+        except (ValueError, IndexError) as e:
             region_index = 0
-            self.status_var.set("⚠️ Invalid region format. Using index 0.")
+            self.status_var.set(f"⚠️ Invalid region format. Using index 0. Error: {e}")
 
         params = {}
-        if action == "Find & Click Color":
-            params = {
-                "region_index": region_index,
-                "hex_color": self.current_color,
-                "tolerance": int(self.tolerance_var.get() or 10),
-                "button": self.button_var.get().lower(),
-                "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk]
-            }
-        elif action == "Click Region Center":
-            params = {
-                "region_index": region_index,
-                "button": self.button_var.get().lower(),
-                "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk]
-            }
-        elif action == "Wait":
-            params = {"seconds": float(self.wait_var.get() or 1.0)}
-        elif action == "Random Wait":
-            params = {"base_seconds": float(self.wait_var.get() or 1.0), "variance_seconds": 0.5}
-        elif action == "Log":
-            params = {"message": "Your message here"}
-        else:
+        try:
+            if action == "Find & Click Color":
+                params = {
+                    "region_index": region_index,
+                    "hex_color": self.current_color,
+                    "tolerance": int(self.tolerance_var.get() or 10),
+                    "button": self.button_var.get().lower(),
+                    "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk]
+                }
+            elif action == "Click Region Center":
+                params = {
+                    "region_index": region_index,
+                    "button": self.button_var.get().lower(),
+                    "modifiers": [m for m, chk in [("shift", self.shift_var.get()), ("ctrl", self.ctrl_var.get())] if chk]
+                }
+            elif action == "Wait":
+                params = {"seconds": float(self.wait_var.get() or 1.0)}
+            elif action == "Random Wait":
+                params = {"base_seconds": float(self.wait_var.get() or 1.0), "variance_seconds": 0.5}
+            elif action == "Log":
+                params = {"message": "Your message here"}
+            else:
+                self.status_var.set(f"Unknown action: {action}")
+                return
+        except Exception as e:
+            self.status_var.set(f"Error preparing node params: {e}")
             return
+
+        self.status_var.set(f"Parameters prepared: {params}")
+
         # Place new node below last one
         y_pos = 50 + 120 * len(self.visual_canvas.nodes)
-        self.visual_canvas.create_node(action, 50, y_pos, **params)
-        self.status_var.set(f"🧩 Node added: {action}")
+        self.status_var.set(f"Creating node '{action}' at (50, {y_pos})")
+
+        try:
+            self.visual_canvas.create_node(action, 50, y_pos, **params)
+            self.status_var.set(f"✅ Node added: {action}")
+        except Exception as e:
+            self.status_var.set(f"Error creating node on canvas: {e}")
 
     def add_action_to_script(self):
         action, region = self.action_var.get(), self.region_var.get()
