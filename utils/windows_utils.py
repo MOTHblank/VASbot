@@ -20,20 +20,17 @@ def _get_true_hwnd_rect(hwnd):
             return 0, 0, 0, 0
 
         # Get the client rectangle, which is relative to the window's top-left corner
-        client_rect = win32gui.GetClientRect(hwnd)
+        left, top, right, bottom = win32gui.GetClientRect(hwnd)
         
         # Convert the client area's top-left and bottom-right points to screen coordinates
-        point_tl = wintypes.POINT(client_rect[0], client_rect[1])
-        point_br = wintypes.POINT(client_rect[2], client_rect[3])
+        screen_left, screen_top = win32gui.ClientToScreen(hwnd, (left, top))
+        screen_right, screen_bottom = win32gui.ClientToScreen(hwnd, (right, bottom))
         
-        win32gui.ClientToScreen(hwnd, ctypes.byref(point_tl))
-        win32gui.ClientToScreen(hwnd, ctypes.byref(point_br))
-        
-        return point_tl.x, point_tl.y, point_br.x, point_br.y
+        return screen_left, screen_top, screen_right, screen_bottom
 
     except Exception as e:
         print(f"Error in _get_true_hwnd_rect: {e}")
-        # Fallback to GetWindowRect if ClientToScreen fails for some reason
+        # Fallback to GetWindowRect if everything else fails
         try:
             rect = win32gui.GetWindowRect(hwnd)
             return rect[0], rect[1], rect[2], rect[3]

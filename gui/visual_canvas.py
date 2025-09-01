@@ -165,6 +165,7 @@ class VisualCanvas(tk.Frame):
 
         self.draw_node(node)
         self.nodes.append(node)
+        self._update_scrollregion()
         return node
 
     # ------------------------------------------------------------------
@@ -192,6 +193,7 @@ class VisualCanvas(tk.Frame):
 
         # IO points
         node["graphics"]["inputs"] = []
+        node["graphics"]["input_labels"] = []
         for i, inp in enumerate(node["inputs"]):
             x_pt = node["x"] + inp["x"]
             y_pt = node["y"] + inp["y"]
@@ -199,14 +201,16 @@ class VisualCanvas(tk.Frame):
                 vc.create_oval(x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5, fill="#2ecc71", outline="#ecf0f1")
             )
             if inp.get("name"):
-                vc.create_text(
+                label_id = vc.create_text(
                     node["x"] + inp["x"] + 10,
                     node["y"] + inp["y"],
                     text=inp["name"],
                     fill="#ecf0f1", anchor="w", font=("Arial", 8),
                 )
+                node["graphics"]["input_labels"].append(label_id)
 
         node["graphics"]["outputs"] = []
+        node["graphics"]["output_labels"] = []
         for i, out in enumerate(node["outputs"]):
             x_pt = node["x"] + out["x"]
             y_pt = node["y"] + out["y"]
@@ -214,12 +218,13 @@ class VisualCanvas(tk.Frame):
                 vc.create_oval(x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5, fill="#e74c3c", outline="#ecf0f1")
             )
             if out.get("name"):
-                vc.create_text(
+                label_id = vc.create_text(
                     node["x"] + out["x"] - 10,
                     node["y"] + out["y"],
                     text=out["name"],
                     fill="#ecf0f1", anchor="e", font=("Arial", 8),
                 )
+                node["graphics"]["output_labels"].append(label_id)
 
         # Quick param text (one per line)
         node["graphics"]["params"] = []
@@ -329,23 +334,35 @@ class VisualCanvas(tk.Frame):
         self.drag_data["item"] = None
 
     def _move_node(self, node: Dict[str, Any], new_x: int, new_y: int):
-        dx, dy = new_x - node["x"], new_y - node["y"]
-        if dx == 0 and dy == 0:
-            return
-
         # Update stored coords
         node["x"], node["y"] = new_x, new_y
         vc = self.visual_canvas
 
-        # Move all graphical elements by the delta
-        for key, item in node["graphics"].items():
-            if isinstance(item, list):
-                for sub_item in item:
-                    vc.move(sub_item, dx, dy)
-            else:
-                vc.move(item, dx, dy)
+        # Move background and title
+        vc.coords(node["graphics"]["bg"], new_x, new_y, new_x + node["width"], new_y + node["height"])
+        vc.coords(node["graphics"]["title"], new_x + node["width"] // 2, new_y + 15)
+
+        # Move IO points and their labels
+        for i, inp in enumerate(node["inputs"]):
+            x_pt, y_pt = new_x + inp["x"], new_y + inp["y"]
+            vc.coords(node["graphics"]["inputs"][i], x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5)
+            if i < len(node["graphics"].get("input_labels", [])):
+                vc.coords(node["graphics"]["input_labels"][i], x_pt + 10, y_pt)
+
+        for i, out in enumerate(node["outputs"]):
+            x_pt, y_pt = new_x + out["x"], new_y + out["y"]
+            vc.coords(node["graphics"]["outputs"][i], x_pt - 5, y_pt - 5, x_pt + 5, y_pt + 5)
+            if i < len(node["graphics"].get("output_labels", [])):
+                vc.coords(node["graphics"]["output_labels"][i], x_pt - 10, y_pt)
+
+        # Move param text
+        y_offset = 35
+        for i, param_id in enumerate(node["graphics"].get("params", [])):
+            vc.coords(param_id, new_x + 10, new_y + y_offset)
+            y_offset += 12
 
         self.update_connections_for_node(node)
+        self._update_scrollregion()
 
     # Placeholder stubs for un-ported features
     def on_node_double_click(self, event):
@@ -418,6 +435,7 @@ class VisualCanvas(tk.Frame):
                 vc.delete(self.selected_connection["graphics"])
             self.connections.remove(self.selected_connection)
             self.selected_connection = None
+            self._update_scrollregion()
             return
 
         if self.selected_node:
@@ -437,6 +455,7 @@ class VisualCanvas(tk.Frame):
                     vc.delete(item)
             self.nodes.remove(self.selected_node)
             self.selected_node = None
+            self._update_scrollregion()
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -539,6 +558,10 @@ class VisualCanvas(tk.Frame):
 
     # Maintain scrollregion automatically
     def on_canvas_configure(self, _event):
+        self._update_scrollregion()
+
+    def _update_scrollregion(self):
+        """Updates the canvas scrollregion to encompass all items."""
         self.visual_canvas.configure(scrollregion=self.visual_canvas.bbox("all"))
 
     def clear_canvas(self):
