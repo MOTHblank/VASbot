@@ -16,24 +16,27 @@ def _get_true_hwnd_rect(hwnd):
     This is a more reliable method that avoids issues with DWM and scaling.
     """
     try:
-        if not win32gui or not win32gui.IsWindow(hwnd):
+        if not user32.IsWindow(hwnd):
             return 0, 0, 0, 0
 
-        # Get the client rectangle, which is relative to the window's top-left corner
-        left, top, right, bottom = win32gui.GetClientRect(hwnd)
+        client_rect = wintypes.RECT()
+        user32.GetClientRect(hwnd, ctypes.byref(client_rect))
         
-        # Convert the client area's top-left and bottom-right points to screen coordinates
-        screen_left, screen_top = win32gui.ClientToScreen(hwnd, (left, top))
-        screen_right, screen_bottom = win32gui.ClientToScreen(hwnd, (right, bottom))
+        point_tl = wintypes.POINT(client_rect.left, client_rect.top)
+        point_br = wintypes.POINT(client_rect.right, client_rect.bottom)
         
-        return screen_left, screen_top, screen_right, screen_bottom
+        user32.ClientToScreen(hwnd, ctypes.byref(point_tl))
+        user32.ClientToScreen(hwnd, ctypes.byref(point_br))
+
+        return point_tl.x, point_tl.y, point_br.x, point_br.y
 
     except Exception as e:
         print(f"Error in _get_true_hwnd_rect: {e}")
         # Fallback to GetWindowRect if everything else fails
         try:
-            rect = win32gui.GetWindowRect(hwnd)
-            return rect[0], rect[1], rect[2], rect[3]
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            return rect.left, rect.top, rect.right, rect.bottom
         except Exception:
             return 0, 0, 0, 0
 

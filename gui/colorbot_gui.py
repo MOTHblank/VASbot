@@ -423,13 +423,13 @@ class ColorBotGUI:
             title = win32gui.GetWindowText(hwnd) if win32gui.IsWindow(hwnd) else "Invalid"
             style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE) if win32gui.IsWindow(hwnd) else 0
             is_max = bool(style & win32con.WS_MAXIMIZE)
-            window_rect = wintypes.RECT(); win32gui.GetWindowRect(hwnd, ctypes.byref(window_rect))
+            win_left, win_top, win_right, win_bottom = win32gui.GetWindowRect(hwnd)
             calc_rect = _get_true_hwnd_rect(hwnd)
             regions_summary = f"{len(self.regions)} regions" if self.regions else "No regions"
             info = f"""Window: {title}
 HWND: {hwnd}
 Maximized: {is_max}
-Window Rect: ({window_rect.left}, {window_rect.top}) - ({window_rect.right}, {window_rect.bottom})
+Window Rect: ({win_left}, {win_top}) - ({win_right}, {win_bottom})
 Calculated: ({calc_rect[0]}, {calc_rect[1]}) - ({calc_rect[2]}, {calc_rect[3]})
 Regions: {regions_summary}"""
             dialog = tk.Toplevel(self.root); dialog.title("Window Info"); dialog.geometry("500x300")
