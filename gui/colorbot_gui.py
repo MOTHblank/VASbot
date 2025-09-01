@@ -57,16 +57,11 @@ class ColorBotGUI:
         self.poll_script_runner_queue()
         
     def setup_hotkeys(self):
-        bindings = [('<F5>', self.play_script), ('<F6>', self.pause_resume_script), ('<F7>', self.stop_script),
-                   ('<Control-s>', self.save_script), ('<Control-o>', self.load_script), ('<Control-r>', self.capture_window), ('<Escape>', self.emergency_stop)]
+        bindings = [('<F5>', self.play_script), ('<F7>', self.stop_script),
+                   ('<Control-s>', self.save_script), ('<Control-o>', self.load_script), ('<Control-r>', self.capture_window)]
         for key, func in bindings:
             self.root.bind(key, lambda e, f=func: f())
         self.root.focus_set()
-        
-    def emergency_stop(self):
-        self.stop_script()
-        self.release_mouse_bound()
-        self.status_var.set("🚨 EMERGENCY STOP - All scripts halted!")
         
     def check_dependencies(self):
         missing = [lib for lib,var in [("pyautogui",pyautogui),("pywin32",win32gui),("numpy",np)] if var is None]
@@ -83,7 +78,7 @@ class ColorBotGUI:
         frame = tk.Frame(parent, bg='#34495e', relief=tk.RAISED, bd=2); frame.pack(fill=tk.X, pady=5)
         tk.Label(frame, text="🎮 2009scape Color Bot v2.1", font=('Arial',24,'bold'), fg='#ecf0f1', bg='#34495e').pack(pady=10)
         tk.Label(frame, text="High-Precision Automation with Background & Foreground Input + Region Management", font=('Arial',12), fg='#bdc3c7', bg='#34495e').pack()
-        tk.Label(frame, text="🔥 Hotkeys: F5=Run | F6=Pause/Resume | F7=Stop | ESC=Emergency Stop | Ctrl+S=Save | Ctrl+O=Load | Ctrl+R=Capture", font=('Arial',9), fg='#f39c12', bg='#34495e').pack(pady=(0,10))
+        tk.Label(frame, text="🔥 Hotkeys: F5=Run | F7=Stop | Ctrl+S=Save | Ctrl+O=Load | Ctrl+R=Capture", font=('Arial',9), fg='#f39c12', bg='#34495e').pack(pady=(0,10))
         
     def create_window_section(self, parent):
         frame = tk.Frame(parent, bg='#34495e', relief=tk.RAISED, bd=2); frame.pack(fill=tk.X, pady=5)
@@ -215,14 +210,11 @@ class ColorBotGUI:
         frame = tk.Frame(parent, bg='#34495e', relief=tk.RAISED, bd=2); frame.pack(fill=tk.X, pady=5)
         tk.Label(frame, text="▶️ Script Player", font=('Arial',16,'bold'), fg='#ecf0f1', bg='#34495e').pack(pady=(15,10))
         ctrls = tk.Frame(frame, bg='#34495e'); ctrls.pack(pady=10)
-        player_buttons = [("▶️ Run (F5)", self.play_script, '#27ae60', 12), ("⏸️ Pause (F6)", self.pause_resume_script, '#f39c12', 12), ("⏹️ Stop (F7)", self.stop_script, '#e74c3c', 12), ("🚨 Emergency (ESC)", self.emergency_stop, '#c0392b', 15)]
+        player_buttons = [("▶️ Run (F5)", self.play_script, '#27ae60', 12), ("⏹️ Stop (F7)", self.stop_script, '#e74c3c', 12)]
         for i, (text, cmd, color, width) in enumerate(player_buttons):
             btn = tk.Button(ctrls, text=text, command=cmd, bg=color, fg='white', font=('Arial',12,'bold'), width=width, padx=5)
             btn.pack(side=tk.LEFT, padx=5)
-            if i == 1:
-                self.pause_button = btn
-                btn.config(state=tk.DISABLED)
-            elif i == 0:
+            if i == 0:
                 self.play_button = btn
         self.status_var = tk.StringVar(value="Ready")
         tk.Label(frame, textvariable=self.status_var, fg='#ecf0f1', bg='#34495e', font=('Arial',12)).pack(fill=tk.X, pady=5)
@@ -755,9 +747,8 @@ Regions: {regions_summary}"""
             messagebox.showwarning("Warning", "Capture a window first.")
             return
 
-        self.is_playing, self.is_paused = False, False
+        self.is_playing = True
         self.play_button.config(state=tk.DISABLED)
-        self.pause_button.config(text="⏸️ Pause (F6)", state=tk.NORMAL)
         self.output_console.config(state=tk.NORMAL)
         self.output_console.delete('1.0', tk.END)
         self.output_console.config(state=tk.DISABLED)
@@ -782,22 +773,12 @@ Regions: {regions_summary}"""
                 self._on_script_finished_ui() # Reset UI state
                 return
             self.script_runner.run_script(script_code=code)
-        
-    def pause_resume_script(self):
-        if not hasattr(self, 'is_playing') or not self.is_playing: return
-        self.is_paused = not self.is_paused
-        if self.is_paused: 
-            self.script_runner.pause()
-            self.pause_button.config(text="▶️ Resume (F6)")
-            self.status_var.set("⏸️ Script paused")
-        else: 
-            self.script_runner.resume()
-            self.pause_button.config(text="⏸️ Pause (F6)")
-            self.status_var.set("▶️ Script resumed")
             
     def stop_script(self):
         if not hasattr(self, 'is_playing') or not self.is_playing: return
         self.script_runner.stop()
+        self.release_mouse_bound()
+        self.status_var.set("⏹️ Script stopped by user.")
         self._on_script_finished_ui()
         
     def log_message(self, m): 
@@ -813,9 +794,8 @@ Regions: {regions_summary}"""
         self.root.after(0, self._on_script_finished_ui)
         
     def _on_script_finished_ui(self):
-        self.is_playing, self.is_paused = False, False
+        self.is_playing = False
         self.play_button.config(state=tk.NORMAL)
-        self.pause_button.config(text="⏸️ Pause (F6)", state=tk.DISABLED)
         self.release_mouse_bound()
         if "stopped" not in self.status_var.get(): 
             self.status_var.set("✅ Script finished. Ready for next run!")
