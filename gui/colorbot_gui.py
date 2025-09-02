@@ -21,6 +21,7 @@ import pyautogui
 from core.script_runner import ScriptRunner
 from utils.windows_utils import _get_true_hwnd_rect
 from gui.visual_canvas import VisualCanvas
+from gui.visual_editor import VisualEditorWindow
 
 
 class ColorBotGUI:
@@ -201,42 +202,7 @@ class ColorBotGUI:
         if self.visual_editor_window and self.visual_editor_window.winfo_exists():
             self.visual_editor_window.lift()
             return
-
-        self.visual_editor_window = tk.Toplevel(self.root)
-        self.visual_editor_window.title("Visual Script Editor")
-        self.visual_editor_window.geometry("800x600")
-        self.visual_editor_window.configure(bg="#34495e")
-
-        def on_close():
-            self.visual_editor_window.destroy()
-            self.visual_editor_window = None
-            self.visual_canvas = None
-
-        self.visual_editor_window.protocol("WM_DELETE_WINDOW", on_close)
-
-        top_frame = tk.Frame(self.visual_editor_window, bg="#34495e")
-        top_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        tk.Label(top_frame, text="🧩 Visual Script Canvas", font=('Arial',12,'bold'), fg='#ecf0f1', bg='#34495e').pack(side=tk.LEFT)
-        
-        button_frame = tk.Frame(top_frame, bg="#34495e")
-        button_frame.pack(side=tk.RIGHT)
-
-        tk.Button(button_frame, text="▶️ Run", command=self.run_visual_script, bg='#27ae60', fg='white', font=('Arial',9,'bold')).pack(side=tk.LEFT, padx=2)
-        tk.Button(button_frame, text="💾 Save", command=self.save_visual_script, bg='#27ae60', fg='white', font=('Arial',9,'bold')).pack(side=tk.LEFT, padx=2)
-        tk.Button(button_frame, text="📂 Load", command=self.load_visual_script, bg='#f39c12', fg='white', font=('Arial',9,'bold')).pack(side=tk.LEFT, padx=2)
-
-        canvas_frame = tk.Frame(self.visual_editor_window, bg="#34495e")
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
-
-        self.visual_canvas = VisualCanvas(canvas_frame, self)
-        self.visual_canvas.pack(fill=tk.BOTH, expand=True)
-
-    def save_visual_script(self):
-        pass # To be implemented
-
-    def load_visual_script(self):
-        pass # To be implemented
+        self.visual_editor_window = VisualEditorWindow(self.root, self)
 
     def create_player_section(self, parent):
         frame = tk.Frame(parent, bg='#34495e', relief=tk.RAISED, bd=2); frame.pack(fill=tk.X, pady=5)
@@ -341,50 +307,6 @@ class ColorBotGUI:
                 messagebox.showinfo("Embedded Regions", "Script contains embedded regions that will load when run.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load script: {e}")
-
-    def save_visual_script(self):
-        if not self.visual_canvas or not self.visual_canvas.nodes:
-            messagebox.showwarning("Warning", "Visual script is empty or not open.")
-            return
-        filename = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("Visual Script JSON", "*.json")],
-            title="Save Visual Script"
-        )
-        if filename:
-            try:
-                nodes_to_save = copy.deepcopy(self.visual_canvas.nodes)
-                connections_to_save = copy.deepcopy(self.visual_canvas.connections)
-                visual_script = {"nodes": nodes_to_save, "connections": connections_to_save}
-                for node in visual_script["nodes"]:
-                    node.pop("graphics", None)
-                for conn in visual_script["connections"]:
-                    conn.pop("graphics", None)
-                with open(filename, 'w') as f:
-                    json.dump(visual_script, f, indent=2)
-                self.status_var.set(f"💾 Visual script saved: {os.path.basename(filename)}")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to save visual script: {e}")
-
-    def load_visual_script(self):
-        if not self.visual_editor_window or not self.visual_editor_window.winfo_exists():
-            self.open_visual_editor_window()
-
-        filename = filedialog.askopenfilename(
-            filetypes=[("Visual Scripts", "*.json")]
-        )
-        if not filename:
-            return
-        try:
-            with open(filename, 'r') as f:
-                visual_script = json.load(f)
-            if hasattr(self.visual_canvas, 'load_from_dict'):
-                self.visual_canvas.load_from_dict(visual_script)
-                self.status_var.set(f"📂 Visual script loaded: {os.path.basename(filename)}")
-            else:
-                messagebox.showerror("Error", "Visual canvas does not support loading scripts.")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load visual script: {e}\n\n{e}")
             
     def capture_window(self):
         hwnd_str = self.window_var.get()
@@ -762,7 +684,8 @@ Regions: {regions_summary}"""
             return False
         self.is_playing = True
         self.play_button.config(state=tk.DISABLED)
-        # Add logic to disable visual run button if it exists
+        if self.visual_editor_window and self.visual_editor_window.winfo_exists():
+            self.visual_editor_window.run_button.config(state=tk.DISABLED)
         self.output_console.config(state=tk.NORMAL)
         self.output_console.delete('1.0', tk.END)
         self.output_console.config(state=tk.DISABLED)
@@ -779,19 +702,6 @@ Regions: {regions_summary}"""
             return
         self.script_runner.run_script(script_code=code)
 
-    def run_visual_script(self):
-        if not self._start_script_run():
-            return
-        if not self.visual_canvas or not self.visual_canvas.nodes:
-            messagebox.showwarning("Warning", "Visual script is empty or not open.")
-            self._on_script_finished_ui() # Reset UI state
-            return
-        visual_script = {
-            "nodes": self.visual_canvas.nodes,
-            "connections": self.visual_canvas.connections,
-        }
-        self.script_runner.run_script(visual_script=visual_script)
-            
     def stop_script(self):
         if not hasattr(self, 'is_playing') or not self.is_playing: return
         self.script_runner.stop()
@@ -814,6 +724,8 @@ Regions: {regions_summary}"""
     def _on_script_finished_ui(self):
         self.is_playing = False
         self.play_button.config(state=tk.NORMAL)
+        if self.visual_editor_window and self.visual_editor_window.winfo_exists():
+            self.visual_editor_window.run_button.config(state=tk.NORMAL)
         self.release_mouse_bound()
         if "stopped" not in self.status_var.get(): 
             self.status_var.set("✅ Script finished. Ready for next run!")
