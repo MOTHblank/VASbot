@@ -395,24 +395,28 @@ class VisualCanvas(tk.Frame):
             entries[param] = entry
 
         def on_ok():
-            try:
-                for param, entry in entries.items():
-                    new_value = entry.get()
-                    # Use the type of the default value for robustness
-                    current_type = type(node["params"].get(param))
-                    try:
-                        if current_type == bool:
-                            node["params"][param] = new_value.lower() in ("true", "1", "yes")
-                        elif current_type == list:
-                            node["params"][param] = [s.strip() for s in new_value.split(',') if s.strip()]
-                        else:
-                            node["params"][param] = current_type(new_value)
-                    except (ValueError, TypeError):
-                        self.gui.status_var.set(f"Invalid value for {param}: '{new_value}'")
+            new_params = {}
+            validation_passed = True
+            for param, entry in entries.items():
+                new_value_str = entry.get()
+                current_type = type(node["params"].get(param))
+                try:
+                    if current_type == bool:
+                        new_params[param] = new_value_str.lower() in ("true", "1", "yes")
+                    elif current_type == list:
+                        new_params[param] = [s.strip() for s in new_value_str.split(',') if s.strip()]
+                    else:
+                        new_params[param] = current_type(new_value_str)
+                except (ValueError, TypeError):
+                    self.gui.status_var.set(f"Invalid value for {param}: '{new_value_str}'")
+                    validation_passed = False
+                    break # Stop processing on first error
 
-                self.redraw_node(node)
-            finally:
+            if validation_passed:
                 dialog.destroy()
+                # Update node state only after dialog is closed
+                node["params"].update(new_params)
+                self.redraw_node(node)
 
         button_frame = tk.Frame(dialog, bg="#34495e")
         button_frame.pack(pady=10)
