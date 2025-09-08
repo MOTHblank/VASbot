@@ -395,23 +395,28 @@ class VisualCanvas(tk.Frame):
             entries[param] = entry
 
         def on_ok():
+            new_params = {}
+            validation_passed = True
             for param, entry in entries.items():
-                new_value = entry.get()
-                current_type = type(node["params"].get(param, ""))
+                new_value_str = entry.get()
+                current_type = type(node["params"].get(param))
                 try:
                     if current_type == bool:
-                        node["params"][param] = new_value.lower() in ("true", "1", "yes")
+                        new_params[param] = new_value_str.lower() in ("true", "1", "yes")
                     elif current_type == list:
-                        # For now, treat lists as comma-separated strings
-                        node["params"][param] = [s.strip() for s in new_value.split(',') if s.strip()]
+                        new_params[param] = [s.strip() for s in new_value_str.split(',') if s.strip()]
                     else:
-                        node["params"][param] = current_type(new_value)
+                        new_params[param] = current_type(new_value_str)
                 except (ValueError, TypeError):
-                    # Keep original value if conversion fails
-                    print(f"Could not convert '{new_value}' to {current_type}")
+                    self.gui.status_var.set(f"Invalid value for {param}: '{new_value_str}'")
+                    validation_passed = False
+                    break # Stop processing on first error
 
-            self.redraw_node(node)
-            dialog.destroy()
+            if validation_passed:
+                dialog.destroy()
+                # Update node state only after dialog is closed
+                node["params"].update(new_params)
+                self.redraw_node(node)
 
         button_frame = tk.Frame(dialog, bg="#34495e")
         button_frame.pack(pady=10)
