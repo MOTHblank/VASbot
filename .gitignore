@@ -1,0 +1,7 @@
+bin/
+obj/
+*.user
+.vs/
+python/__pycache__/
+python/.venv/
+.idea/

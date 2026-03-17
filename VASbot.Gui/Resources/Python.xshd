@@ -1,0 +1,64 @@
+<SyntaxDefinition name="Python" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+    <Color name="Comment" foreground="#6A9955" />
+    <Color name="String" foreground="#CE9178" />
+    <Color name="MethodName" foreground="#DCDCAA" fontWeight="bold" />
+    <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+    <Color name="ControlKeyword" foreground="#C586C0" fontWeight="bold" />
+    <Color name="Digits" foreground="#B5CEA8" />
+    <Color name="GlobalObject" foreground="#4FC1FF" fontWeight="bold" />
+
+    <RuleSet>
+        <!-- Comments -->
+        <Span color="Comment" begin="#" />
+
+        <!-- Strings -->
+        <Span color="String">
+            <Begin>"</Begin>
+            <End>"</End>
+            <RuleSet>
+                <Span begin="\\" end="." />
+            </RuleSet>
+        </Span>
+        <Span color="String">
+            <Begin>'</Begin>
+            <End>'</End>
+            <RuleSet>
+                <Span begin="\\" end="." />
+            </RuleSet>
+        </Span>
+
+        <!-- Control Keywords -->
+        <Keywords color="ControlKeyword">
+            <Word>if</Word><Word>else</Word><Word>elif</Word>
+            <Word>while</Word><Word>for</Word><Word>break</Word>
+            <Word>continue</Word><Word>return</Word><Word>yield</Word>
+            <Word>try</Word><Word>except</Word><Word>finally</Word>
+            <Word>raise</Word><Word>pass</Word>
+        </Keywords>
+
+        <!-- Standard Keywords -->
+        <Keywords color="Keyword">
+            <Word>and</Word><Word>as</Word><Word>assert</Word>
+            <Word>class</Word><Word>def</Word><Word>del</Word>
+            <Word>from</Word><Word>global</Word><Word>import</Word>
+            <Word>in</Word><Word>is</Word><Word>lambda</Word>
+            <Word>not</Word><Word>or</Word><Word>with</Word>
+            <Word>None</Word><Word>True</Word><Word>False</Word>
+        </Keywords>
+
+        <!-- VASbot Globals -->
+        <Keywords color="GlobalObject">
+            <Word>bot</Word>
+            <Word>win</Word>
+            <Word>app</Word>
+            <Word>regions</Word>
+            <Word>hwnd</Word>
+        </Keywords>
+
+        <!-- Digits -->
+        <Rule color="Digits">\b0[xX][0-9a-fA-F]+\b|\b\d+(\.[0-9]+)?\b</Rule>
+
+        <!-- Method Calls -->
+        <Rule color="MethodName">\b[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()</Rule>
+    </RuleSet>
+</SyntaxDefinition>

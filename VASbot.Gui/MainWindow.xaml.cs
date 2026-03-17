@@ -1,0 +1,265 @@
+using System;
+using System.IO;
+using System.Windows;
+using System.Windows.Input;
+using System.Xml;
+using ICSharpCode.AvalonEdit.Highlighting;
+using ICSharpCode.AvalonEdit.Highlighting.Xshd;
+using ModernWpf;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+using VASbot.Gui.Engine;
+using VASbot.Gui.UI.ViewModels;
+
+namespace VASbot.Gui
+{
+    public partial class MainWindow : Window
+    {
+        private readonly MainViewModel _viewModel;
+        private readonly PythonSidecarService _sidecar;
+        private readonly SharedMemoryService _sharedMemory;
+        private HotkeyService? _hotkeyService;
+
+        public MainWindow(
+            MainViewModel viewModel, 
+            PythonSidecarService sidecar, 
+            SharedMemoryService sharedMemory)
+        {
+            InitializeComponent();
+            _viewModel = viewModel;
+            _sidecar = sidecar;
+            _sharedMemory = sharedMemory;
+
+            DataContext = _viewModel;
+
+            LoadPythonSyntax();
+            InitializeSidecar();
+            SetupEventHandlers();
+            ThemeManager.Current.ApplicationTheme = ApplicationTheme.Dark;
+        }
+
+        private void InitializeSidecar()
+        {
+            _sidecar.Start();
+        }
+
+        private void SetupEventHandlers()
+        {
+            // Initialize editor text from VM
+            ScriptEditor.Text = _viewModel.ScriptEditor.ScriptText;
+
+            // Invalidation trigger for the Skia canvas
+            _viewModel.Capture.PropertyChanged += (s, e) => {
+                if (e.PropertyName == nameof(CaptureViewModel.CurrentFrame) || 
+                    e.PropertyName == nameof(CaptureViewModel.ZoomLevel) ||
+                    e.PropertyName == nameof(CaptureViewModel.Offset) ||
+                    e.PropertyName == nameof(CaptureViewModel.HighlightedRect))
+                {
+                    Application.Current.Dispatcher.Invoke(() => SkiaElement.InvalidateVisual());
+                }
+            };
+
+            // Hotkey Registration
+            SourceInitialized += (s, e) => {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                _hotkeyService = new HotkeyService(hwnd);
+                
+                _hotkeyService.Register(ModifierKeys.Control, Key.F5, () => _viewModel.ScriptEditor.RunScriptCommand.Execute(null));
+                _hotkeyService.Register(ModifierKeys.Control, Key.F7, () => _viewModel.ScriptEditor.StopScriptCommand.Execute(null));
+                _hotkeyService.Register(ModifierKeys.Control, Key.F6, () => _viewModel.Capture.CaptureFrameCommand.Execute(null));
+            };
+
+            // Template system listener
+            _viewModel.Templates.TemplateApplied += (code) => {
+                ScriptEditor.Document.Replace(ScriptEditor.SelectionStart, ScriptEditor.SelectionLength, code);
+            };
+        }
+
+        private void LoadPythonSyntax()
+        {
+            try
+            {
+                string xshdPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Python.xshd");
+                if (File.Exists(xshdPath))
+                {
+                    using (Stream s = File.OpenRead(xshdPath))
+                    using (XmlTextReader reader = new XmlTextReader(s))
+                    {
+                        ScriptEditor.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UI] Failed to load syntax: {ex.Message}");
+            }
+        }
+
+        private void ScriptEditor_TextChanged(object sender, EventArgs e)
+        {
+            if (_viewModel?.ScriptEditor != null)
+            {
+                _viewModel.ScriptEditor.ScriptText = ScriptEditor.Text;
+            }
+        }
+
+        private void Terminal_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox tb)
+            {
+                tb.ScrollToEnd();
+            }
+        }
+
+        private void SkiaElement_PaintSurface(object sender, SKPaintSurfaceEventArgs e)
+        {
+            _viewModel.Capture.Render(e.Surface.Canvas, (float)e.Info.Width, (float)e.Info.Height);
+        }
+
+        private void AutomationTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue is AutomationTreeViewModel.AutomationNode node)
+            {
+                _viewModel.AutomationTree.SelectedNode = node;
+            }
+        }
+
+        private void InsertTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.Templates.ApplyTemplate(ScriptEditor.SelectedText);
+        }
+
+        private void SaveSnippet_Click(object sender, RoutedEventArgs e)
+        {
+            string text = ScriptEditor.SelectedText;
+            if (string.IsNullOrEmpty(text))
+            {
+                text = ScriptEditor.Text; // fallback to all
+            }
+            string name = SnippetNameInput.Text;
+            if (string.IsNullOrWhiteSpace(name)) name = "My Snippet " + DateTime.Now.ToString("HHmmss");
+
+            _viewModel.Templates.SaveSnippet(name, text);
+            SnippetNameInput.Text = "";
+        }
+
+        private async void RegionName_LostFocus(object sender, RoutedEventArgs e)
+        {
+            await _viewModel.Capture.EndDragAsync(); // Re-use the save/sync logic
+        }
+
+        // --- Interaction Handlers ---
+
+        private void SkiaElement_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var pos = e.GetPosition(SkiaElement);
+            if (_viewModel.Capture.IsEyedropperActive)
+            {
+                _viewModel.Capture.SampleColorAt(pos);
+                return;
+            }
+
+            if (e.ChangedButton == MouseButton.Middle || (e.ChangedButton == MouseButton.Left && Keyboard.Modifiers == ModifierKeys.Control))
+            {
+                SkiaElement.CaptureMouse();
+                _mouseDownPos = pos;
+                _isPanning = true;
+            }
+            else if (e.ChangedButton == MouseButton.Left && Keyboard.Modifiers == ModifierKeys.Shift)
+            {
+                SkiaElement.CaptureMouse();
+                _viewModel.Capture.StartDrag(pos);
+                _isDraggingRegion = true;
+            }
+            else if (e.ChangedButton == MouseButton.Left)
+            {
+                SkiaElement.CaptureMouse();
+                _viewModel.Capture.StartCreation(pos);
+                _isCreatingRegion = true;
+            }
+        }
+
+        private bool _isPanning;
+        private bool _isCreatingRegion;
+        private bool _isDraggingRegion;
+        private Point _mouseDownPos;
+
+        private void SkiaElement_MouseMove(object sender, MouseEventArgs e)
+        {
+            var pos = e.GetPosition(SkiaElement);
+            _viewModel.Capture.MousePos = new SKPoint((float)pos.X, (float)pos.Y);
+
+            if (_isPanning)
+            {
+                _viewModel.Capture.UpdatePan(pos, _mouseDownPos);
+                _mouseDownPos = pos;
+            }
+            else if (_isCreatingRegion)
+            {
+                _viewModel.Capture.UpdateCreation(pos);
+            }
+            else if (_isDraggingRegion)
+            {
+                _viewModel.Capture.UpdateDrag(pos);
+            }
+            else
+            {
+                if (Keyboard.Modifiers == ModifierKeys.Alt)
+                {
+                    var imgPos = _viewModel.Capture.ScreenToImage(pos);
+                    var screenPos = _viewModel.Capture.ImageToScreen(imgPos);
+                    var node = _viewModel.AutomationTree.FindNodeAt(screenPos.X, screenPos.Y);
+                    if (node != null)
+                    {
+                        _viewModel.AutomationTree.SelectedNode = node;
+                        _viewModel.Inspector.Update(node);
+                        _viewModel.Capture.ActiveElementInfo = new CaptureViewModel.ElementDiagnosticInfo(
+                            node.Type, node.AutomationId, node.Element.Current.ClassName, node.Element.Current.ProcessId.ToString()
+                        );
+                    }
+                }
+                else
+                {
+                    _viewModel.Inspector.Update(null);
+                    _viewModel.Capture.ActiveElementInfo = null;
+                }
+            }
+        }
+
+        private async void SkiaElement_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isPanning)
+            {
+                _isPanning = false;
+                SkiaElement.ReleaseMouseCapture();
+            }
+            else if (_isCreatingRegion)
+            {
+                _isCreatingRegion = false;
+                await _viewModel.Capture.EndCreationAsync();
+                SkiaElement.ReleaseMouseCapture();
+            }
+            else if (_isDraggingRegion)
+            {
+                _isDraggingRegion = false;
+                await _viewModel.Capture.EndDragAsync();
+                SkiaElement.ReleaseMouseCapture();
+            }
+        }
+
+        private void SkiaElement_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            _viewModel.Capture.Zoom(e.Delta, e.GetPosition(SkiaElement));
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // Note: Services are stopped by the AppHost in App.xaml.cs, 
+            // but we ensure immediate disposal here if necessary.
+            _viewModel.Capture.Dispose();
+            _sidecar.Stop();
+            _sharedMemory.Dispose();
+            base.OnClosed(e);
+        }
+    }
+}

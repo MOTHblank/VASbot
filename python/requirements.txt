@@ -1,0 +1,8 @@
+Pillow
+numpy
+pywin32
+pyautogui
+pynput
+pywinauto
+grpcio
+grpcio-tools

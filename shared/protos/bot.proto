@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+option csharp_namespace = "VASbot.Gui.Protos";
+
+package vasbot;
+
+service BotService {
+  rpc ExecuteScript (ScriptRequest) returns (stream ScriptLog);
+  rpc GetStatus (StatusRequest) returns (StatusResponse);
+  rpc Ping (PingRequest) returns (PingResponse);
+  rpc NotifyFrameUpdate (FrameNotification) returns (FrameResponse);
+  rpc UpdateRegions (RegionList) returns (UpdateResponse);
+  rpc SetTargetWindow (WindowContext) returns (UpdateResponse);
+
+  // Recorder Interface
+  rpc StartRecording (Empty) returns (UpdateResponse);
+  rpc StopRecording (Empty) returns (RecordingResponse);
+
+  // Advanced Window Automation
+  rpc ClickElement (ElementRequest) returns (UpdateResponse);
+  rpc TypeIntoElement (TypeRequest) returns (UpdateResponse);
+  rpc WaitWindow (WindowRequest) returns (UpdateResponse);
+  
+  // Industrial Health Check
+  rpc CheckHealth (HealthRequest) returns (HealthResponse);
+}
+
+message Empty {}
+
+message ScriptRequest {
+  string code = 1;
+  string correlation_id = 2;
+}
+
+message ScriptLog {
+  string message = 1;
+  string correlation_id = 2;
+}
+
+message StatusRequest {}
+
+message StatusResponse {
+  bool is_running = 1;
+}
+
+message PingRequest {}
+message PingResponse {
+  int64 timestamp = 1;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+  }
+  ServingStatus status = 1;
+}
+
+message FrameNotification {
+  string memory_map_name = 1;
+  int32 width = 2;
+  int32 height = 3;
+  int32 stride = 4;
+}
+
+message FrameResponse {
+  bool acknowledged = 1;
+}
+
+message Region {
+  string name = 1;
+  int32 x = 2;
+  int32 y = 3;
+  int32 width = 4;
+  int32 height = 5;
+  int32 index = 6;
+}
+
+message RegionList {
+  repeated Region regions = 1;
+  int32 ref_width = 2;
+  int32 ref_height = 3;
+}
+
+message WindowContext {
+  uint64 hwnd = 1;
+  string title = 2;
+}
+
+message ElementRequest {
+  string control_type = 1;
+  string identifier = 2;
+  bool double_click = 3;
+}
+
+message TypeRequest {
+  string identifier = 1;
+  string text = 2;
+  bool clear_first = 3;
+}
+
+message WindowRequest {
+  string title = 1;
+  float timeout = 2;
+}
+
+message UpdateResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RecordingResponse {
+  bool success = 1;
+  string script = 2;
+}

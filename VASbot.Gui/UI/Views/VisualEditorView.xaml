@@ -1,0 +1,126 @@
+<UserControl x:Class="VASbot.Gui.UI.Views.VisualEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:VASbot.Gui.UI.Views"
+             xmlns:viewmodels="clr-namespace:VASbot.Gui.UI.ViewModels"
+             xmlns:models="clr-namespace:VASbot.Gui.UI.ViewModels.VisualGraph"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800" Background="#1e1e1e">
+    <UserControl.Resources>
+        <!-- Node Template -->
+        <DataTemplate DataType="{x:Type models:VisualNode}">
+            <Border Width="{Binding Width}" Height="{Binding Height}" Background="#2c3e50" CornerRadius="5" BorderBrush="#34495e" BorderThickness="2"
+                    MouseLeftButtonDown="Node_MouseDown" MouseLeftButtonUp="Node_MouseUp" MouseMove="Node_MouseMove">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Border Background="#34495e" CornerRadius="3,3,0,0" Padding="5">
+                        <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    </Border>
+                    
+                    <Grid Grid.Row="1">
+                        <!-- Inputs -->
+                        <ItemsControl ItemsSource="{Binding Inputs}" HorizontalAlignment="Left" Margin="-10,0,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Ellipse Width="12" Height="12" Fill="#2ecc71" Stroke="#ecf0f1" StrokeThickness="1" 
+                                             Margin="0,5" ToolTip="{Binding Name}"
+                                             MouseLeftButtonDown="Pin_MouseDown" MouseLeftButtonUp="Pin_MouseUp"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Outputs -->
+                        <ItemsControl ItemsSource="{Binding Outputs}" HorizontalAlignment="Right" Margin="0,0,-10,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Ellipse Width="12" Height="12" Fill="#e74c3c" Stroke="#ecf0f1" StrokeThickness="1" 
+                                             Margin="0,5" ToolTip="{Binding Name}"
+                                             MouseLeftButtonDown="Pin_MouseDown" MouseLeftButtonUp="Pin_MouseUp"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Parameters Summary (Optional) -->
+                        <ItemsControl ItemsSource="{Binding Parameters}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Key}" Foreground="#bdc3c7" FontSize="10"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <Border Background="#1a1a1a" Padding="8,4" BorderBrush="#222" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Generate Code" Command="{Binding GenerateCodeCommand}" Padding="12,4" Margin="4,0" FontSize="10" Background="#27ae60" Foreground="White" FontWeight="Bold"/>
+                <Separator Margin="10,0" Opacity="0.2"/>
+                <Button Content="Delete Selected" Command="{Binding RemoveSelectedNodeCommand}" Padding="12,4" Margin="4,0" FontSize="10" Background="#c0392b" Foreground="White"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Canvas x:Name="GraphCanvas" Width="2000" Height="2000" Background="#1e1e1e" 
+                    MouseLeftButtonUp="Canvas_MouseUp" MouseMove="Canvas_MouseMove">
+                <Canvas.ContextMenu>
+                    <ContextMenu ItemsSource="{Binding AvailableTemplates}">
+                        <ContextMenu.ItemTemplate>
+                            <DataTemplate>
+                                <MenuItem Header="{Binding Name}" Command="{Binding DataContext.AddNodeCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </ContextMenu.ItemTemplate>
+                    </ContextMenu>
+                </Canvas.ContextMenu>
+                
+                <!-- Connections Layer -->
+                <ItemsControl ItemsSource="{Binding Connections}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Line X1="{Binding OutputPin.X}" Y1="{Binding OutputPin.Y}" 
+                                  X2="{Binding InputPin.X}" Y2="{Binding InputPin.Y}" 
+                                  Stroke="#bdc3c7" StrokeThickness="3"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Active Drag Line -->
+                <Line x:Name="ActiveConnectionLine" Stroke="#f1c40f" StrokeThickness="3" StrokeDashArray="2 2" Visibility="Collapsed"/>
+
+                <!-- Nodes Layer -->
+                <ItemsControl ItemsSource="{Binding Nodes}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </Canvas>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

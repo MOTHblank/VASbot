@@ -1,0 +1,266 @@
+[
+  {
+    "Name": "While Bot is Running",
+    "Icon": "🔁",
+    "Category": "Logic",
+    "Description": "The primary loop for any bot. Keeps the script alive until you hit STOP.",
+    "Template": "while bot.is_running:\n{selection}\n    bot.wait(0.05)",
+    "Parameters": [],
+    "RequiresRegion": false,
+    "InsertMode": "wrap"
+  },
+  {
+    "Name": "If/Else Condition",
+    "Icon": "🔀",
+    "Category": "Logic",
+    "Description": "Standard Python if/else conditional block.",
+    "Template": "if {condition}:\n{selection}\nelse:\n    pass",
+    "Parameters": [
+      { "Key": "condition", "Type": "text", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "wrap"
+  },
+  {
+    "Name": "For Loop",
+    "Icon": "🔄",
+    "Category": "Logic",
+    "Description": "Loop a specific number of times.",
+    "Template": "for {var_name} in range({count}):\n{selection}",
+    "Parameters": [
+      { "Key": "var_name", "Type": "text", "DefaultValue": "i" },
+      { "Key": "count", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "wrap"
+  },
+  {
+    "Name": "Break",
+    "Icon": "🛑",
+    "Category": "Logic",
+    "Description": "Break out of the current loop.",
+    "Template": "break",
+    "Parameters": [],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Continue",
+    "Icon": "⏭️",
+    "Category": "Logic",
+    "Description": "Skip the rest of the current loop iteration.",
+    "Template": "continue",
+    "Parameters": [],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Variable Assignment",
+    "Icon": "📝",
+    "Category": "Logic",
+    "Description": "Assign a value to a variable.",
+    "Template": "{var_name} = {value}",
+    "Parameters": [
+      { "Key": "var_name", "Type": "text", "DefaultValue": "my_var" },
+      { "Key": "value", "Type": "text", "DefaultValue": "0" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Wait",
+    "Icon": "🕒",
+    "Category": "Time",
+    "Description": "Simple pause in seconds.",
+    "Template": "bot.wait({seconds})",
+    "Parameters": [
+      { "Key": "seconds", "Type": "number", "DefaultValue": "1.0" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click Region Center",
+    "Icon": "🎯",
+    "Category": "Mouse",
+    "Description": "Clicks the center of a region with optional modifiers.",
+    "Template": "bot.click_region(region_index={region_index}, button='{button}', modifiers={modifiers}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find & Click Color",
+    "Icon": "🎨",
+    "Category": "Vision",
+    "Description": "Find a color in a region and click it if found.",
+    "Template": "bot.find_and_click_color(hex_color='{hex_color}', region_index={region_index}, tolerance={tolerance}, button='{button}', modifiers={modifiers}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "hex_color", "Type": "color", "DefaultValue": "#FFFFFF" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find & Click Image",
+    "Icon": "🖼️",
+    "Category": "Vision",
+    "Description": "Find an image template on screen and click its center.",
+    "Template": "pos = bot.find_image('{image_path}', region_index={region_index}, confidence={confidence})\nif pos:\n    bot.bot.click(pos[0], pos[1], button='{button}', modifiers={modifiers})",
+    "Parameters": [
+      { "Key": "image_path", "Type": "text", "DefaultValue": "template.png" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "confidence", "Type": "number", "DefaultValue": "0.8" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find & Click Text (OCR)",
+    "Icon": "🔍",
+    "Category": "Vision",
+    "Description": "Use OCR to find and click a specific word.",
+    "Template": "pos = bot.find_text('{text}', region_index={region_index})\nif pos:\n    bot.bot.click(pos[0], pos[1], button='{button}', modifiers={modifiers})",
+    "Parameters": [
+      { "Key": "text", "Type": "text", "DefaultValue": "Login" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click UI Element (UIA)",
+    "Icon": "🖱️",
+    "Category": "Window",
+    "Description": "Logic-based click on a native Windows button/element.",
+    "Template": "bot.click_element(identifier='{name}', control_type='{type}', double_click={double})",
+    "Parameters": [
+      { "Key": "type", "Type": "text", "DefaultValue": "Button" },
+      { "Key": "name", "Type": "text", "DefaultValue": "" },
+      { "Key": "double", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Type Into Element",
+    "Icon": "⌨️",
+    "Category": "Window",
+    "Description": "Focus a native element and type text.",
+    "Template": "bot.type_into(identifier='{name}', text='{text}', clear_first={clear})",
+    "Parameters": [
+      { "Key": "name", "Type": "text", "DefaultValue": "" },
+      { "Key": "text", "Type": "text", "DefaultValue": "" },
+      { "Key": "clear", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Wait for Window",
+    "Icon": "⏳",
+    "Category": "Window",
+    "Description": "Wait until a window with the specified title appears.",
+    "Template": "bot.wait_window(title='{title}', timeout={timeout})",
+    "Parameters": [
+      { "Key": "title", "Type": "text", "DefaultValue": "Application Title" },
+      { "Key": "timeout", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Wait for Element",
+    "Icon": "⌛",
+    "Category": "Window",
+    "Description": "Wait until a UI element becomes visible.",
+    "Template": "bot.wait_for_element(identifier='{name}', timeout={timeout})",
+    "Parameters": [
+      { "Key": "name", "Type": "text", "DefaultValue": "" },
+      { "Key": "timeout", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Text from Element",
+    "Icon": "📄",
+    "Category": "Window",
+    "Description": "Extract text from a UI element.",
+    "Template": "{var_name} = bot.get_text(identifier='{name}')\nbot.log(f'Extracted: {{{var_name}}}')",
+    "Parameters": [
+      { "Key": "var_name", "Type": "text", "DefaultValue": "extracted_text" },
+      { "Key": "name", "Type": "text", "DefaultValue": "" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Select Dropdown",
+    "Icon": "🔽",
+    "Category": "Window",
+    "Description": "Select a value from a dropdown (ComboBox).",
+    "Template": "bot.select_dropdown(identifier='{name}', value='{value}', by_index={by_index})",
+    "Parameters": [
+      { "Key": "name", "Type": "text", "DefaultValue": "" },
+      { "Key": "value", "Type": "text", "DefaultValue": "" },
+      { "Key": "by_index", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Check Checkbox",
+    "Icon": "☑️",
+    "Category": "Window",
+    "Description": "Check, uncheck, or toggle a checkbox.",
+    "Template": "bot.check_checkbox(identifier='{name}', state={state})",
+    "Parameters": [
+      { "Key": "name", "Type": "text", "DefaultValue": "" },
+      { "Key": "state", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Send Hotkey",
+    "Icon": "⌨️",
+    "Category": "Window",
+    "Description": "Send a hotkey combination to the active window.",
+    "Template": "bot.send_hotkey('{key1}', '{key2}')",
+    "Parameters": [
+      { "Key": "key1", "Type": "text", "DefaultValue": "ctrl" },
+      { "Key": "key2", "Type": "text", "DefaultValue": "c" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Drag and Drop",
+    "Icon": "↔️",
+    "Category": "Mouse",
+    "Description": "Drag from center of Region A to center of Region B.",
+    "Template": "bot.drag_and_drop(src_region_index={src_idx}, dst_region_index={dst_idx}, duration={duration})",
+    "Parameters": [
+      { "Key": "src_idx", "Type": "region", "DefaultValue": "0" },
+      { "Key": "dst_idx", "Type": "region", "DefaultValue": "1" },
+      { "Key": "duration", "Type": "number", "DefaultValue": "0.5" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  }
+]
