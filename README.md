@@ -1,37 +1,37 @@
 # VASbot3
 
-A high-performance, hybrid automation engine designed for low-latency window capture and resilient script execution. VASbot3 bridges the rich UI and high-speed capture capabilities of **.NET 10** with the flexible, logic-heavy ecosystem of **Python 3.13**.
+VASbot3 is a hybrid automation framework that combines a .NET 10 desktop application with a Python 3.13 execution environment. It is designed for window capture and automation script execution using gRPC and shared memory for inter-process communication.
 
-## 🏛️ Architecture
+## Architecture
 
-VASbot3 utilizes a **Distributed Sidecar** architecture, separating the performance-critical UI and capture layer from the automation logic layer.
+The system consists of two primary components:
 
-### 1. The .NET Host (.NET 10 WPF)
-*   **High-Speed Capture**: Implements **DXGI (DirectX Graphics Infrastructure)** Desktop Duplication for ultra-low latency frame acquisition (60FPS+).
-*   **Data Plane**: Manages a shared memory buffer (`VASbot_FrameBuffer`) in system RAM, providing zero-copy pixel access to the Python sidecar.
-*   **User Interface**: A modern WPF interface for region management, visual node-based scripting, and real-time log monitoring.
-*   **Input Driver**: Provides kernel-level input simulation (SendInput) via a dedicated C# service.
+### .NET Host (.NET 10 WPF)
+*   **Capture**: Uses DXGI Desktop Duplication for frame acquisition.
+*   **Data Plane**: Manages a shared memory buffer (`VASbot_FrameBuffer`) for pixel data transfer.
+*   **Interface**: Provides tools for region management, a node-based visual editor, and log monitoring.
+*   **Input**: Implements a C# service for system-level input simulation.
 
-### 2. The Python Sidecar (Python 3.13)
-*   **Logic Engine**: Executes user scripts and coordinates automation tasks.
-*   **Vision Stack**: Utilizes NumPy and OpenCV to map the shared memory buffer directly into memory for instant image analysis.
-*   **gRPC Control Plane**: Communicates with the .NET host via a binary RPC channel (Port 50051), handling command execution and log streaming.
-*   **Integration**: Seamlessly integrates `pywinauto` for advanced UI automation and element-level interactions.
+### Python Sidecar (Python 3.13)
+*   **Execution**: Runs automation scripts and handles logic.
+*   **Vision**: Accesses the shared memory buffer via NumPy and OpenCV for image analysis.
+*   **Control Plane**: Connects to the host via gRPC (Port 50051) to receive commands and stream logs.
+*   **Automation**: Supports integration with `pywinauto` for UI element interaction.
 
-## 🚀 Key Features
+## Features
 
-*   **Zero-Copy Vision**: Instant access to captured frames via shared memory, bypassing slow serialization/deserialization.
-*   **Visual Node Scripting**: A WPF-based canvas for building automation logic visually, which transpiles to Python code.
-*   **Global Hotkeys**: System-wide control (F5: Run, F6: Stop, F12: Pause) for immediate intervention.
-*   **Action Recorder**: Capture real-time user input to automatically generate Python automation snippets.
-*   **Resilient Execution**: The Python sidecar runs as a separate process; logic crashes do not affect the capture host or UI state.
+*   **Shared Memory IPC**: Zero-copy frame access between the .NET capture process and Python logic.
+*   **Visual Editor**: A WPF canvas for creating automation logic that generates Python scripts.
+*   **Hotkeys**: F5 (Run), F6 (Stop), and F12 (Pause) for script control.
+*   **Action Recorder**: Generates Python snippets from mouse and keyboard input.
+*   **Process Isolation**: Python logic runs in a separate process from the UI and capture engine.
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Prerequisites
 *   Windows 10/11
 *   .NET 10 SDK
-*   Python 3.13 (added to PATH)
+*   Python 3.13
 *   DirectX 11 compatible hardware
 
 ### Installation
@@ -40,34 +40,30 @@ VASbot3 utilizes a **Distributed Sidecar** architecture, separating the performa
     git clone https://github.com/MOTHblank/VASbot.git
     cd VASbot
     ```
-2.  Install Python dependencies:
+2.  Install dependencies:
     ```bash
     pip install -r python/requirements.txt
     ```
-3.  Build the .NET application:
+3.  Build:
     ```bash
     dotnet build VASbot.Gui/VASbot.Gui.csproj
     ```
 
 ### Usage
-Run the unified launcher script:
 ```powershell
 ./start_vasbot.ps1
 ```
 
-## 📂 Project Structure
+## Project Structure
 
-*   `VASbot.Gui/`: WPF Application and core C# services (Capture, Hotkeys, IPC).
-*   `python/`: Python logic, gRPC server, and script runner.
-*   `shared/`: Protocol Buffer definitions and shared assets.
-*   `vascripts/`: Default directory for user automation scripts.
+*   `VASbot.Gui/`: C# source code for the UI and capture services.
+*   `python/`: Python source code for the sidecar and script execution.
+*   `shared/`: gRPC service definitions (`bot.proto`).
+*   `vascripts/`: Directory for user scripts.
 
-## 📡 IPC Protocol
+## IPC Protocol
 
-The system uses a custom gRPC service defined in `shared/protos/bot.proto`. The service supports:
-*   **Unary RPCs**: Simple commands (Click, Type, Move).
-*   **Server Streaming**: Real-time log output and status updates from the Python sidecar to the GUI.
-*   **Shared Memory Mapping**: Coordination of the `VASbot_FrameBuffer` lifecycle.
-
----
-*Developed for performance-critical automation and research.*
+Communication is handled via gRPC as defined in `shared/protos/bot.proto`:
+*   **Commands**: Unary RPCs for input simulation and state changes.
+*   **Logging**: Server-side streaming for real-time log transmission.
+*   **Synchronization**: Coordination of shared memory buffer lifecycle.
