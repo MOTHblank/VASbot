@@ -12,25 +12,6 @@ The system operates as two distinct processes linked by a high-speed inter-proce
 
 ---
 
-## 📜 Legacy File Audit (VASbot2)
-
-| Legacy File | Original Purpose | VASbot3 Status |
-| :--- | :--- | :--- |
-| `colorbot_gui.py` | Main Tkinter entry point & event orchestrator. | ❌ **REPLACED** by .NET WPF GUI. |
-| `window_manager.py`| Window enumeration, title matching, & HWND focus. | ✅ **PORTED** to C# `IBotService`. |
-| `canvas_manager.py`| Image preview state, eyedropper, & zoom logic. | ✅ **PORTED** to `CaptureViewModel`. |
-| `region_manager.py`| Definition, persistence, & scaling of click regions. | ✅ **PORTED** to C# `RegionManager`. |
-| `script_manager.py`| Script CRUD, auto-indenting, & run-loop logic. | ✅ **PORTED** to `ScriptEditorViewModel`. |
-| `visual_editor.py` | Window management for the node-based canvas. | ❌ **MISSING** (Requires WPF Canvas). |
-| `visual_canvas.py` | Logic for node drawing, drag-drop, & connections. | ❌ **MISSING** (Requires WPF Canvas). |
-| `action_builder.py`| Tooltip-rich UI for building code snippets. | ✅ **PORTED** (WPF Template System). |
-| `hotkey_editor.py` | UI for global hotkey mapping & recording. | ✅ **PORTED** to `HotkeySettingsViewModel`. |
-| `tooltip.py` | Custom Tkinter tooltips for Action Builder. | ✅ **NATIVE** (Standard WPF ToolTips). |
-| `player_section.py`| Compact playback/stop controls. | ✅ **PORTED** to Main Ribbon. |
-| `capture_panel.py` | Preview surface for window mirroring. | ✅ **PORTED** to SkiaSharp View. |
-
----
-
 ## 🛠️ Feature Audit & Status
 
 | Feature | Description | Status |
