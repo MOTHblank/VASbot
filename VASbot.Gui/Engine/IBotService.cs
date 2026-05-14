@@ -34,5 +34,8 @@ namespace VASbot.Gui.Engine
         Task<bool> ClickElementAsync(string identifier, string controlType = "Button", bool doubleClick = false);
         Task<bool> TypeIntoElementAsync(string identifier, string text, bool clearFirst = true);
         Task<bool> WaitWindowAsync(string title, float timeout = 10);
+        
+        // Script control
+        Task StopScriptAsync();
     }
 }

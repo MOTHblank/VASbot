@@ -42,6 +42,9 @@ namespace VASbot.Gui.UI.ViewModels
             Sidecar = sidecar;
             VisualEditor = visualEditor;
 
+            // Link ScriptEditor to MainViewModel for region access during save
+            ScriptEditor.SetMainViewModel(this);
+
             // Global Eyedropper Sync: Push picked color to active template
             Capture.PropertyChanged += (s, e) => {
                 if (e.PropertyName == nameof(CaptureViewModel.PickedColor))

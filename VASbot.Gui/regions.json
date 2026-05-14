@@ -1,62 +1,13 @@
 [
   {
+    "Id": "c31002bc-1608-446f-986c-df5b7fc1c004",
     "Name": "Region 0",
-    "X": 906,
-    "Y": 491,
-    "Width": 117,
-    "Height": 47,
-    "Color": "#FF3A3A",
-    "WindowTitle": "Sky Realm Idle",
-    "WindowClass": "Chrome_WidgetWin_1"
-  },
-  {
-    "Name": "Region 1",
-    "X": 726,
-    "Y": 288,
-    "Width": 470,
-    "Height": 42,
-    "Color": "#FF3A3A",
-    "WindowTitle": "",
-    "WindowClass": ""
-  },
-  {
-    "Name": "Region 2",
-    "X": 781,
-    "Y": 164,
-    "Width": 390,
-    "Height": 190,
-    "Color": "#FF3A3A",
-    "WindowTitle": "",
-    "WindowClass": ""
-  },
-  {
-    "Name": "Region 3",
-    "X": 715,
-    "Y": 254,
-    "Width": 90,
-    "Height": 146,
-    "Color": "#FF3A3A",
-    "WindowTitle": "Pok\u00E9Clicker",
-    "WindowClass": "Chrome_WidgetWin_1"
-  },
-  {
-    "Name": "Region 4",
-    "X": 336,
-    "Y": 392,
-    "Width": 127,
-    "Height": 15,
-    "Color": "#FF3A3A",
-    "WindowTitle": "Pok\u00E9Clicker",
-    "WindowClass": "Chrome_WidgetWin_1"
-  },
-  {
-    "Name": "Region 5",
-    "X": 788,
-    "Y": 432,
-    "Width": 97,
-    "Height": 63,
-    "Color": "#FF3A3A",
-    "WindowTitle": "Pok\u00E9Clicker",
+    "X": 1544,
+    "Y": 99,
+    "Width": 28,
+    "Height": 22,
+    "Color": "#FFFFFF",
+    "WindowTitle": "Pok\u00E9Clicker with Scripts",
     "WindowClass": "Chrome_WidgetWin_1"
   }
 ]

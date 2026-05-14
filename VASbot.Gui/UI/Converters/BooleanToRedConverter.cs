@@ -11,9 +11,9 @@ namespace VASbot.Gui.UI.Converters
         {
             if (value is bool isRecording && isRecording)
             {
-                return new SolidColorBrush(Color.FromRgb(231, 76, 60)); // Red
+                return new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#c0392b"));
             }
-            return new SolidColorBrush(Color.FromRgb(45, 45, 45)); // Default dark
+            return new SolidColorBrush(System.Windows.Media.Color.FromArgb(0, 0, 0, 0)); // Transparent
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

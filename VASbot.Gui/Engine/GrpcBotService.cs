@@ -52,6 +52,11 @@ namespace VASbot.Gui.Engine
         public async Task StopAsync()
         {
             IsRunning = false;
+            if (_currentScriptStream != null)
+            {
+                _currentScriptStream.Dispose();
+                _currentScriptStream = null;
+            }
             await Task.CompletedTask;
         }
 
@@ -110,11 +115,10 @@ namespace VASbot.Gui.Engine
                 int index = 0;
                 foreach (var r in regions)
                 {
-                    list.Regions.Add(new Region { 
+                    list.Regions.Add(new VASbot.Gui.Protos.Region {
                         Name = r.Name, X = r.X, Y = r.Y, Width = r.Width, Height = r.Height, Index = index++
                     });
-                }
-                var response = await _client.UpdateRegionsAsync(list, WithDeadline());
+                }                var response = await _client.UpdateRegionsAsync(list, WithDeadline());
                 return response.Success;
             }
             catch { return false; }
@@ -232,6 +236,18 @@ namespace VASbot.Gui.Engine
                 return response.Success;
             }
             catch { return false; }
+        }
+
+        public async Task StopScriptAsync()
+        {
+            try
+            {
+                await _client.StopScriptAsync(new StopRequest(), WithDeadline(5));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[gRPC] StopScript error: {ex.Message}");
+            }
         }
 
         public void Dispose()

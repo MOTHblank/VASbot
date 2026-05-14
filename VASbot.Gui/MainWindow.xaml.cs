@@ -10,6 +10,7 @@ using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 using VASbot.Gui.Engine;
 using VASbot.Gui.UI.ViewModels;
+using Point = System.Windows.Point;
 
 namespace VASbot.Gui
 {
@@ -19,6 +20,7 @@ namespace VASbot.Gui
         private readonly PythonSidecarService _sidecar;
         private readonly SharedMemoryService _sharedMemory;
         private HotkeyService? _hotkeyService;
+        private GlobalHotkeyService? _globalHotkeyService;
 
         public MainWindow(
             MainViewModel viewModel, 
@@ -48,6 +50,18 @@ namespace VASbot.Gui
             // Initialize editor text from VM
             ScriptEditor.Text = _viewModel.ScriptEditor.ScriptText;
 
+            // Listen for external script text changes (e.g., file load) to update editor
+            _viewModel.ScriptEditor.ScriptTextUpdated += () => {
+                Dispatcher.Invoke(() => {
+                    if (!_isSyncingText && ScriptEditor.Text != _viewModel.ScriptEditor.ScriptText)
+                    {
+                        _isSyncingText = true;
+                        ScriptEditor.Text = _viewModel.ScriptEditor.ScriptText;
+                        _isSyncingText = false;
+                    }
+                });
+            };
+
             // Invalidation trigger for the Skia canvas
             _viewModel.Capture.PropertyChanged += (s, e) => {
                 if (e.PropertyName == nameof(CaptureViewModel.CurrentFrame) || 
@@ -59,15 +73,60 @@ namespace VASbot.Gui
                 }
             };
 
-            // Hotkey Registration
-            SourceInitialized += (s, e) => {
+            // Global Hotkey Registration - works even when window is not focused!
+            // F5 = Run, F6 = Stop, F12 = Killswitch
+            try
+            {
+                Action runAction = () => {
+                    Application.Current.Dispatcher.Invoke(() => {
+                        try { _viewModel.ScriptEditor.RunScriptCommand.Execute(null); } catch { }
+                    });
+                };
+                
+                Action stopAction = () => {
+                    Application.Current.Dispatcher.Invoke(() => {
+                        try { _viewModel.ScriptEditor.StopScriptCommand.Execute(null); } catch { }
+                    });
+                };
+                
+                Action killAction = () => {
+                    Application.Current.Dispatcher.Invoke(() => {
+                        try
+                        {
+                            // Stop the script first
+                            _viewModel.ScriptEditor.StopScriptCommand.Execute(null);
+                            
+                            // Kill all Python processes
+                            foreach (var process in System.Diagnostics.Process.GetProcessesByName("python"))
+                            {
+                                try { process.Kill(); } catch { }
+                            }
+                            foreach (var process in System.Diagnostics.Process.GetProcessesByName("python3"))
+                            {
+                                try { process.Kill(); } catch { }
+                            }
+                            
+                            // Kill the GUI itself
+                            System.Diagnostics.Process.GetCurrentProcess().Kill();
+                        }
+                        catch { }
+                    });
+                };
+                
+                _globalHotkeyService = new GlobalHotkeyService(runAction, stopAction, killAction);
+                _globalHotkeyService.Start();
+                Console.WriteLine("[Hotkeys] Global F5/F6/F12 hotkeys registered");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Hotkeys] Failed to register global hotkeys: {ex.Message}");
+                
+                // Fallback to window-bound hotkeys if global fails
                 var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
                 _hotkeyService = new HotkeyService(hwnd);
-                
-                _hotkeyService.Register(ModifierKeys.Control, Key.F5, () => _viewModel.ScriptEditor.RunScriptCommand.Execute(null));
-                _hotkeyService.Register(ModifierKeys.Control, Key.F7, () => _viewModel.ScriptEditor.StopScriptCommand.Execute(null));
-                _hotkeyService.Register(ModifierKeys.Control, Key.F6, () => _viewModel.Capture.CaptureFrameCommand.Execute(null));
-            };
+                _hotkeyService.Register(ModifierKeys.None, Key.F5, () => _viewModel.ScriptEditor.RunScriptCommand.Execute(null));
+                _hotkeyService.Register(ModifierKeys.None, Key.F6, () => _viewModel.ScriptEditor.StopScriptCommand.Execute(null));
+            }
 
             // Template system listener
             _viewModel.Templates.TemplateApplied += (code) => {
@@ -95,11 +154,27 @@ namespace VASbot.Gui
             }
         }
 
+        private bool _isSyncingText = false;
+        
         private void ScriptEditor_TextChanged(object sender, EventArgs e)
         {
-            if (_viewModel?.ScriptEditor != null)
+            if (_isSyncingText) return;
+            
+            try
             {
-                _viewModel.ScriptEditor.ScriptText = ScriptEditor.Text;
+                _isSyncingText = true;
+                if (_viewModel?.ScriptEditor != null)
+                {
+                    _viewModel.ScriptEditor.ScriptText = ScriptEditor.Text;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ScriptEditor_TextChanged error: {ex.Message}");
+            }
+            finally
+            {
+                _isSyncingText = false;
             }
         }
 
@@ -143,6 +218,33 @@ namespace VASbot.Gui
             SnippetNameInput.Text = "";
         }
 
+        private void Killswitch_Click(object sender, RoutedEventArgs e)
+        {
+            // F12 KILLSWITCH - Forcefully stop everything
+            try
+            {
+                // Stop the script first
+                _viewModel.ScriptEditor.StopScriptCommand.Execute(null);
+                
+                // Kill all Python processes
+                foreach (var process in System.Diagnostics.Process.GetProcessesByName("python"))
+                {
+                    try { process.Kill(); } catch { }
+                }
+                foreach (var process in System.Diagnostics.Process.GetProcessesByName("python3"))
+                {
+                    try { process.Kill(); } catch { }
+                }
+                
+                // Also kill the VASbot GUI itself
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Killswitch error: {ex.Message}");
+            }
+        }
+
         private async void RegionName_LostFocus(object sender, RoutedEventArgs e)
         {
             await _viewModel.Capture.EndDragAsync(); // Re-use the save/sync logic
@@ -156,6 +258,7 @@ namespace VASbot.Gui
             if (_viewModel.Capture.IsEyedropperActive)
             {
                 _viewModel.Capture.SampleColorAt(pos);
+                e.Handled = true;
                 return;
             }
 
@@ -259,6 +362,8 @@ namespace VASbot.Gui
             _viewModel.Capture.Dispose();
             _sidecar.Stop();
             _sharedMemory.Dispose();
+            _globalHotkeyService?.Dispose();
+            _hotkeyService?.Dispose();
             base.OnClosed(e);
         }
     }

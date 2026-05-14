@@ -1,0 +1,16 @@
+[
+  {
+    "name": "macro_1757308464",
+    "actions": [
+      {
+        "type": "click",
+        "timestamp": 1757308459.151591,
+        "delay_from_start": 0,
+        "x": 283,
+        "y": 153,
+        "button": "left",
+        "duration": 0.08112883567810059
+      }
+    ]
+  }
+]

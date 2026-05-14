@@ -14,6 +14,12 @@ namespace VASbot.Gui.Engine
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
+        public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+        [DllImport("user32.dll")]
         public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, int nFlags);
 
         [DllImport("user32.dll")]
@@ -38,10 +44,35 @@ namespace VASbot.Gui.Engine
             public int Bottom;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        public bool GetTrueClientScreenRect(IntPtr hwnd, out RECT screenRect)
+        {
+            screenRect = new RECT();
+            if (!GetClientRect(hwnd, out RECT clientRect)) return false;
+
+            POINT ptLT = new POINT { X = clientRect.Left, Y = clientRect.Top };
+            POINT ptRB = new POINT { X = clientRect.Right, Y = clientRect.Bottom };
+
+            if (!ClientToScreen(hwnd, ref ptLT)) return false;
+            if (!ClientToScreen(hwnd, ref ptRB)) return false;
+
+            screenRect.Left = ptLT.X;
+            screenRect.Top = ptLT.Y;
+            screenRect.Right = ptRB.X;
+            screenRect.Bottom = ptRB.Y;
+            return true;
+        }
+
         public SKBitmap? CaptureWindow(IntPtr hwnd)
         {
             if (hwnd == IntPtr.Zero || IsIconic(hwnd)) return null;
-            if (!GetWindowRect(hwnd, out RECT rect)) return null;
+            if (!GetTrueClientScreenRect(hwnd, out RECT rect)) return null;
 
             int width = rect.Right - rect.Left;
             int height = rect.Bottom - rect.Top;
@@ -64,7 +95,7 @@ namespace VASbot.Gui.Engine
         public SKBitmap? CaptureWindowBitBlt(IntPtr hwnd)
         {
             if (hwnd == IntPtr.Zero) return null;
-            if (!GetWindowRect(hwnd, out RECT rect)) return null;
+            if (!GetTrueClientScreenRect(hwnd, out RECT rect)) return null;
 
             int width = rect.Right - rect.Left;
             int height = rect.Bottom - rect.Top;
@@ -75,8 +106,8 @@ namespace VASbot.Gui.Engine
                 using (Graphics g = Graphics.FromImage(bmp))
                 {
                     IntPtr hdc = g.GetHdc();
-                    // PW_RENDERFULLCONTENT = 2
-                    PrintWindow(hwnd, hdc, 2);
+                    // PW_CLIENTONLY = 1
+                    PrintWindow(hwnd, hdc, 1);
                     g.ReleaseHdc(hdc);
                 }
 

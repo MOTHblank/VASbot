@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using VASbot.Gui.UI.ViewModels;
 using VASbot.Gui.UI.ViewModels.VisualGraph;
+using Point = System.Windows.Point;
 
 namespace VASbot.Gui.UI.Views
 {

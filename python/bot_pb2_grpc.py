@@ -39,6 +39,11 @@ class BotServiceStub(object):
                 request_serializer=bot__pb2.ScriptRequest.SerializeToString,
                 response_deserializer=bot__pb2.ScriptLog.FromString,
                 _registered_method=True)
+        self.StopScript = channel.unary_unary(
+                '/vasbot.BotService/StopScript',
+                request_serializer=bot__pb2.StopRequest.SerializeToString,
+                response_deserializer=bot__pb2.StopResponse.FromString,
+                _registered_method=True)
         self.GetStatus = channel.unary_unary(
                 '/vasbot.BotService/GetStatus',
                 request_serializer=bot__pb2.StatusRequest.SerializeToString,
@@ -48,6 +53,11 @@ class BotServiceStub(object):
                 '/vasbot.BotService/Ping',
                 request_serializer=bot__pb2.PingRequest.SerializeToString,
                 response_deserializer=bot__pb2.PingResponse.FromString,
+                _registered_method=True)
+        self.CheckHealth = channel.unary_unary(
+                '/vasbot.BotService/CheckHealth',
+                request_serializer=bot__pb2.HealthRequest.SerializeToString,
+                response_deserializer=bot__pb2.HealthResponse.FromString,
                 _registered_method=True)
         self.NotifyFrameUpdate = channel.unary_unary(
                 '/vasbot.BotService/NotifyFrameUpdate',
@@ -62,6 +72,11 @@ class BotServiceStub(object):
         self.SetTargetWindow = channel.unary_unary(
                 '/vasbot.BotService/SetTargetWindow',
                 request_serializer=bot__pb2.WindowContext.SerializeToString,
+                response_deserializer=bot__pb2.UpdateResponse.FromString,
+                _registered_method=True)
+        self.PushRegions = channel.unary_unary(
+                '/vasbot.BotService/PushRegions',
+                request_serializer=bot__pb2.RegionList.SerializeToString,
                 response_deserializer=bot__pb2.UpdateResponse.FromString,
                 _registered_method=True)
         self.StartRecording = channel.unary_unary(
@@ -89,17 +104,18 @@ class BotServiceStub(object):
                 request_serializer=bot__pb2.WindowRequest.SerializeToString,
                 response_deserializer=bot__pb2.UpdateResponse.FromString,
                 _registered_method=True)
-        self.CheckHealth = channel.unary_unary(
-                '/vasbot.BotService/CheckHealth',
-                request_serializer=bot__pb2.HealthRequest.SerializeToString,
-                response_deserializer=bot__pb2.HealthResponse.FromString,
-                _registered_method=True)
 
 
 class BotServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def ExecuteScript(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopScript(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -112,6 +128,12 @@ class BotServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Ping(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CheckHealth(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -135,9 +157,14 @@ class BotServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def PushRegions(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def StartRecording(self, request, context):
-        """Recorder Interface
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -149,8 +176,7 @@ class BotServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ClickElement(self, request, context):
-        """Advanced Window Automation
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -167,13 +193,6 @@ class BotServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def CheckHealth(self, request, context):
-        """Industrial Health Check
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_BotServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -181,6 +200,11 @@ def add_BotServiceServicer_to_server(servicer, server):
                     servicer.ExecuteScript,
                     request_deserializer=bot__pb2.ScriptRequest.FromString,
                     response_serializer=bot__pb2.ScriptLog.SerializeToString,
+            ),
+            'StopScript': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopScript,
+                    request_deserializer=bot__pb2.StopRequest.FromString,
+                    response_serializer=bot__pb2.StopResponse.SerializeToString,
             ),
             'GetStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.GetStatus,
@@ -191,6 +215,11 @@ def add_BotServiceServicer_to_server(servicer, server):
                     servicer.Ping,
                     request_deserializer=bot__pb2.PingRequest.FromString,
                     response_serializer=bot__pb2.PingResponse.SerializeToString,
+            ),
+            'CheckHealth': grpc.unary_unary_rpc_method_handler(
+                    servicer.CheckHealth,
+                    request_deserializer=bot__pb2.HealthRequest.FromString,
+                    response_serializer=bot__pb2.HealthResponse.SerializeToString,
             ),
             'NotifyFrameUpdate': grpc.unary_unary_rpc_method_handler(
                     servicer.NotifyFrameUpdate,
@@ -205,6 +234,11 @@ def add_BotServiceServicer_to_server(servicer, server):
             'SetTargetWindow': grpc.unary_unary_rpc_method_handler(
                     servicer.SetTargetWindow,
                     request_deserializer=bot__pb2.WindowContext.FromString,
+                    response_serializer=bot__pb2.UpdateResponse.SerializeToString,
+            ),
+            'PushRegions': grpc.unary_unary_rpc_method_handler(
+                    servicer.PushRegions,
+                    request_deserializer=bot__pb2.RegionList.FromString,
                     response_serializer=bot__pb2.UpdateResponse.SerializeToString,
             ),
             'StartRecording': grpc.unary_unary_rpc_method_handler(
@@ -231,11 +265,6 @@ def add_BotServiceServicer_to_server(servicer, server):
                     servicer.WaitWindow,
                     request_deserializer=bot__pb2.WindowRequest.FromString,
                     response_serializer=bot__pb2.UpdateResponse.SerializeToString,
-            ),
-            'CheckHealth': grpc.unary_unary_rpc_method_handler(
-                    servicer.CheckHealth,
-                    request_deserializer=bot__pb2.HealthRequest.FromString,
-                    response_serializer=bot__pb2.HealthResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -265,6 +294,33 @@ class BotService(object):
             '/vasbot.BotService/ExecuteScript',
             bot__pb2.ScriptRequest.SerializeToString,
             bot__pb2.ScriptLog.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StopScript(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/vasbot.BotService/StopScript',
+            bot__pb2.StopRequest.SerializeToString,
+            bot__pb2.StopResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -319,6 +375,33 @@ class BotService(object):
             '/vasbot.BotService/Ping',
             bot__pb2.PingRequest.SerializeToString,
             bot__pb2.PingResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CheckHealth(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/vasbot.BotService/CheckHealth',
+            bot__pb2.HealthRequest.SerializeToString,
+            bot__pb2.HealthResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -399,6 +482,33 @@ class BotService(object):
             target,
             '/vasbot.BotService/SetTargetWindow',
             bot__pb2.WindowContext.SerializeToString,
+            bot__pb2.UpdateResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def PushRegions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/vasbot.BotService/PushRegions',
+            bot__pb2.RegionList.SerializeToString,
             bot__pb2.UpdateResponse.FromString,
             options,
             channel_credentials,
@@ -535,33 +645,6 @@ class BotService(object):
             '/vasbot.BotService/WaitWindow',
             bot__pb2.WindowRequest.SerializeToString,
             bot__pb2.UpdateResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def CheckHealth(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/vasbot.BotService/CheckHealth',
-            bot__pb2.HealthRequest.SerializeToString,
-            bot__pb2.HealthResponse.FromString,
             options,
             channel_credentials,
             insecure,

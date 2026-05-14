@@ -1,0 +1,256 @@
+{
+  "regions": [
+    {
+      "x": 1755,
+      "y": 728,
+      "width": 6,
+      "height": 8,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1794,
+      "y": 727,
+      "width": 6,
+      "height": 9,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1835,
+      "y": 726,
+      "width": 7,
+      "height": 8,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1879,
+      "y": 726,
+      "width": 6,
+      "height": 9,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1752,
+      "y": 760,
+      "width": 6,
+      "height": 8,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1794,
+      "y": 766,
+      "width": 7,
+      "height": 7,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1837,
+      "y": 761,
+      "width": 6,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1878,
+      "y": 762,
+      "width": 8,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1752,
+      "y": 799,
+      "width": 7,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1793,
+      "y": 794,
+      "width": 8,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1836,
+      "y": 797,
+      "width": 8,
+      "height": 13,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1876,
+      "y": 795,
+      "width": 9,
+      "height": 14,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1753,
+      "y": 834,
+      "width": 9,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1795,
+      "y": 827,
+      "width": 9,
+      "height": 22,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1836,
+      "y": 832,
+      "width": 9,
+      "height": 19,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1878,
+      "y": 831,
+      "width": 6,
+      "height": 17,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1753,
+      "y": 869,
+      "width": 8,
+      "height": 12,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1794,
+      "y": 871,
+      "width": 7,
+      "height": 7,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1836,
+      "y": 870,
+      "width": 8,
+      "height": 13,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1877,
+      "y": 866,
+      "width": 8,
+      "height": 15,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1753,
+      "y": 905,
+      "width": 9,
+      "height": 12,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1793,
+      "y": 907,
+      "width": 10,
+      "height": 10,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1834,
+      "y": 908,
+      "width": 10,
+      "height": 15,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1876,
+      "y": 908,
+      "width": 11,
+      "height": 14,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1752,
+      "y": 941,
+      "width": 10,
+      "height": 13,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1793,
+      "y": 940,
+      "width": 10,
+      "height": 14,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1833,
+      "y": 943,
+      "width": 11,
+      "height": 13,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1875,
+      "y": 942,
+      "width": 10,
+      "height": 13,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 770,
+      "width": 6,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 803,
+      "width": 6,
+      "height": 9,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 840,
+      "width": 7,
+      "height": 10,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 875,
+      "width": 7,
+      "height": 11,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 912,
+      "width": 8,
+      "height": 14,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 948,
+      "width": 8,
+      "height": 14,
+      "color": "#FF0000"
+    },
+    {
+      "x": 1821,
+      "y": 967,
+      "width": 8,
+      "height": 13,
+      "color": "#FF0000"
+    }
+  ],
+  "window_title": "Vidyascape 8.4.6 (HWND: 328460)",
+  "image_size": [
+    1920,
+    1009
+  ],
+  "created_at": "2025-09-09 13:46:28",
+  "version": "2.1"
+}

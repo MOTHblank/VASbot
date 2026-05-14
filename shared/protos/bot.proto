@@ -6,23 +6,19 @@ package vasbot;
 
 service BotService {
   rpc ExecuteScript (ScriptRequest) returns (stream ScriptLog);
+  rpc StopScript (StopRequest) returns (StopResponse);
   rpc GetStatus (StatusRequest) returns (StatusResponse);
   rpc Ping (PingRequest) returns (PingResponse);
+  rpc CheckHealth (HealthRequest) returns (HealthResponse);
   rpc NotifyFrameUpdate (FrameNotification) returns (FrameResponse);
   rpc UpdateRegions (RegionList) returns (UpdateResponse);
   rpc SetTargetWindow (WindowContext) returns (UpdateResponse);
-
-  // Recorder Interface
+  rpc PushRegions (RegionList) returns (UpdateResponse);
   rpc StartRecording (Empty) returns (UpdateResponse);
   rpc StopRecording (Empty) returns (RecordingResponse);
-
-  // Advanced Window Automation
   rpc ClickElement (ElementRequest) returns (UpdateResponse);
   rpc TypeIntoElement (TypeRequest) returns (UpdateResponse);
   rpc WaitWindow (WindowRequest) returns (UpdateResponse);
-  
-  // Industrial Health Check
-  rpc CheckHealth (HealthRequest) returns (HealthResponse);
 }
 
 message Empty {}
@@ -35,6 +31,11 @@ message ScriptRequest {
 message ScriptLog {
   string message = 1;
   string correlation_id = 2;
+}
+
+message StopRequest {}
+message StopResponse {
+  bool success = 1;
 }
 
 message StatusRequest {}
@@ -76,6 +77,7 @@ message Region {
   int32 width = 4;
   int32 height = 5;
   int32 index = 6;
+  string color = 7;  // Hex color string e.g. "#FF0000"
 }
 
 message RegionList {

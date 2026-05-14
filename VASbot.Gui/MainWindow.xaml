@@ -32,6 +32,12 @@
         </Style>
     </Window.Resources>
 
+    <Window.InputBindings>
+        <!-- Global Hotkeys for Script Control -->
+        <KeyBinding Key="F5" Command="{Binding ScriptEditor.RunScriptCommand}"/>
+        <KeyBinding Key="F6" Command="{Binding ScriptEditor.StopScriptCommand}"/>
+    </Window.InputBindings>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Global Ribbon -->
@@ -65,6 +71,7 @@
                         
                         <Button Content="▶ RUN" Command="{Binding ScriptEditor.RunScriptCommand}" Background="#27ae60" Foreground="White" FontWeight="Bold" Width="90"/>
                         <Button Content="⏹ STOP" Command="{Binding ScriptEditor.StopScriptCommand}" Background="#c0392b" Foreground="White" FontWeight="Bold" Width="90"/>
+                        <Button Content="☠️ KILL" Click="Killswitch_Click" Background="#8b0000" Foreground="White" FontWeight="Bold" Width="70" ToolTip="F12 - Force kill everything"/>
                         <ToggleButton Content="⏺ REC" Command="{Binding ScriptEditor.ToggleRecordingCommand}" 
                                       IsChecked="{Binding ScriptEditor.IsRecording}"
                                       Background="{Binding ScriptEditor.IsRecording, Converter={StaticResource BooleanToRedConverter}}"
@@ -84,8 +91,7 @@
 
                         <!-- Color Ribbon Tool -->
                         <StackPanel Orientation="Horizontal">
-                            <ToggleButton Content="💧" Command="{Binding Capture.ToggleEyedropperCommand}" 
-                                          IsChecked="{Binding Capture.IsEyedropperActive}"
+                            <ToggleButton Content="💧" IsChecked="{Binding Capture.IsEyedropperActive}"
                                           ToolTip="Eyedropper: Pick color from image" Width="40"/>
                             <Border Width="30" Height="24" Background="{Binding Capture.PickedColor}" 
                                     BorderBrush="#444" BorderThickness="1" Margin="8,0,8,0" CornerRadius="2"
@@ -149,6 +155,7 @@
                                 <Button Content="New" Command="{Binding ScriptEditor.NewScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
                                 <Button Content="Open" Command="{Binding ScriptEditor.OpenScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
                                 <Button Content="Save" Command="{Binding ScriptEditor.SaveScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
+                                <Button Content="Save As..." Command="{Binding ScriptEditor.SaveScriptAsCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
                                 
                                 <Separator Margin="10,0" Opacity="0.2"/>
                                 <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..."/>
@@ -225,6 +232,15 @@
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">middle</System:String>
                                                                     </ComboBox>
                                                                 </DataTemplate>
+                                                                <DataTemplate x:Key="ModifierPicker">
+                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12">
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">[]</System:String>
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">['ctrl']</System:String>
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">['shift']</System:String>
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">['alt']</System:String>
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">['ctrl', 'shift']</System:String>
+                                                                    </ComboBox>
+                                                                </DataTemplate>
                                                                 <DataTemplate x:Key="ColorPicker">
                                                                     <Grid>
                                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="30"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
@@ -245,6 +261,7 @@
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding Type}" Value="region"><Setter Property="ContentTemplate" Value="{StaticResource RegionPicker}"/></DataTrigger>
                                                                         <DataTrigger Binding="{Binding Type}" Value="button"><Setter Property="ContentTemplate" Value="{StaticResource ButtonPicker}"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Type}" Value="modifiers"><Setter Property="ContentTemplate" Value="{StaticResource ModifierPicker}"/></DataTrigger>
                                                                         <DataTrigger Binding="{Binding Type}" Value="color"><Setter Property="ContentTemplate" Value="{StaticResource ColorPicker}"/></DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
@@ -265,7 +282,7 @@
                         <!-- BOTTOM TABS (Regions / UIA) -->
                         <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0,1,0,0" BorderBrush="#222">
                             <TabItem Header="📍 REGIONS">
-                                <ListBox ItemsSource="{Binding Capture.Regions}" Background="#151515" BorderThickness="0">
+                                <ListBox ItemsSource="{Binding Capture.Regions}" SelectedItem="{Binding Capture.SelectedRegion}" Background="#151515" BorderThickness="0">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Grid Margin="0,2">
@@ -274,7 +291,10 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Width="10" Height="10" Background="{Binding Color}" CornerRadius="2" Margin="4,4,8,4"/>
+                                                <Button Command="{Binding DataContext.Capture.PickRegionColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"
+                                                        Padding="0" Margin="4,4,8,4" BorderThickness="1" BorderBrush="#444" Width="12" Height="12" Background="{Binding Color}"
+                                                        ToolTip="Click to change region color"/>
                                                 <TextBox Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" 
                                                          Background="Transparent" BorderThickness="0" Foreground="#ccc" FontSize="10" 
                                                          VerticalAlignment="Center" LostFocus="RegionName_LostFocus"/>

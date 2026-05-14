@@ -15,7 +15,7 @@ namespace VASbot.Gui.Engine
 {
     public class RegionManager
     {
-        private const string RegionsFile = "regions.json";
+        private static readonly string RegionsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "regions.json");
 
         public async Task SaveRegionsAsync(IEnumerable<RegionModel> regions)
         {

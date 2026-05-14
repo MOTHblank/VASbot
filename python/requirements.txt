@@ -6,3 +6,5 @@ pynput
 pywinauto
 grpcio
 grpcio-tools
+opencv-python
+pytesseract

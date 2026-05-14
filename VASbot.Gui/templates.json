@@ -88,7 +88,7 @@
     "Parameters": [
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
       { "Key": "button", "Type": "button", "DefaultValue": "left" },
-      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" },
+      { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" },
       { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
     ],
     "RequiresRegion": true,
@@ -105,7 +105,7 @@
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
       { "Key": "tolerance", "Type": "number", "DefaultValue": "10" },
       { "Key": "button", "Type": "button", "DefaultValue": "left" },
-      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" },
+      { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" },
       { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
     ],
     "RequiresRegion": true,
@@ -122,7 +122,7 @@
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
       { "Key": "confidence", "Type": "number", "DefaultValue": "0.8" },
       { "Key": "button", "Type": "button", "DefaultValue": "left" },
-      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" }
+      { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" }
     ],
     "RequiresRegion": true,
     "InsertMode": "append"
@@ -137,7 +137,7 @@
       { "Key": "text", "Type": "text", "DefaultValue": "Login" },
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
       { "Key": "button", "Type": "button", "DefaultValue": "left" },
-      { "Key": "modifiers", "Type": "text", "DefaultValue": "[]" }
+      { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" }
     ],
     "RequiresRegion": true,
     "InsertMode": "append"
@@ -152,6 +152,20 @@
       { "Key": "type", "Type": "text", "DefaultValue": "Button" },
       { "Key": "name", "Type": "text", "DefaultValue": "" },
       { "Key": "double", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Type Text (Raw)",
+    "Icon": "⌨️",
+    "Category": "Window",
+    "Description": "Blindly type text at the current cursor position.",
+    "Template": "bot.type_text('{text}', delay={delay}, press_enter={press_enter})",
+    "Parameters": [
+      { "Key": "text", "Type": "text", "DefaultValue": "" },
+      { "Key": "delay", "Type": "number", "DefaultValue": "0.05" },
+      { "Key": "press_enter", "Type": "bool", "DefaultValue": "False" }
     ],
     "RequiresRegion": false,
     "InsertMode": "append"

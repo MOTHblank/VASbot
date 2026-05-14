@@ -76,3 +76,30 @@ The system operates as two distinct processes linked by a high-speed inter-proce
 *   **Goal**: 
     *   **Sidecar Heartbeat**: Auto-restart the Python gRPC server if it crashes during a long botting session.
     *   **Unified Startup**: A single script or launcher sequence that verifies local `requirements.txt` and starts both the .NET GUI and Python Sidecar seamlessly.
+
+---
+
+## 🔧 Recent Fixes (March 2026)
+
+### Script Loading/Saving
+- **Issue**: Embedded regions (`bot.gui.regions = [...]`) not appearing in editor
+- **Fix**: Added `extract_embedded_regions()` to `bot_runner.py` with regex parsing
+- **Issue**: Save wrote wrong region data (MainViewModel.Regions vs Capture.Regions)
+- **Fix**: Updated `ScriptEditorViewModel.cs` to read from `Capture.Regions`
+
+### Global Hotkeys
+- **Added**: F5 (Run), F6 (Stop), F12 (Toggle Pause) - all work globally
+- **File**: `GlobalHotkeyService.cs`
+
+### Emergency Controls
+- **Added**: Killswitch button in MainWindow
+- **Added**: StopScript RPC in gRPC for immediate stop
+
+### Bug Fixes
+- **Fixed**: TextChanged infinite loop with `_isSyncingText` flag
+- **Fixed**: Bot clicking indefinitely when target window closes - added error handling
+- **Improved**: Logging in `find_and_click_color` for debugging
+- **Fixed**: `DeleteRegionCommand` and `PickRegionColorCommand` bindings by removing manual command definitions that conflicted with the MVVM Source Generator. Region color changes are now correctly saved.
+
+### TODO
+- Rebuild application (VASbot must be closed first)

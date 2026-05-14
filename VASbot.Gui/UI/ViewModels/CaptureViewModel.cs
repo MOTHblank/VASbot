@@ -96,6 +96,19 @@ namespace VASbot.Gui.UI.ViewModels
         [ObservableProperty]
         private bool _isEyedropperActive;
 
+        partial void OnIsEyedropperActiveChanged(bool value)
+        {
+            if (value)
+            {
+                IsCreatingRegion = false;
+                Status = "💧 Eyedropper Active - Click to sample color";
+            }
+            else
+            {
+                Status = "Ready";
+            }
+        }
+
         [ObservableProperty]
         private string _pickedColor = "#FFFFFF";
 
@@ -119,6 +132,9 @@ namespace VASbot.Gui.UI.ViewModels
         [ObservableProperty]
         private SKRect? _highlightedRect;
 
+        // Commands for region management - initialized in constructor
+
+
         private SKPoint _startCreationPos;
 
         public ObservableCollection<RegionModel> Regions { get; } = new();
@@ -139,6 +155,9 @@ namespace VASbot.Gui.UI.ViewModels
             _reflectionService = reflectionService;
             _transformer = transformer;
             _regionManager = regionManager;
+
+            // Initialize commands
+            // (Commands are auto-generated)
 
             // Link services
             _reflectionService.SharedMemory = _sharedMemory;
@@ -196,6 +215,20 @@ namespace VASbot.Gui.UI.ViewModels
             if (region == null) return;
             Regions.Remove(region);
             await SyncRegionsToSidecar();
+        }
+
+        [RelayCommand]
+        public async Task PickRegionColor(RegionModel region)
+        {
+            if (region == null) return;
+            var dialog = new System.Windows.Forms.ColorDialog();
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var color = dialog.Color;
+                region.Color = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                await _regionManager.SaveRegionsAsync(Regions);
+                await SyncRegionsToSidecar();
+            }
         }
 
         private async Task SyncRegionsToSidecar()
@@ -449,23 +482,17 @@ namespace VASbot.Gui.UI.ViewModels
                 PickedColor = $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
                 Status = $"Color Picked: {PickedColor} at ({x}, {y})";
                 
+                // If a region is selected, update its color immediately
+                if (SelectedRegion != null)
+                {
+                    SelectedRegion.Color = PickedColor;
+                    OnPropertyChanged(nameof(SelectedRegion));
+                    _ = _regionManager.SaveRegionsAsync(Regions);
+                    _ = SyncRegionsToSidecar();
+                }
+
                 // Auto-disable tool after success
                 IsEyedropperActive = false;
-            }
-        }
-
-        [RelayCommand]
-        public void ToggleEyedropper()
-        {
-            IsEyedropperActive = !IsEyedropperActive;
-            if (IsEyedropperActive)
-            {
-                IsCreatingRegion = false;
-                Status = "💧 Eyedropper Active - Click to sample color";
-            }
-            else
-            {
-                Status = "Ready";
             }
         }
 
@@ -650,7 +677,8 @@ namespace VASbot.Gui.UI.ViewModels
         public System.Windows.Rect? GetWindowRect()
         {
             if (SelectedWindow == null) return null;
-            if (ScreenshotService.GetWindowRect(SelectedWindow.Handle, out ScreenshotService.RECT rect))
+            var svc = new ScreenshotService();
+            if (svc.GetTrueClientScreenRect(SelectedWindow.Handle, out ScreenshotService.RECT rect))
             {
                 return new System.Windows.Rect(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
             }

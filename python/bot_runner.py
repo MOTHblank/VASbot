@@ -3,10 +3,19 @@ from concurrent import futures
 import time
 import sys
 import os
+import re
+import ast
 import numpy as np
 import threading
 import queue
 from multiprocessing import shared_memory
+
+# --- CRITICAL: Set DPI Awareness BEFORE any other UI/GDI calls ---
+try:
+    import ctypes
+    ctypes.windll.shcore.SetProcessDpiAwareness(2) # PROCESS_PER_MONITOR_DPI_AWARE
+except Exception as e:
+    print(f"[Sidecar] Warning: Could not set DPI awareness ({e})")
 
 # Add python root and core to path
 base_dir = os.path.dirname(__file__)
@@ -18,6 +27,49 @@ import bot_pb2_grpc
 from bot_api import BotAPI
 from pywinauto_api import PywinautoBot
 from recorder import ActionRecorder
+
+
+def extract_embedded_regions(script_code: str) -> list:
+    """Extract embedded regions from script code.
+    
+    Supports formats like:
+        bot.gui.regions = [
+            {'x': 91, 'y': 146, 'width': 878, 'height': 534, 'color': '#78180d'},
+            ...
+        ]
+    
+    Returns:
+        List of region dictionaries, or empty list if no regions found.
+    """
+    regions = []
+    
+    # Find the bot.gui.regions = [ ... ] block
+    # Use a more robust pattern that handles nested structures
+    pattern = r'bot\.gui\.regions\s*=\s*(\[.*?\])'
+    match = re.search(pattern, script_code, re.DOTALL)
+    
+    if match:
+        try:
+            regions_list = ast.literal_eval(match.group(1))
+            if isinstance(regions_list, list):
+                for r in regions_list:
+                    if isinstance(r, dict) and all(k in r for k in ['x', 'y', 'width', 'height']):
+                        regions.append({
+                            'x': r.get('x', 0),
+                            'y': r.get('y', 0),
+                            'width': r.get('width', 0),
+                            'height': r.get('height', 0),
+                            'color': r.get('color', '#FFFF00'),
+                            'name': r.get('name', f"Region {len(regions)}")
+                        })
+                    else:
+                        print(f"[Sidecar] Warning: Skipping invalid region structure: {r}")
+            print(f"[Sidecar] Extracted {len(regions)} embedded regions from script")
+        except Exception as e:
+            print(f"[Sidecar] Failed to parse embedded regions: {e}")
+    
+    return regions
+
 
 class BotServicer(bot_pb2_grpc.BotServiceServicer):
     def __init__(self):
@@ -68,7 +120,22 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         return bot_pb2.UpdateResponse(success=True)
 
     def ExecuteScript(self, request, context):
-        print(f"[Sidecar] Starting execution (ID: {request.correlation_id})")
+        try:
+            print(f"[Sidecar] Starting execution (ID: {request.correlation_id})")
+        except Exception:
+            pass
+        
+        # Extract embedded regions BEFORE execution
+        embedded_regions = extract_embedded_regions(request.code)
+        if embedded_regions:
+            self.bot.set_regions(embedded_regions)
+            # Also update the GUI proxy so bot.gui.regions works
+            if hasattr(self.bot.gui, 'regions'):
+                self.bot.gui.regions = embedded_regions
+            try:
+                print(f"[Sidecar] Applied {len(embedded_regions)} embedded regions")
+            except Exception:
+                pass
         
         log_queue = queue.Queue()
         def log_callback(msg):
@@ -106,7 +173,11 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
             try:
                 msg = log_queue.get(timeout=0.1)
                 if msg is None: break
-                yield bot_pb2.ScriptLog(message=str(msg), correlation_id=request.correlation_id)
+                try:
+                    yield bot_pb2.ScriptLog(message=str(msg), correlation_id=request.correlation_id)
+                except Exception as yield_err:
+                    print(f"[Sidecar] Yield error: {yield_err}")
+                    break
             except queue.Empty:
                 if not context.is_active():
                     self.bot.is_running = False # Handle client disconnect
@@ -115,6 +186,41 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
 
     def GetStatus(self, request, context):
         return bot_pb2.StatusResponse(is_running=self.bot.is_running)
+
+    def StopScript(self, request, context):
+        """Stop the currently running script by setting is_running to False."""
+        print(f"[Sidecar] StopScript called - setting is_running = False")
+        self.bot.is_running = False
+        return bot_pb2.StopResponse(success=True)
+
+    def PushRegions(self, request, context):
+        """Receive regions from embedded script code and forward to GUI for display."""
+        try:
+            regions = []
+            for r in request.regions:
+                regions.append({
+                    'name': r.name,
+                    'x': r.x, 'y': r.y,
+                    'width': r.width, 'height': r.height,
+                    'color': getattr(r, 'color', '#FF3A3A')
+                })
+            
+            # Store in bot for script execution
+            self.bot.set_regions(regions)
+            
+            # Update GUI proxy
+            if hasattr(self.bot.gui, 'regions'):
+                self.bot.gui.regions = regions
+                
+            print(f"[Sidecar] Received {len(regions)} regions from embedded script")
+            
+            # TODO: Send to WPF GUI via callback or event
+            # For now, regions work in Python execution
+            
+            return bot_pb2.UpdateResponse(success=True)
+        except Exception as e:
+            print(f"[Sidecar] PushRegions error: {e}")
+            return bot_pb2.UpdateResponse(success=False)
 
     def StartRecording(self, request, context):
         self.recorder.start()
@@ -149,6 +255,13 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         return bot_pb2.UpdateResponse(success=success)
 
 def serve():
+    # Ensure Windows does not lie about screen coordinates due to DPI scaling
+    try:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(2) # PROCESS_PER_MONITOR_DPI_AWARE
+    except Exception as e:
+        print(f"[Sidecar] Warning: Could not set DPI awareness ({e})")
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     bot_pb2_grpc.add_BotServiceServicer_to_server(BotServicer(), server)
     server.add_insecure_port('127.0.0.1:50051')

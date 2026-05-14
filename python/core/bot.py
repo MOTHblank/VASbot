@@ -102,15 +102,26 @@ class Bot:
         self.user32.GetCursorPos(ctypes.byref(pt))
         return pt.x, pt.y
 
-    def human_move_to(self, target_x, target_y, duration=0.5, steps=50):
-        """Moves the mouse to the target coordinates using a Bezier curve to simulate human movement."""
+    def human_move_to(self, target_x, target_y, duration=0.4, steps=40):
+        """Moves the mouse to the target coordinates using a Bezier curve to simulate human movement.
+        Refined to be more precise and less 'wavy'.
+        """
         start_x, start_y = self.get_cursor_pos()
         
+        # Calculate distance to scale the curve's 'waviness'
+        dist = ((target_x - start_x)**2 + (target_y - start_y)**2)**0.5
+        if dist < 5:
+            self.move_to(target_x, target_y)
+            time.sleep(random.uniform(0.1, 0.2))
+            return
+
         # Define control points for the Bezier curve
-        # Create a random offset for the control points to make it natural
-        offset_x = random.randint(-100, 100)
-        offset_y = random.randint(-100, 100)
+        # Make it much closer to a straight line (max 10% of distance or 20px)
+        max_offset = min(20, dist * 0.1)
+        offset_x = random.uniform(-max_offset, max_offset)
+        offset_y = random.uniform(-max_offset, max_offset)
         
+        # Control points at 1/3 and 2/3 of the path
         cp1_x = start_x + (target_x - start_x) * 0.33 + offset_x
         cp1_y = start_y + (target_y - start_y) * 0.33 + offset_y
         cp2_x = start_x + (target_x - start_x) * 0.66 - offset_x
@@ -118,7 +129,7 @@ class Bot:
 
         sleep_time = duration / steps
 
-        for i in range(steps + 1):
+        for i in range(1, steps + 1):
             t = i / steps
             
             # Cubic Bezier formula
@@ -127,6 +138,10 @@ class Bot:
             
             self.move_to(int(x), int(y))
             time.sleep(sleep_time)
+            
+        # REST: Rest on the final position for a while before clicking
+        # This allows the user/system to 'see' the cursor is on the right place
+        time.sleep(random.uniform(0.1, 0.2))
 
     def _send_input(self, inputs):
         """Internal method to send a list of INPUT structures to the OS."""
@@ -190,6 +205,8 @@ class Bot:
     def click(self, x, y, button='left', modifiers=[]):
         """Performs a mouse click at the specified coordinates with optional modifiers."""
         self.move_to(x, y)
+        # Settle delay: ensures movement is complete before click action begins
+        time.sleep(0.05)
 
         for mod in modifiers:
             if mod in KEY_MAP:
