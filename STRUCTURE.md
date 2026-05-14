@@ -101,5 +101,20 @@ The system operates as two distinct processes linked by a high-speed inter-proce
 - **Improved**: Logging in `find_and_click_color` for debugging
 - **Fixed**: `DeleteRegionCommand` and `PickRegionColorCommand` bindings by removing manual command definitions that conflicted with the MVVM Source Generator. Region color changes are now correctly saved.
 
-### TODO
-- Rebuild application (VASbot must be closed first)
+## 📂 Project Layout
+
+```text
+VASbot3/
+├── VASbot.Gui/          # .NET 10 WPF Application (UI/Capture)
+│   ├── Engine/          # Core C# logic (Capture, Hotkeys, gRPC client)
+│   ├── UI/              # MVVM components (ViewModels, Converters)
+│   └── Resources/       # Assets and syntax highlighting
+├── python/              # Python 3.13 Sidecar (Logic/Execution)
+│   ├── core/            # Bot API, Recorder, and Utils
+│   ├── scripts/         # Example scripts and templates
+│   └── bot_runner.py    # Main sidecar entry point
+├── shared/              # Cross-language definitions
+│   └── protos/          # gRPC service definitions (bot.proto)
+├── vascripts/           # User-created automation scripts
+└── start_vasbot.ps1     # Unified launcher script
+```
