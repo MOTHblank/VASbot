@@ -41,16 +41,61 @@ def extract_embedded_regions(script_code: str) -> list:
     Returns:
         List of region dictionaries, or empty list if no regions found.
     """
+    # Safety: Limit script length to prevent DoS or memory issues
+    if len(script_code) > 1000000: # 1MB limit
+        return []
+
     regions = []
     
-    # Find the bot.gui.regions = [ ... ] block
-    # Use a more robust pattern that handles nested structures
-    pattern = r'bot\.gui\.regions\s*=\s*(\[.*?\])'
-    match = re.search(pattern, script_code, re.DOTALL)
+    # Find the bot.gui.regions = start
+    match = re.search(r'bot\.gui\.regions\s*=\s*(\[)', script_code)
     
     if match:
         try:
-            regions_list = ast.literal_eval(match.group(1))
+            start_index = match.start(1)
+            # Find the closing bracket with basic parsing to handle nesting and strings
+            depth = 0
+            in_string = None
+            escaped = False
+            end_index = -1
+
+            for i in range(start_index, len(script_code)):
+                char = script_code[i]
+
+                if escaped:
+                    escaped = False
+                    continue
+
+                if char == '\\':
+                    escaped = True
+                    continue
+
+                if in_string:
+                    if char == in_string:
+                        in_string = None
+                    continue
+
+                if char in ("'", '"'):
+                    in_string = char
+                    continue
+
+                if char == '[':
+                    depth += 1
+                    if depth > 10: # Limit nesting depth for safety
+                        print("[Sidecar] Error: Region nesting too deep")
+                        return []
+                elif char == ']':
+                    depth -= 1
+                    if depth == 0:
+                        end_index = i + 1
+                        break
+
+            if end_index == -1:
+                return []
+
+            regions_str = script_code[start_index:end_index]
+            regions_list = ast.literal_eval(regions_str)
+
             if isinstance(regions_list, list):
                 for r in regions_list:
                     if isinstance(r, dict) and all(k in r for k in ['x', 'y', 'width', 'height']):
