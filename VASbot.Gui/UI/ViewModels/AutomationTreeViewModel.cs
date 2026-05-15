@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Automation;
@@ -56,7 +57,10 @@ namespace VASbot.Gui.UI.ViewModels
                 WalkTree(root, rootNode, 0);
                 RootNodes.Add(rootNode);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AutomationTree Error] {ex.Message}");
+            }
         }
 
         private void WalkTree(AutomationElement element, AutomationNode parentNode, int depth)
@@ -73,7 +77,10 @@ namespace VASbot.Gui.UI.ViewModels
                     WalkTree(child, node, depth + 1);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AutomationTree Error] {ex.Message}");
+            }
         }
 
         public AutomationNode? FindNodeAt(double x, double y)
