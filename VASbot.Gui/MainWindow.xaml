@@ -65,14 +65,15 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <Button Content="🔄" Command="{Binding Capture.RefreshWindowsCommand}" ToolTip="Refresh Window List"/>
+                        <Button Content="🔄" Command="{Binding Capture.RefreshWindowsCommand}" ToolTip="Refresh Window List" AutomationProperties.Name="Refresh Window List"/>
                         
                         <Separator Margin="10,0" Opacity="0.2"/>
                         
-                        <Button Content="▶ RUN" Command="{Binding ScriptEditor.RunScriptCommand}" Background="#27ae60" Foreground="White" FontWeight="Bold" Width="90"/>
-                        <Button Content="⏹ STOP" Command="{Binding ScriptEditor.StopScriptCommand}" Background="#c0392b" Foreground="White" FontWeight="Bold" Width="90"/>
-                        <Button Content="☠️ KILL" Click="Killswitch_Click" Background="#8b0000" Foreground="White" FontWeight="Bold" Width="70" ToolTip="F12 - Force kill everything"/>
+                        <Button Content="▶ RUN" Command="{Binding ScriptEditor.RunScriptCommand}" AutomationProperties.Name="Run Script" Background="#27ae60" Foreground="White" FontWeight="Bold" Width="90"/>
+                        <Button Content="⏹ STOP" Command="{Binding ScriptEditor.StopScriptCommand}" AutomationProperties.Name="Stop Script" Background="#c0392b" Foreground="White" FontWeight="Bold" Width="90"/>
+                        <Button Content="☠️ KILL" Click="Killswitch_Click" AutomationProperties.Name="Force Kill Everything" Background="#8b0000" Foreground="White" FontWeight="Bold" Width="70" ToolTip="F12 - Force kill everything"/>
                         <ToggleButton Content="⏺ REC" Command="{Binding ScriptEditor.ToggleRecordingCommand}" 
+                                      AutomationProperties.Name="Toggle Recording"
                                       IsChecked="{Binding ScriptEditor.IsRecording}"
                                       Background="{Binding ScriptEditor.IsRecording, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="80"/>
@@ -80,10 +81,12 @@
                         <Separator Margin="10,0" Opacity="0.2"/>
                         
                         <ToggleButton Content="🎬 LIVE MIRROR" IsChecked="{Binding Capture.IsReflecting}" 
+                                      AutomationProperties.Name="Toggle Live Mirror"
                                       Background="{Binding Capture.IsReflecting, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="130"/>
                         
                         <Button Content="📸 SNAP" Command="{Binding Capture.StaticCaptureCommand}" 
+                                AutomationProperties.Name="Take Static Screenshot"
                                 Visibility="{Binding Capture.IsReflecting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
                                 ToolTip="Take a manual printscreen"/>
 
@@ -92,6 +95,7 @@
                         <!-- Color Ribbon Tool -->
                         <StackPanel Orientation="Horizontal">
                             <ToggleButton Content="💧" IsChecked="{Binding Capture.IsEyedropperActive}"
+                                          AutomationProperties.Name="Toggle Eyedropper"
                                           ToolTip="Eyedropper: Pick color from image" Width="40"/>
                             <Border Width="30" Height="24" Background="{Binding Capture.PickedColor}" 
                                     BorderBrush="#444" BorderThickness="1" Margin="8,0,8,0" CornerRadius="2"
@@ -247,6 +251,7 @@
                                                                         <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12"/>
                                                                         <Border Grid.Column="1" Background="{Binding Value}" CornerRadius="2" Margin="4,0,0,0" BorderBrush="#444" BorderThickness="1"/>
                                                                         <Button Grid.Column="2" Content="..." Padding="0" Margin="4,0,0,0" Height="28"
+                                                                                AutomationProperties.Name="Pick Color"
                                                                                 Command="{Binding DataContext.Templates.PickColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                                 CommandParameter="{Binding}"/>
                                                                     </Grid>
@@ -299,6 +304,7 @@
                                                          Background="Transparent" BorderThickness="0" Foreground="#ccc" FontSize="10" 
                                                          VerticalAlignment="Center" LostFocus="RegionName_LostFocus"/>
                                                 <Button Grid.Column="2" Content="✕" FontSize="8" Padding="4,0" Background="Transparent" Foreground="#c0392b"
+                                                        AutomationProperties.Name="Delete Region" ToolTip="Delete Region"
                                                         Command="{Binding DataContext.Capture.DeleteRegionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}"/>
                                             </Grid>
