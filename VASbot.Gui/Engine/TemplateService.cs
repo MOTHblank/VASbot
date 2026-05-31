@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Linq;
 
@@ -58,7 +59,11 @@ namespace VASbot.Gui.Engine
 
         public string ApplyTemplate(ScriptTemplate template, Dictionary<string, string> values, string selectedText = "")
         {
-            string result = template.Template;
+            if (string.IsNullOrEmpty(template.Template))
+                return string.Empty;
+
+            var sb = new StringBuilder(template.Template);
+
             foreach (var kvp in values)
             {
                 string finalValue = kvp.Value;
@@ -73,16 +78,16 @@ namespace VASbot.Gui.Engine
                     }
                 }
 
-                result = result.Replace("{" + kvp.Key + "}", finalValue);
+                sb.Replace("{" + kvp.Key + "}", finalValue);
             }
             
             if (template.InsertMode == "wrap")
             {
                 string indented = string.Join("\n    ", selectedText.Split('\n'));
-                result = result.Replace("{selection}", "    " + indented);
+                sb.Replace("{selection}", "    " + indented);
             }
 
-            return result;
+            return sb.ToString();
         }
     }
 }
