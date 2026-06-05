@@ -274,6 +274,44 @@ class ActionRecorder:
             if callback:
                 callback(event)
     
+    def generate_script(self) -> str:
+        """Generates a readable Python script string from recorded events.
+
+        Returns:
+            A string containing Python code that replays the recorded actions.
+        """
+        if not self._events:
+            return ""
+
+        lines = []
+        base_time = self._events[0].get("timestamp", 0)
+        last_time = base_time
+
+        for event in self._events:
+            event_type = event.get("type", "")
+            event_timestamp = event.get("timestamp", 0)
+
+            delay = event_timestamp - last_time
+            if delay > 0.05:  # Only add sleep for meaningful delays
+                lines.append(f"time.sleep({delay:.2f})")
+
+            last_time = event_timestamp
+
+            if event_type == "mouse_move":
+                pass # Explicitly moving is often redundant as bot.click moves first
+            elif event_type == "mouse_click":
+                lines.append(f"bot.click({event['x']}, {event['y']}, '{event.get('button', 'left')}')")
+            elif event_type == "mouse_scroll":
+                lines.append(f"bot.move_to({event['x']}, {event['y']})")
+            elif event_type == "key_press":
+                key = event.get("key", "")
+                if key:
+                    lines.append(f"bot.press_key('{key}')")
+            elif event_type == "key_release":
+                pass # Handled by press_key
+
+        return "\n".join(lines)
+
     def export_to_script(self, filepath: str, script_name: str = "recorded_script") -> None:
         """Export recording to a Python script.
         
@@ -306,42 +344,13 @@ class ActionRecorder:
             f'def run_{safe_name}():',
             '    """Plays back the recorded actions."""',
             '    bot = Bot()',
-            '    events = [',
         ]
         
-        # Add events as Python dictionaries
-        for event in self._events:
-            event_repr = json.dumps(event, indent=6)
-            script_lines.append(f'        {event_repr},')
-        
-        script_lines.append('    ]')
-        script_lines.append('')
-        script_lines.append('    # Base timestamp for timing calculations')
-        script_lines.append('    base_time = events[0]["timestamp"] if events else 0')
-        script_lines.append('    last_time = base_time')
-        script_lines.append('')
-        script_lines.append('    for event in events:')
-        script_lines.append('        event_type = event.get("type", "")')
-        script_lines.append('        event_timestamp = event.get("timestamp", 0)')
-        script_lines.append('        delay = event_timestamp - last_time')
-        script_lines.append('        if delay > 0:')
-        script_lines.append('            time.sleep(delay)')
-        script_lines.append('        last_time = event_timestamp')
-        script_lines.append('')
-        script_lines.append('        # Execute event')
-        script_lines.append('        if event_type == "mouse_move":')
-        script_lines.append('            bot.move_to(event["x"], event["y"])')
-        script_lines.append('        elif event_type == "mouse_click":')
-        script_lines.append('            bot.click(event["x"], event["y"], event.get("button", "left"))')
-        script_lines.append('        elif event_type == "mouse_scroll":')
-        script_lines.append('            # Scroll is not directly supported, move to position')
-        script_lines.append('            bot.move_to(event["x"], event["y"])')
-        script_lines.append('        elif event_type == "key_press":')
-        script_lines.append('            key = event.get("key", "")')
-        script_lines.append('            if key:')
-        script_lines.append('                bot.press_key(key)')
-        script_lines.append('        elif event_type == "key_release":')
-        script_lines.append('            pass  # Key release handled by press_key')
+        generated_body = self.generate_script()
+        if generated_body:
+            for line in generated_body.split('\n'):
+                script_lines.append(f'    {line}')
+
         script_lines.append('')
         script_lines.append('if __name__ == "__main__":')
         script_lines.append(f'    run_{safe_name}()')
