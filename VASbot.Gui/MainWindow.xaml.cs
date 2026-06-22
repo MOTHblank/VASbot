@@ -47,6 +47,14 @@ namespace VASbot.Gui
 
         private void SetupEventHandlers()
         {
+            SetupScriptEditorSync();
+            SetupCaptureInvalidation();
+            SetupGlobalHotkeys();
+            SetupTemplateListener();
+        }
+
+        private void SetupScriptEditorSync()
+        {
             // Initialize editor text from VM
             ScriptEditor.Text = _viewModel.ScriptEditor.ScriptText;
 
@@ -61,7 +69,10 @@ namespace VASbot.Gui
                     }
                 });
             };
+        }
 
+        private void SetupCaptureInvalidation()
+        {
             // Invalidation trigger for the Skia canvas
             _viewModel.Capture.PropertyChanged += (s, e) => {
                 if (e.PropertyName == nameof(CaptureViewModel.CurrentFrame) || 
@@ -72,7 +83,10 @@ namespace VASbot.Gui
                     Application.Current.Dispatcher.Invoke(() => SkiaElement.InvalidateVisual());
                 }
             };
+        }
 
+        private void SetupGlobalHotkeys()
+        {
             // Global Hotkey Registration - works even when window is not focused!
             // F5 = Run, F6 = Stop, F12 = Killswitch
             try
@@ -127,7 +141,10 @@ namespace VASbot.Gui
                 _hotkeyService.Register(ModifierKeys.None, Key.F5, () => _viewModel.ScriptEditor.RunScriptCommand.Execute(null));
                 _hotkeyService.Register(ModifierKeys.None, Key.F6, () => _viewModel.ScriptEditor.StopScriptCommand.Execute(null));
             }
+        }
 
+        private void SetupTemplateListener()
+        {
             // Template system listener
             _viewModel.Templates.TemplateApplied += (code) => {
                 ScriptEditor.Document.Replace(ScriptEditor.SelectionStart, ScriptEditor.SelectionLength, code);
