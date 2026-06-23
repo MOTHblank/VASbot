@@ -356,6 +356,26 @@ class BotAPI:
             self.log(f"Stack: {traceback.format_exc()}")
             return False
 
+    def click(self, x, y, button='left', modifiers=[], human_like=False):
+        """Clicks at the specified coordinates, supporting optional modifiers and human-like movement."""
+        if not self.is_running:
+            self.log("Script stopped - aborting click")
+            return False
+            
+        try:
+            if human_like:
+                self.bot.human_move_to(x, y)
+                self.bot.click(x, y, button, modifiers)
+            else:
+                self.bot.click(x, y, button, modifiers)
+            self.log(f"Clicked coordinates ({x}, {y})")
+            return True
+        except Exception as e:
+            self.log(f"Error in click: {e}")
+            import traceback
+            self.log(f"Stack: {traceback.format_exc()}")
+            return False
+
     def find_and_click_color(self, hex_color, region_index, button='left', modifiers=[], tolerance=10, human_like=False):
         if not self.is_running: 
             self.log("Script stopped - aborting find_and_click_color")

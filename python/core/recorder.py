@@ -274,7 +274,7 @@ class ActionRecorder:
             if callback:
                 callback(event)
     
-    def generate_script(self) -> str:
+    def generate_script(self, regions: Optional[List[Dict[str, Any]]] = None, target_hwnd: Optional[int] = None) -> str:
         """Generates a readable Python script string from recorded events.
 
         Returns:
@@ -282,6 +282,19 @@ class ActionRecorder:
         """
         if not self._events:
             return ""
+
+        # Get target window's rect to find if click coordinates are inside regions
+        left, top = None, None
+        if target_hwnd:
+            try:
+                from windows_utils import _get_true_hwnd_rect
+            except ImportError:
+                from core.windows_utils import _get_true_hwnd_rect
+            
+            try:
+                left, top, _, _ = _get_true_hwnd_rect(target_hwnd)
+            except Exception:
+                pass
 
         lines = []
         base_time = self._events[0].get("timestamp", 0)
@@ -292,15 +305,39 @@ class ActionRecorder:
             event_timestamp = event.get("timestamp", 0)
 
             delay = event_timestamp - last_time
-            if delay > 0.05:  # Only add sleep for meaningful delays
-                lines.append(f"time.sleep({delay:.2f})")
+            if delay > 0.05:  # Only add wait for meaningful delays
+                lines.append(f"bot.wait({delay:.2f})")
 
             last_time = event_timestamp
 
             if event_type == "mouse_move":
                 pass # Explicitly moving is often redundant as bot.click moves first
             elif event_type == "mouse_click":
-                lines.append(f"bot.click({event['x']}, {event['y']}, '{event.get('button', 'left')}')")
+                cx, cy = event['x'], event['y']
+                clicked_region_idx = None
+                
+                # Check if click is inside any defined region
+                if regions and target_hwnd and left is not None and top is not None:
+                    for idx, r in enumerate(regions):
+                        rx1 = left + r.get('x', 0)
+                        ry1 = top + r.get('y', 0)
+                        rx2 = rx1 + r.get('width', 0)
+                        ry2 = ry1 + r.get('height', 0)
+                        if rx1 <= cx <= rx2 and ry1 <= cy <= ry2:
+                            clicked_region_idx = idx
+                            break
+                            
+                button = event.get('button', 'left')
+                if clicked_region_idx is not None:
+                    if button == 'left':
+                        lines.append(f"bot.click_region({clicked_region_idx})")
+                    else:
+                        lines.append(f"bot.click_region({clicked_region_idx}, '{button}')")
+                else:
+                    if button == 'left':
+                        lines.append(f"bot.click({cx}, {cy})")
+                    else:
+                        lines.append(f"bot.click({cx}, {cy}, '{button}')")
             elif event_type == "mouse_scroll":
                 lines.append(f"bot.move_to({event['x']}, {event['y']})")
             elif event_type == "key_press":

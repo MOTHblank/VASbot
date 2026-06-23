@@ -74,7 +74,7 @@
                         <Button Content="☠️ KILL" Click="Killswitch_Click" AutomationProperties.Name="Force Kill Everything" Background="#8b0000" Foreground="White" FontWeight="Bold" Width="70" ToolTip="F12 - Force kill everything"/>
                         <ToggleButton Content="⏺ REC" Command="{Binding ScriptEditor.ToggleRecordingCommand}" 
                                       AutomationProperties.Name="Toggle Recording"
-                                      IsChecked="{Binding ScriptEditor.IsRecording}"
+                                      IsChecked="{Binding ScriptEditor.IsRecording, Mode=OneWay}"
                                       Background="{Binding ScriptEditor.IsRecording, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="80"/>
 

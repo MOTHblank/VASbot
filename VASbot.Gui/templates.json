@@ -95,6 +95,22 @@
     "InsertMode": "append"
   },
   {
+    "Name": "Click Coordinates",
+    "Icon": "👆",
+    "Category": "Mouse",
+    "Description": "Clicks at the specified screen coordinates with optional modifiers and human-like movement.",
+    "Template": "bot.click(x={x}, y={y}, button='{button}', modifiers={modifiers}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "x", "Type": "number", "DefaultValue": "100" },
+      { "Key": "y", "Type": "number", "DefaultValue": "100" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
     "Name": "Find & Click Color",
     "Icon": "🎨",
     "Category": "Vision",

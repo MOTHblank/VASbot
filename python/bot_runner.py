@@ -273,7 +273,7 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
 
     def StopRecording(self, request, context):
         self.recorder.stop_recording()
-        script = self.recorder.generate_script()
+        script = self.recorder.generate_script(regions=self.bot.regions, target_hwnd=self.target_hwnd)
         return bot_pb2.RecordingResponse(success=True, script=script)
 
     # --- Advanced Window Automation ---
