@@ -249,35 +249,6 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
             self.script_thread.join(timeout=1.0)
         return bot_pb2.StopResponse(success=True)
 
-    def PushRegions(self, request, context):
-        """Receive regions from embedded script code and forward to GUI for display."""
-        try:
-            regions = []
-            for r in request.regions:
-                regions.append({
-                    'name': r.name,
-                    'x': r.x, 'y': r.y,
-                    'width': r.width, 'height': r.height,
-                    'color': getattr(r, 'color', '#FF3A3A')
-                })
-            
-            # Store in bot for script execution
-            self.bot.set_regions(regions)
-            
-            # Update GUI proxy
-            if hasattr(self.bot.gui, 'regions'):
-                self.bot.gui.regions = regions
-                
-            print(f"[Sidecar] Received {len(regions)} regions from embedded script")
-            
-            # TODO: Send to WPF GUI via callback or event
-            # For now, regions work in Python execution
-            
-            return bot_pb2.UpdateResponse(success=True)
-        except Exception as e:
-            print(f"[Sidecar] PushRegions error: {e}")
-            return bot_pb2.UpdateResponse(success=False)
-
     def StartRecording(self, request, context):
         self.recorder.start_recording()
         return bot_pb2.UpdateResponse(success=True)
