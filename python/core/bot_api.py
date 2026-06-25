@@ -376,16 +376,17 @@ class BotAPI:
             self.log(f"Stack: {traceback.format_exc()}")
             return False
 
-    def find_and_click_color(self, hex_color, region_index, button='left', modifiers=[], tolerance=10, human_like=False):
+
+    def find_color(self, hex_color, region_index, tolerance=10):
         if not self.is_running: 
-            self.log("Script stopped - aborting find_and_click_color")
-            return False
+            self.log("Script stopped - aborting find_color")
+            return None
         if region_index >= len(self.regions):
             self.log(f"Error: Region {region_index} does not exist. Total regions: {len(self.regions)}")
-            return False
+            return None
         if not self._target_hwnd:
             self.log("Error: No target window set or window was closed.")
-            return False
+            return None
 
         region = self.regions[region_index]
         
@@ -394,13 +395,14 @@ class BotAPI:
             target_rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
         except Exception as e:
             self.log(f"Error: Invalid hex color '{hex_color}': {e}")
-            return False
+            return None
         
         # Check if window still exists before trying to interact
+        import win32gui
         if win32gui and not win32gui.IsWindow(self._target_hwnd):
             self.log("Error: Target window no longer exists.")
             self._target_hwnd = None
-            return False
+            return None
             
         self.focus_window()
 
@@ -408,7 +410,7 @@ class BotAPI:
             full_frame = self._get_current_frame()
             if full_frame is None:
                 self.log("Vision Error: Could not get screen frame.")
-                return False
+                return None
 
             # Get region bounds
             x, y, w, h = region['x'], region['y'], region['width'], region['height']
@@ -417,13 +419,13 @@ class BotAPI:
             frame_h, frame_w = full_frame.shape[:2]
             if x < 0 or y < 0 or x + w > frame_w or y + h > frame_h:
                 self.log(f"Error: Region {region_index} bounds ({x},{y},{w},{h}) outside frame ({frame_w}x{frame_h})")
-                return False
+                return None
             
             roi = full_frame[y:y+h, x:x+w]
             
             if roi.size == 0:
                 self.log(f"Error: Empty ROI for region {region_index}")
-                return False
+                return None
 
             # ROI is BGRA from Shared Memory or RGB from ImageGrab
             if roi.shape[2] == 4: # BGRA
@@ -449,12 +451,7 @@ class BotAPI:
                 
                 self.log(f"[{hex_color}] Found at region[{region_index}] offset({rel_x},{rel_y}) -> screen({abs_x},{abs_y}) | actual RGB: {actual_color}")
 
-                if human_like:
-                    self.bot.human_move_to(abs_x, abs_y)
-                    self.bot.click(abs_x, abs_y, button, modifiers)
-                else:
-                    self.bot.click(abs_x, abs_y, button, modifiers)
-                return True
+                return abs_x, abs_y
             else:
                 # Log what colors ARE in the region for debugging
                 if roi_rgb.size > 0:
@@ -464,12 +461,72 @@ class BotAPI:
                     self.log(f"[{hex_color}] NOT found in region[{region_index}]. RGB range: {min_color}-{max_color}, avg: {avg_color}")
                 else:
                     self.log(f"[{hex_color}] NOT found in region[{region_index}] (empty region)")
-                return False
+                return None
         except Exception as e:
-            self.log(f"Error in find_and_click_color: {e}")
+            self.log(f"Error in find_color: {e}")
             import traceback
             self.log(f"Stack: {traceback.format_exc()}")
-            return False
+            return None
+
+    def find_and_click_color(self, hex_color, region_index, button='left', modifiers=[], tolerance=10, human_like=False):
+        result = self.find_color(hex_color, region_index, tolerance)
+        if result:
+            abs_x, abs_y = result
+            if human_like:
+                self.bot.human_move_to(abs_x, abs_y)
+                self.bot.click(abs_x, abs_y, button, modifiers)
+            else:
+                self.bot.click(abs_x, abs_y, button, modifiers)
+            return True
+        return False
+
+    def get_pixel_color(self, x, y):
+        return self.get_pixel_color_fast(x, y)
+
+    def move_mouse(self, x, y, human_like=True):
+        if not self.is_running: return
+        if human_like:
+            self.bot.human_move_to(x, y)
+        else:
+            self.bot.move_to(x, y)
+
+    def get_mouse_position(self):
+        return self.bot.get_cursor_pos()
+
+    def wait_for_color(self, hex_color, region_index, timeout=10, tolerance=10):
+        if not self.is_running: return False
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if not self.is_running: return False
+            if self.find_color(hex_color, region_index, tolerance):
+                return True
+            self.wait(0.1)
+        self.log(f"Timeout: Color {hex_color} not found in region {region_index} after {timeout} seconds.")
+        return False
+
+    def hover_color(self, hex_color, region_index, tolerance=10, human_like=True):
+        result = self.find_color(hex_color, region_index, tolerance)
+        if result:
+            abs_x, abs_y = result
+            self.move_mouse(abs_x, abs_y, human_like)
+            return True
+        return False
+
+    def hover_image(self, template_path, region_index=None, confidence=0.8, human_like=True):
+        result = self.find_image(template_path, region_index, confidence)
+        if result:
+            abs_x, abs_y = result
+            self.move_mouse(abs_x, abs_y, human_like)
+            return True
+        return False
+
+    def hover_text(self, text, region_index, case_sensitive=False, human_like=True):
+        result = self.find_text(text, region_index, case_sensitive)
+        if result:
+            abs_x, abs_y = result
+            self.move_mouse(abs_x, abs_y, human_like)
+            return True
+        return False
 
     def get_pixel_color_fast(self, x, y):
         if not self.is_running: return None
