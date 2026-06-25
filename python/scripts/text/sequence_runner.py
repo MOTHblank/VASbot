@@ -8,11 +8,12 @@ sequence = [0, 1, 2]
 
 while bot.is_running:
     for region_id in sequence:
-        if not bot.is_running: break
-        
+        if not bot.is_running:
+            break
+
         bot.log(f"Clicking Region {region_id}")
         bot.click_region(region_id)
-        bot.wait(1.5) # Wait for UI to react
-    
+        bot.wait(1.5)  # Wait for UI to react
+
     bot.log("Sequence complete. Restarting in 5 seconds...")
     bot.wait(5.0)

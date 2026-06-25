@@ -82,9 +82,9 @@ namespace VASbot.Gui.Engine
         private IntPtr SetHook(LowLevelKeyboardProc proc)
         {
             using (Process curProcess = Process.GetCurrentProcess())
-            using (ProcessModule curModule = curProcess.MainModule)
+            using (ProcessModule? curModule = curProcess.MainModule)
             {
-                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule.ModuleName), 0);
+                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule?.ModuleName ?? string.Empty), 0);
             }
         }
 
@@ -92,7 +92,9 @@ namespace VASbot.Gui.Engine
         {
             if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
             {
-                KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                var hookStructObj = Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+                if (hookStructObj == null) return CallNextHookEx(_hookId, nCode, wParam, lParam);
+                KBDLLHOOKSTRUCT hookStruct = (KBDLLHOOKSTRUCT)hookStructObj!;
                 Key key = KeyInterop.KeyFromVirtualKey((int)hookStruct.vkCode);
 
                 // Track modifier states
@@ -143,7 +145,9 @@ namespace VASbot.Gui.Engine
             else if (nCode >= 0)
             {
                 // Key up - reset modifiers
-                KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                var hookStructObj = Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+                if (hookStructObj == null) return CallNextHookEx(_hookId, nCode, wParam, lParam);
+                KBDLLHOOKSTRUCT hookStruct = (KBDLLHOOKSTRUCT)hookStructObj!;
                 if (hookStruct.vkCode == 0x11) _ctrlPressed = false;
                 if (hookStruct.vkCode == 0x10) _shiftPressed = false;
                 if (hookStruct.vkCode == 0x12) _altPressed = false;

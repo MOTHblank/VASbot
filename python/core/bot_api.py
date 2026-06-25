@@ -650,14 +650,15 @@ class BotAPI:
         tesseract_paths = [
             r"C:\Program Files\Tesseract-OCR\tesseract.exe",
             r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-            os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe")
+            os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe"),
         ]
-        
+
         # Check if tesseract is already in PATH
         from subprocess import run, PIPE
+
         in_path = False
         try:
-            run(['tesseract', '--version'], stdout=PIPE, stderr=PIPE)
+            run(["tesseract", "--version"], stdout=PIPE, stderr=PIPE)
             in_path = True
         except FileNotFoundError:
             pass
@@ -674,7 +675,9 @@ class BotAPI:
         try:
             pytesseract.get_tesseract_version()
         except pytesseract.TesseractNotFoundError:
-            self.log("Vision Error: Tesseract OCR engine not found. Please ensure it is installed and in your PATH, or at C:\\Program Files\\Tesseract-OCR\\tesseract.exe")
+            self.log(
+                "Vision Error: Tesseract OCR engine not found. Please ensure it is installed and in your PATH, or at C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+            )
             return None
 
         if region_index >= len(self.regions):
@@ -783,7 +786,7 @@ class BotAPI:
 
             template = cv2.imread(template_path, cv2.IMREAD_COLOR)
             if template is None:
-                self.log(f"Error: Failed to load template image.")
+                self.log("Error: Failed to load template image.")
                 return None
             self._template_cache[template_path] = template
 
@@ -840,7 +843,7 @@ class BotAPI:
         if src_region_index >= len(self.regions) or dst_region_index >= len(
             self.regions
         ):
-            self.log(f"Error: Invalid region index for drag and drop.")
+            self.log("Error: Invalid region index for drag and drop.")
             return False
 
         r1 = self.regions[src_region_index]

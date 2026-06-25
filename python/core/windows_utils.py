@@ -1,5 +1,6 @@
 import ctypes
 from ctypes import wintypes
+
 try:
     import win32gui, win32api, win32con
 except ImportError:
@@ -21,10 +22,10 @@ def _get_true_hwnd_rect(hwnd):
 
         client_rect = wintypes.RECT()
         user32.GetClientRect(hwnd, ctypes.byref(client_rect))
-        
+
         point_tl = wintypes.POINT(client_rect.left, client_rect.top)
         point_br = wintypes.POINT(client_rect.right, client_rect.bottom)
-        
+
         user32.ClientToScreen(hwnd, ctypes.byref(point_tl))
         user32.ClientToScreen(hwnd, ctypes.byref(point_br))
 
@@ -40,8 +41,10 @@ def _get_true_hwnd_rect(hwnd):
         except Exception:
             return 0, 0, 0, 0
 
+
 # Public alias for easier import
 get_true_hwnd_rect = _get_true_hwnd_rect
+
 
 def get_display_info():
     """Gets information about all connected displays."""
@@ -52,12 +55,15 @@ def get_display_info():
     for hmonitor, _, _ in win32api.EnumDisplayMonitors():
         try:
             monitor_info = win32api.GetMonitorInfo(hmonitor)
-            displays.append({
-                'handle': hmonitor,
-                'rect': monitor_info['Monitor'],
-                'work_rect': monitor_info['Work'],
-                'is_primary': monitor_info['Flags'] == win32con.MONITORINFOF_PRIMARY
-            })
+            displays.append(
+                {
+                    "handle": hmonitor,
+                    "rect": monitor_info["Monitor"],
+                    "work_rect": monitor_info["Work"],
+                    "is_primary": monitor_info["Flags"]
+                    == win32con.MONITORINFOF_PRIMARY,
+                }
+            )
         except Exception as e:
             print(f"Error getting monitor info: {e}")
     return displays
