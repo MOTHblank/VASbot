@@ -6,11 +6,13 @@ Usage:
 2. Run this script
 3. It will click at the specified location
 """
+
 import time
+
 
 def run(bot):
     """Main script entry point.
-    
+
     Args:
         bot: BotAPI instance
     """
@@ -20,12 +22,12 @@ def run(bot):
     clicks_per_second = 5  # Clicks per second
     max_clicks = 0  # 0 = unlimited
     button = "left"  # left, right, or middle
-    
+
     click_interval = 1.0 / clicks_per_second
-    
+
     bot.log(f"Starting auto clicker at ({x}, {y})")
     bot.log(f"Clicks per second: {clicks_per_second}")
-    
+
     click_count = 0
     while bot.is_running and (max_clicks == 0 or click_count < max_clicks):
         # Get current mouse position if x or y is -1
@@ -35,15 +37,15 @@ def run(bot):
             click_y = curr_y if y == -1 else y
         else:
             click_x, click_y = x, y
-        
+
         # Click
         bot.click(click_x, click_y, button)
         click_count += 1
-        
+
         if click_count % 10 == 0:
             bot.log(f"Clicks: {click_count}")
-        
+
         # Wait
         time.sleep(click_interval)
-    
+
     bot.log(f"Auto clicker finished. Total clicks: {click_count}")

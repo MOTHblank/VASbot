@@ -254,9 +254,9 @@ namespace VASbot.Gui.UI.ViewModels
             regionsCode.AppendLine();
             regionsCode.AppendLine("bot.gui.regions = [");
             
-            for (int i = 0; i < _mainViewModel.Capture.Regions.Count; i++)
+            for (int i = 0; i < (_mainViewModel?.Capture?.Regions?.Count ?? 0); i++)
             {
-                var r = _mainViewModel.Capture.Regions[i];
+                var r = _mainViewModel!.Capture!.Regions![i]!;
                 string line = $"    {{'x': {r.X}, 'y': {r.Y}, 'width': {r.Width}, 'height': {r.Height}, 'color': '{r.Color}'}}";
                 if (i < _mainViewModel.Capture.Regions.Count - 1)
                     line += ",";

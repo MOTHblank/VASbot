@@ -24,7 +24,7 @@ namespace VASbot.Gui.Engine
         {
             try
             {
-                var result = D3D11.D3D11CreateDevice(null, Vortice.Direct3D.DriverType.Hardware, DeviceCreationFlags.None, null, out _device, out _deviceContext);
+                var result = D3D11.D3D11CreateDevice(null, Vortice.Direct3D.DriverType.Hardware, DeviceCreationFlags.None, null!, out _device, out _deviceContext);
                 if (result.Failure || _device == null) return;
 
                 using var dxgiDevice = _device.QueryInterface<IDXGIDevice>();
