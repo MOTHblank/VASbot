@@ -646,6 +646,35 @@ class BotAPI:
 
         if not getattr(self, "_tesseract_available", False):
             self.log(getattr(self, "_tesseract_error", "Unknown Tesseract error"))
+        # Auto-detect Tesseract path on Windows if not in PATH
+        tesseract_paths = [
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+            os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe")
+        ]
+        
+        # Check if tesseract is already in PATH
+        from subprocess import run, PIPE
+        in_path = False
+        try:
+            run(['tesseract', '--version'], stdout=PIPE, stderr=PIPE)
+            in_path = True
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            self.log(f"Vision Warning: Tesseract PATH check failed: {e}")
+
+        if not in_path:
+            for path in tesseract_paths:
+                if os.path.exists(path):
+                    pytesseract.pytesseract.tesseract_cmd = path
+                    break
+
+        # Check if tesseract is installed/accessible
+        try:
+            pytesseract.get_tesseract_version()
+        except pytesseract.TesseractNotFoundError:
+            self.log("Vision Error: Tesseract OCR engine not found. Please ensure it is installed and in your PATH, or at C:\\Program Files\\Tesseract-OCR\\tesseract.exe")
             return None
 
         if region_index >= len(self.regions):
