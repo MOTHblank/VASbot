@@ -61,6 +61,7 @@ MOUSEEVENTF_MIDDLEDOWN = 0x0020
 MOUSEEVENTF_MIDDLEUP = 0x0040
 MOUSEEVENTF_ABSOLUTE = 0x8000
 MOUSEEVENTF_VIRTUALDESK = 0x4000
+MOUSEEVENTF_WHEEL = 0x0800
 
 # Virtual Key Codes
 VK_SHIFT = 0x10
@@ -284,8 +285,68 @@ class Bot:
         input_entry = Input(type=INPUT_MOUSE, ii=Input_I(mi=mouse_input))
         self._send_input([input_entry])
 
-    def click(self, x, y, button="left", modifiers=[]):
+    def press_button(self, button="left", down=True):
+        """Presses or releases a mouse button."""
+        if button == "left":
+            dwFlags = MOUSEEVENTF_LEFTDOWN if down else MOUSEEVENTF_LEFTUP
+        elif button == "right":
+            dwFlags = MOUSEEVENTF_RIGHTDOWN if down else MOUSEEVENTF_RIGHTUP
+        else:  # middle
+            dwFlags = MOUSEEVENTF_MIDDLEDOWN if down else MOUSEEVENTF_MIDDLEUP
+
+        self._send_input(
+            [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=dwFlags)))]
+        )
+
+    def scroll(self, clicks, x=None, y=None):
+        """Scrolls the mouse wheel by the given amount."""
+        if x is not None and y is not None:
+            self.move_to(x, y)
+            time.sleep(0.05)
+
+        # mouseData represents wheel movement where one click is usually 120
+        # Positive values scroll forward/up, negative values scroll backward/down
+        mouseData = int(clicks * 120)
+        self._send_input(
+            [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=MOUSEEVENTF_WHEEL, mouseData=mouseData)))]
+        )
+
+    def key_down(self, key):
+        """Presses and holds a keyboard key."""
+        if key in KEY_MAP:
+            self._send_input(
+                [
+                    Input(
+                        type=INPUT_KEYBOARD,
+                        ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYDOWN)),
+                    )
+                ]
+            )
+
+    def key_up(self, key):
+        """Releases a keyboard key."""
+        if key in KEY_MAP:
+            self._send_input(
+                [
+                    Input(
+                        type=INPUT_KEYBOARD,
+                        ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYUP)),
+                    )
+                ]
+            )
+
+    def double_click(self, x, y, button="left", modifiers=None):
+        """Performs a double mouse click at the specified coordinates."""
+        if modifiers is None:
+            modifiers = []
+        self.click(x, y, button, modifiers)
+        time.sleep(0.05)
+        self.click(x, y, button, modifiers)
+
+    def click(self, x, y, button="left", modifiers=None):
         """Performs a mouse click at the specified coordinates with optional modifiers."""
+        if modifiers is None:
+            modifiers = []
         self.move_to(x, y)
         # Settle delay: ensures movement is complete before click action begins
         time.sleep(0.05)
@@ -350,8 +411,10 @@ class Bot:
             )
             time.sleep(delay)
 
-    def press_key(self, key, modifiers=[]):
+    def press_key(self, key, modifiers=None):
         """Presses a key with optional modifiers."""
+        if modifiers is None:
+            modifiers = []
         for mod in modifiers:
             if mod in KEY_MAP:
                 self._send_input(
