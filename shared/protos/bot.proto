@@ -13,7 +13,6 @@ service BotService {
   rpc NotifyFrameUpdate (FrameNotification) returns (FrameResponse);
   rpc UpdateRegions (RegionList) returns (UpdateResponse);
   rpc SetTargetWindow (WindowContext) returns (UpdateResponse);
-  rpc PushRegions (RegionList) returns (UpdateResponse);
   rpc StartRecording (Empty) returns (UpdateResponse);
   rpc StopRecording (Empty) returns (RecordingResponse);
   rpc ClickElement (ElementRequest) returns (UpdateResponse);
