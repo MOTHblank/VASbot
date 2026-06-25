@@ -281,7 +281,7 @@ namespace VASbot.Gui.UI.ViewModels
                 {
                     // Remove old block
                     string before = ScriptText.Substring(0, startIdx).TrimEnd();
-                    string after = ScriptText.Substring(endIdx + "# ============ END EMBEDDED REGIONS".Length);
+                    string after = ScriptText.Substring(endIdx + "# ============ END EMBEDDED REGIONS ============".Length);
                     return before + regionsBlock + after;
                 }
             }
