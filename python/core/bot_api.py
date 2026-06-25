@@ -87,6 +87,7 @@ class BotAPI:
         self.regions = []
         self._target_hwnd = None
         self.on_log = None
+        self._template_cache = {}
         self._tesseract_available = None
         self._tesseract_error = None
 
@@ -606,13 +607,48 @@ class BotAPI:
             self.log(f"Vision Error: Missing dependency. {e}")
             return None
 
-        if self._tesseract_available is None:
+        if getattr(self, "_tesseract_available", None) is None:
             # Auto-detect Tesseract path on Windows if not in PATH
             tesseract_paths = [
                 r"C:\Program Files\Tesseract-OCR\tesseract.exe",
                 r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
                 os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe"),
             ]
+
+            # Check if tesseract is already in PATH
+            from subprocess import run, PIPE
+
+            in_path = False
+            try:
+                run(["tesseract", "--version"], stdout=PIPE, stderr=PIPE)
+                in_path = True
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                self.log(f"Vision Warning: Tesseract PATH check failed: {e}")
+
+            if not in_path:
+                for path in tesseract_paths:
+                    if os.path.exists(path):
+                        pytesseract.pytesseract.tesseract_cmd = path
+                        break
+
+            # Check if tesseract is installed/accessible
+            try:
+                pytesseract.get_tesseract_version()
+                self._tesseract_available = True
+            except pytesseract.TesseractNotFoundError:
+                self._tesseract_available = False
+                self._tesseract_error = "Vision Error: Tesseract OCR engine not found. Please ensure it is installed and in your PATH, or at C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+            except Exception as e:
+                self._tesseract_available = False
+                self._tesseract_error = f"Vision Error: Tesseract check failed. {e}"
+
+        if not getattr(self, "_tesseract_available", False):
+            self.log(getattr(self, "_tesseract_error", "Unknown Tesseract error"))
+            return None
+
+        if region_index >= len(self.regions):
 
             # Check if tesseract is already in PATH
             from subprocess import run, PIPE
@@ -709,14 +745,18 @@ class BotAPI:
             return None
         import os
 
-        if not os.path.exists(template_path):
-            self.log(f"Error: Template image not found at {template_path}")
-            return None
+        if template_path in self._template_cache:
+            template = self._template_cache[template_path]
+        else:
+            if not os.path.exists(template_path):
+                self.log(f"Error: Template image not found at {template_path}")
+                return None
 
-        template = cv2.imread(template_path, cv2.IMREAD_COLOR)
-        if template is None:
-            self.log(f"Error: Failed to load template image.")
-            return None
+            template = cv2.imread(template_path, cv2.IMREAD_COLOR)
+            if template is None:
+                self.log(f"Error: Failed to load template image.")
+                return None
+            self._template_cache[template_path] = template
 
         self.focus_window()
 

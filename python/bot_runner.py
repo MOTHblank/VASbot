@@ -124,6 +124,7 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         self.target_hwnd = None
         self.shm = None
         self.frame_buffer = None
+        self.script_thread = None
 
     def CheckHealth(self, request, context):
         return bot_pb2.HealthResponse(status=bot_pb2.HealthResponse.SERVING)
@@ -169,6 +170,14 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
             print(f"[Sidecar] Starting execution (ID: {request.correlation_id})")
         except Exception:
             pass
+
+        # Stop previous script thread if still running
+        if self.script_thread and self.script_thread.is_alive():
+            print("[Sidecar] Previous script thread still running. Stopping it...")
+            self.bot.is_running = False
+            self.script_thread.join(timeout=3.0)
+            if self.script_thread.is_alive():
+                print("[Sidecar] Warning: Previous script thread did not terminate in time.")
         
         # Extract embedded regions BEFORE execution
         embedded_regions = extract_embedded_regions(request.code)
@@ -210,8 +219,8 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
                 self.bot.is_running = False
                 log_queue.put(None) # Signal end of stream
 
-        thread = threading.Thread(target=run_thread)
-        thread.start()
+        self.script_thread = threading.Thread(target=run_thread)
+        self.script_thread.start()
 
         # Yield logs as they arrive in the queue
         while True:
@@ -236,6 +245,8 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         """Stop the currently running script by setting is_running to False."""
         print(f"[Sidecar] StopScript called - setting is_running = False")
         self.bot.is_running = False
+        if self.script_thread and self.script_thread.is_alive():
+            self.script_thread.join(timeout=1.0)
         return bot_pb2.StopResponse(success=True)
 
     def PushRegions(self, request, context):
