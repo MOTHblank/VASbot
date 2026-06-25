@@ -81,6 +81,7 @@ class BotAPI:
         self.regions = []
         self._target_hwnd = None
         self.on_log = None
+        self._template_cache = {}
 
     def set_regions(self, regions):
         self.regions = regions
@@ -642,14 +643,18 @@ class BotAPI:
             return None
         import os
 
-        if not os.path.exists(template_path):
-            self.log(f"Error: Template image not found at {template_path}")
-            return None
+        if template_path in self._template_cache:
+            template = self._template_cache[template_path]
+        else:
+            if not os.path.exists(template_path):
+                self.log(f"Error: Template image not found at {template_path}")
+                return None
 
-        template = cv2.imread(template_path, cv2.IMREAD_COLOR)
-        if template is None:
-            self.log(f"Error: Failed to load template image.")
-            return None
+            template = cv2.imread(template_path, cv2.IMREAD_COLOR)
+            if template is None:
+                self.log(f"Error: Failed to load template image.")
+                return None
+            self._template_cache[template_path] = template
 
         self.focus_window()
 
