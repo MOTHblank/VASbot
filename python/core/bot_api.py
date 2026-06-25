@@ -565,8 +565,10 @@ class BotAPI:
         try:
             run(['tesseract', '--version'], stdout=PIPE, stderr=PIPE)
             in_path = True
-        except:
+        except FileNotFoundError:
             pass
+        except Exception as e:
+            self.log(f"Vision Warning: Tesseract PATH check failed: {e}")
 
         if not in_path:
             for path in tesseract_paths:
