@@ -338,7 +338,9 @@ class BotAPI:
             timestamp = time.strftime("%H:%M:%S")
             print(f"[{timestamp}] {message}")
 
-    def click_region(self, region_index, button="left", modifiers=[], human_like=False):
+    def click_region(self, region_index, button="left", modifiers=None, human_like=False):
+        if modifiers is None:
+            modifiers = []
         if not self.is_running:
             self.log("Script stopped - aborting click_region")
             return False
@@ -380,8 +382,85 @@ class BotAPI:
             self.log(f"Stack: {traceback.format_exc()}")
             return False
 
-    def click(self, x, y, button="left", modifiers=[], human_like=False):
+    def scroll(self, clicks, x=None, y=None):
+        """Scrolls the mouse wheel by the given amount."""
+        if not self.is_running:
+            self.log("Script stopped - aborting scroll")
+            return False
+        try:
+            self.bot.scroll(clicks, x, y)
+            self.log(f"Scrolled {clicks} clicks at {x}, {y}")
+            return True
+        except Exception as e:
+            self.log(f"Scroll Error: {e}")
+            return False
+
+    def key_down(self, key):
+        """Presses and holds a keyboard key."""
+        if not self.is_running:
+            self.log("Script stopped - aborting key_down")
+            return False
+        try:
+            self.bot.key_down(key)
+            self.log(f"Key down: {key}")
+            return True
+        except Exception as e:
+            self.log(f"Key Down Error: {e}")
+            return False
+
+    def key_up(self, key):
+        """Releases a keyboard key."""
+        if not self.is_running:
+            self.log("Script stopped - aborting key_up")
+            return False
+        try:
+            self.bot.key_up(key)
+            self.log(f"Key up: {key}")
+            return True
+        except Exception as e:
+            self.log(f"Key Up Error: {e}")
+            return False
+
+    def double_click(self, x, y, button="left", modifiers=None, human_like=False):
+        """Performs a double mouse click at the specified coordinates."""
+        if modifiers is None:
+            modifiers = []
+        if not self.is_running:
+            self.log("Script stopped - aborting double_click")
+            return False
+        try:
+            if human_like:
+                self.bot.human_move_to(x, y)
+                self.bot.double_click(x, y, button, modifiers)
+            else:
+                self.bot.double_click(x, y, button, modifiers)
+            self.log(f"Double clicked coordinates ({x}, {y})")
+            return True
+        except Exception as e:
+            self.log(f"Error in double_click: {e}")
+            import traceback
+
+            self.log(f"Stack: {traceback.format_exc()}")
+            return False
+
+    def press_button(self, button="left", down=True):
+        """Presses or releases a mouse button."""
+        if not self.is_running:
+            self.log("Script stopped - aborting press_button")
+            return False
+        try:
+            self.bot.press_button(button, down)
+            action = "pressed" if down else "released"
+            self.log(f"Mouse button {button} {action}")
+            return True
+        except Exception as e:
+            self.log(f"Press Button Error: {e}")
+            return False
+
+    def click(self, x, y, button="left", modifiers=None, human_like=False):
         """Clicks at the specified coordinates, supporting optional modifiers and human-like movement."""
+        if modifiers is None:
+            modifiers = []
         if not self.is_running:
             self.log("Script stopped - aborting click")
             return False
@@ -511,10 +590,12 @@ class BotAPI:
         hex_color,
         region_index,
         button="left",
-        modifiers=[],
+        modifiers=None,
         tolerance=10,
         human_like=False,
     ):
+        if modifiers is None:
+            modifiers = []
         result = self.find_color(hex_color, region_index, tolerance)
         if result:
             abs_x, abs_y = result
