@@ -195,6 +195,8 @@ class BotAPI:
         self._template_cache = {}
         self._tesseract_available = None
         self._tesseract_error = None
+        self._frame_counter = 0
+        self._ccl_cache = {}
 
     def set_regions(self, regions):
         self.regions = regions
@@ -207,6 +209,8 @@ class BotAPI:
 
     def set_frame_buffer(self, buffer):
         self._last_frame = buffer
+        self._frame_counter += 1
+        self._ccl_cache = {}
 
     def check_running(self):
         """Raises ScriptStoppedError if the script is no longer running."""
@@ -1357,6 +1361,13 @@ class BotAPI:
         if t_val is None:
             t_val = 25
 
+        # 1b. Check frame-based cache
+        cache_key = (self._frame_counter, tuple(colors), p_val, t_val, region_index)
+        if cache_key in self._ccl_cache:
+            if self._debug_mode:
+                self.log(f"Retrieving color cluster results from frame cache (Key: {cache_key})")
+            return self._ccl_cache[cache_key]
+
         # 2. Get frame
         full_frame = self._get_current_frame()
         if full_frame is None:
@@ -1390,10 +1401,13 @@ class BotAPI:
             mask = cv2.inRange(search_area, lower, upper)
             masks.append(mask)
 
-        # 5. Combine and dilate mask (proximity gap bridging)
-        combined_mask = np.zeros(search_area.shape[:2], dtype=np.uint8)
-        for m in masks:
-            combined_mask = cv2.bitwise_or(combined_mask, m)
+        # 5. Combine and dilate mask (proximity gap bridging) with zero-copy/in-place optimization
+        if len(masks) == 1:
+            combined_mask = masks[0]
+        else:
+            combined_mask = np.zeros(search_area.shape[:2], dtype=np.uint8)
+            for m in masks:
+                cv2.bitwise_or(combined_mask, m, dst=combined_mask)
 
         if p_val > 1:
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (p_val, p_val))
@@ -1404,7 +1418,7 @@ class BotAPI:
         # 6. Run native Connected Component Labeling
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(dilated_mask)
 
-        # 7. Check color co-existence on each component
+        # 7. Check color co-existence on each component with native C++ optimizations
         valid_regions = []
         for k in range(1, num_labels): # Skip background label (0)
             left, top, w, h, area = stats[k]
@@ -1413,15 +1427,15 @@ class BotAPI:
             if area < 4:
                 continue
 
-            # Crop component mask to bounding box for extreme speedup
+            # Crop labels view and run fast native C++ scalar compare
             labels_crop = labels[top : top + h, left : left + w]
-            comp_mask_crop = (labels_crop == k).astype(np.uint8)
+            comp_mask_crop = cv2.compare(labels_crop, k, cv2.CMP_EQ)
 
             # Check coexistence of ALL original colors in this component
             coexistence_valid = True
             for m in masks:
                 m_crop = m[top : top + h, left : left + w]
-                intersection = cv2.bitwise_and(m_crop, m_crop, mask=comp_mask_crop)
+                intersection = cv2.bitwise_and(m_crop, comp_mask_crop)
                 if cv2.countNonZero(intersection) == 0:
                     coexistence_valid = False
                     break
@@ -1444,6 +1458,8 @@ class BotAPI:
         if self._debug_mode:
             self.log(f"find_color_clusters found {len(valid_regions)} matches out of {num_labels - 1} connected components.")
 
+        # Cache results before returning
+        self._ccl_cache[cache_key] = valid_regions
         return valid_regions
 
     def find_color_cluster(
