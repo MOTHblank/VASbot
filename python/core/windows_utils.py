@@ -16,7 +16,27 @@ def _get_true_hwnd_rect(hwnd):
     Gets the true screen coordinates of a window's client area.
     This is a more reliable method that avoids issues with DWM and scaling.
     """
+    if not hwnd:
+        return 0, 0, 0, 0
+
+    # Try win32gui first if available (handles 64-bit HWND handles robustly)
+    if win32gui is not None:
+        try:
+            if win32gui.IsWindow(hwnd):
+                # win32gui.GetClientRect returns (left, top, right, bottom) -> (0, 0, width, height)
+                _, _, w, h = win32gui.GetClientRect(hwnd)
+                # win32gui.ClientToScreen returns (x, y) in screen coordinates
+                left, top = win32gui.ClientToScreen(hwnd, (0, 0))
+                return left, top, left + w, top + h
+        except Exception as e:
+            print(f"Error in _get_true_hwnd_rect (win32gui): {e}")
+
+    # Fallback to ctypes with explicit 64-bit argtypes configuration
     try:
+        user32.IsWindow.argtypes = [wintypes.HWND]
+        user32.GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        user32.ClientToScreen.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
+
         if not user32.IsWindow(hwnd):
             return 0, 0, 0, 0
 
@@ -32,9 +52,10 @@ def _get_true_hwnd_rect(hwnd):
         return point_tl.x, point_tl.y, point_br.x, point_br.y
 
     except Exception as e:
-        print(f"Error in _get_true_hwnd_rect: {e}")
+        print(f"Error in _get_true_hwnd_rect (ctypes): {e}")
         # Fallback to GetWindowRect if everything else fails
         try:
+            user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
             rect = wintypes.RECT()
             user32.GetWindowRect(hwnd, ctypes.byref(rect))
             return rect.left, rect.top, rect.right, rect.bottom

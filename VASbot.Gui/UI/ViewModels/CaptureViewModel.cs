@@ -21,6 +21,79 @@ namespace VASbot.Gui.UI.ViewModels
         private readonly ReflectionService _reflectionService;
         private readonly CoordinateTransformer _transformer;
         private readonly RegionManager _regionManager;
+        private readonly ColorClusterManager _colorClusterManager = new();
+
+        public ObservableCollection<ColorClusterModel> ColorClusters { get; } = new();
+
+        [ObservableProperty]
+        private ColorClusterModel? _selectedColorCluster;
+
+        private async Task SyncColorClustersToSidecar()
+        {
+            await _botService.UpdateColorClustersAsync(ColorClusters);
+        }
+
+        public async Task SaveColorClustersAsync()
+        {
+            await _colorClusterManager.SaveClustersAsync(ColorClusters);
+            await SyncColorClustersToSidecar();
+        }
+
+        private void HookCluster(ColorClusterModel cluster)
+        {
+            cluster.PropertyChanged += Cluster_PropertyChanged;
+            cluster.Colors.CollectionChanged += Colors_CollectionChanged;
+        }
+
+        private void UnhookCluster(ColorClusterModel cluster)
+        {
+            cluster.PropertyChanged -= Cluster_PropertyChanged;
+            cluster.Colors.CollectionChanged -= Colors_CollectionChanged;
+        }
+
+        private void Cluster_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            _ = SaveColorClustersAsync();
+        }
+
+        private void Colors_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            _ = SaveColorClustersAsync();
+        }
+
+        [RelayCommand]
+        public async Task AddColorCluster()
+        {
+            var cluster = new ColorClusterModel
+            {
+                Name = $"Cluster {ColorClusters.Count + 1}"
+            };
+            HookCluster(cluster);
+            ColorClusters.Add(cluster);
+            SelectedColorCluster = cluster;
+            await SaveColorClustersAsync();
+        }
+
+        [RelayCommand]
+        public async Task DeleteColorCluster(ColorClusterModel cluster)
+        {
+            if (cluster == null) return;
+            UnhookCluster(cluster);
+            ColorClusters.Remove(cluster);
+            if (SelectedColorCluster == cluster)
+            {
+                SelectedColorCluster = ColorClusters.FirstOrDefault();
+            }
+            await SaveColorClustersAsync();
+        }
+
+        [RelayCommand]
+        public async Task RemoveColorFromCluster(string colorHex)
+        {
+            if (SelectedColorCluster == null || string.IsNullOrEmpty(colorHex)) return;
+            SelectedColorCluster.Colors.Remove(colorHex);
+            await SaveColorClustersAsync();
+        }
 
         [ObservableProperty]
         private SKPoint _mousePos;
@@ -127,6 +200,7 @@ namespace VASbot.Gui.UI.ViewModels
         private ResizeEdge _activeResizeEdge = ResizeEdge.None;
 
         private SKPoint _dragStartPos;
+        private SKPoint _startCreationPos;
         private Rectangle _dragStartRect;
 
         [ObservableProperty]
@@ -135,7 +209,16 @@ namespace VASbot.Gui.UI.ViewModels
         // Commands for region management - initialized in constructor
 
 
-        private SKPoint _startCreationPos;
+        [ObservableProperty]
+        private string _detectShapeType = "all";
+
+        [ObservableProperty]
+        private int _detectMinSize = 15;
+
+        [ObservableProperty]
+        private int _detectMaxSize = 1000;
+
+        public ObservableCollection<DetectedShapeResult> DetectedShapes { get; } = new();
 
         public ObservableCollection<RegionModel> Regions { get; } = new();
 
@@ -190,6 +273,15 @@ namespace VASbot.Gui.UI.ViewModels
             var loaded = await _regionManager.LoadRegionsAsync();
             foreach(var r in loaded) Regions.Add(r);
             await SyncRegionsToSidecar();
+
+            var loadedClusters = await _colorClusterManager.LoadClustersAsync();
+            foreach(var c in loadedClusters)
+            {
+                HookCluster(c);
+                ColorClusters.Add(c);
+            }
+            SelectedColorCluster = ColorClusters.FirstOrDefault();
+            await SyncColorClustersToSidecar();
         }
 
         partial void OnSelectedWindowChanged(WindowInfo? value)
@@ -228,6 +320,53 @@ namespace VASbot.Gui.UI.ViewModels
                 region.Color = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
                 await _regionManager.SaveRegionsAsync(Regions);
                 await SyncRegionsToSidecar();
+            }
+        }
+
+        [RelayCommand]
+        public async Task SaveRegionAsPngAsync(RegionModel region)
+        {
+            if (region == null || CurrentFrame == null) return;
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PNG Image (*.png)|*.png",
+                DefaultExt = ".png",
+                FileName = $"{region.Name.Replace(" ", "_")}.png",
+                Title = "Save Region as PNG Template"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var rect = new SKRectI(region.X, region.Y, region.X + region.Width, region.Y + region.Height);
+                    if (rect.Left >= 0 && rect.Top >= 0 && rect.Right <= CurrentFrame.Width && rect.Bottom <= CurrentFrame.Height && rect.Width > 0 && rect.Height > 0)
+                    {
+                        using var subset = new SKBitmap(rect.Width, rect.Height);
+                        using (var canvas = new SKCanvas(subset))
+                        {
+                            canvas.DrawBitmap(CurrentFrame, -rect.Left, -rect.Top);
+                        }
+
+                        using var image = SKImage.FromBitmap(subset);
+                        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+                        using (var stream = System.IO.File.OpenWrite(dialog.FileName))
+                        {
+                            data.SaveTo(stream);
+                        }
+
+                        Status = $"Saved PNG template: {System.IO.Path.GetFileName(dialog.FileName)}";
+                    }
+                    else
+                    {
+                        Status = "Error: Region is out of current frame bounds.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Status = $"Failed to save PNG: {ex.Message}";
+                }
             }
         }
 
@@ -281,6 +420,33 @@ namespace VASbot.Gui.UI.ViewModels
             }
         }
 
+        [RelayCommand]
+        public async Task DetectShapes()
+        {
+            try
+            {
+                Status = "Detecting shapes...";
+                var shapes = await _botService.DetectShapesAsync(DetectShapeType, DetectMinSize, DetectMaxSize);
+                DetectedShapes.Clear();
+                foreach (var s in shapes)
+                {
+                    DetectedShapes.Add(s);
+                }
+                Status = $"Detected {DetectedShapes.Count} shapes.";
+            }
+            catch (Exception ex)
+            {
+                Status = $"Detection failed: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        public void ClearDetectedShapes()
+        {
+            DetectedShapes.Clear();
+            Status = "Cleared detected shapes.";
+        }
+
         private DateTime _lastRenderTime = DateTime.Now;
 
         public void Render(SKCanvas canvas, float width, float height)
@@ -321,6 +487,57 @@ namespace VASbot.Gui.UI.ViewModels
                     canvas.DrawRect(region.X - hSize, region.Y - hSize, hSize * 2, hSize * 2, paint);
                     canvas.DrawRect(region.X + region.Width - hSize, region.Y + region.Height - hSize, hSize * 2, hSize * 2, paint);
                     paint.Style = SKPaintStyle.Stroke;
+                }
+            }
+
+            // 2.5 Draw Active Color Cluster Highlights
+            if (SelectedColorCluster != null && SelectedColorCluster.Colors.Count > 0 && SelectedColorCluster.IsActive)
+            {
+                var cluster = SelectedColorCluster;
+                var targetColors = new System.Collections.Generic.List<SKColor>();
+                foreach (var hex in cluster.Colors)
+                {
+                    if (SKColor.TryParse(hex, out var col))
+                    {
+                        targetColors.Add(col);
+                    }
+                }
+
+                if (targetColors.Count > 0)
+                {
+                    int tolerance = cluster.Tolerance;
+                    var points = new System.Collections.Generic.List<SKPoint>();
+                    int step = 2; // Downsampling by 2 matches original resolution perfectly with high rendering speed
+
+                    for (int y = 0; y < CurrentFrame.Height; y += step)
+                    {
+                        for (int x = 0; x < CurrentFrame.Width; x += step)
+                        {
+                            var pixel = CurrentFrame.GetPixel(x, y);
+                            foreach (var tc in targetColors)
+                            {
+                                if (Math.Abs(pixel.Red - tc.Red) <= tolerance &&
+                                    Math.Abs(pixel.Green - tc.Green) <= tolerance &&
+                                    Math.Abs(pixel.Blue - tc.Blue) <= tolerance)
+                                {
+                                    points.Add(new SKPoint(x, y));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (points.Count > 0)
+                    {
+                        using var pointPaint = new SKPaint
+                        {
+                            Color = SKColor.Parse("#00FFFF").WithAlpha(160), // Glowing Neon Cyan
+                            StrokeWidth = step * 1.2f,
+                            Style = SKPaintStyle.Stroke,
+                            StrokeCap = SKStrokeCap.Square
+                        };
+                        canvas.DrawPoints(SKPointMode.Points, points.ToArray(), pointPaint);
+                    }
                 }
             }
 
@@ -430,6 +647,47 @@ namespace VASbot.Gui.UI.ViewModels
                 }
             }
 
+            // 8.5. Detected Shapes Overlays
+            foreach (var shape in DetectedShapes)
+            {
+                float left = (float)(shape.X * ZoomLevel + Offset.X);
+                float top = (float)(shape.Y * ZoomLevel + Offset.Y);
+                float right = (float)((shape.X + shape.Width) * ZoomLevel + Offset.X);
+                float bottom = (float)((shape.Y + shape.Height) * ZoomLevel + Offset.Y);
+                var bbox = new SKRect(left, top, right, bottom);
+
+                var color = shape.Type == "circle" ? SKColor.Parse("#E000FF") : SKColors.Cyan;
+
+                using (var shapePaint = new SKPaint
+                {
+                    Color = color,
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 2,
+                    IsAntialias = true,
+                    PathEffect = SKPathEffect.CreateDash(new float[] { 4, 4 }, 0)
+                })
+                using (var labelPaint = new SKPaint
+                {
+                    Color = color,
+                    TextSize = 10,
+                    IsAntialias = true
+                })
+                {
+                    if (shape.Type == "circle")
+                    {
+                        float cx = (left + right) / 2;
+                        float cy = (top + bottom) / 2;
+                        float radius = (right - left) / 2;
+                        canvas.DrawCircle(cx, cy, radius, shapePaint);
+                    }
+                    else
+                    {
+                        canvas.DrawRect(bbox, shapePaint);
+                    }
+                    canvas.DrawText($"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})", left, top - 2, labelPaint);
+                }
+            }
+
             // 9. Coordinate Crosshair
             if (!IsMinimized)
             {
@@ -489,6 +747,16 @@ namespace VASbot.Gui.UI.ViewModels
                     OnPropertyChanged(nameof(SelectedRegion));
                     _ = _regionManager.SaveRegionsAsync(Regions);
                     _ = SyncRegionsToSidecar();
+                }
+
+                // If a color cluster is selected, append the color immediately
+                if (SelectedColorCluster != null)
+                {
+                    if (!SelectedColorCluster.Colors.Contains(PickedColor))
+                    {
+                        SelectedColorCluster.Colors.Add(PickedColor);
+                        _ = SaveColorClustersAsync();
+                    }
                 }
 
                 // Auto-disable tool after success
@@ -580,14 +848,50 @@ namespace VASbot.Gui.UI.ViewModels
         {
             IsCreatingRegion = true;
             _startCreationPos = _transformer.CanvasToImage(new SKPoint((float)pos.X, (float)pos.Y));
-            CurrentCreationRegion = new RegionModel 
-            { 
-                X = (int)_startCreationPos.X, 
-                Y = (int)_startCreationPos.Y,
-                Width = 0,
-                Height = 0,
-                Color = "#FFFF00"
-            };
+
+            // Check if we clicked inside any detected shape
+            DetectedShapeResult? clickedShape = null;
+            double minArea = double.MaxValue;
+
+            foreach (var shape in DetectedShapes)
+            {
+                if (_startCreationPos.X >= shape.X && _startCreationPos.X <= shape.X + shape.Width &&
+                    _startCreationPos.Y >= shape.Y && _startCreationPos.Y <= shape.Y + shape.Height)
+                {
+                    double area = shape.Width * shape.Height;
+                    if (area < minArea)
+                    {
+                        minArea = area;
+                        clickedShape = shape;
+                    }
+                }
+            }
+
+            if (clickedShape != null)
+            {
+                // Instantly pre-populate creation region with the detected shape's bounds
+                CurrentCreationRegion = new RegionModel 
+                { 
+                    X = clickedShape.X, 
+                    Y = clickedShape.Y,
+                    Width = clickedShape.Width,
+                    Height = clickedShape.Height,
+                    Color = PickedColor
+                };
+                // Align start position to shape's top-left to support instant MouseUp saving
+                _startCreationPos = new SKPoint(clickedShape.X, clickedShape.Y);
+            }
+            else
+            {
+                CurrentCreationRegion = new RegionModel 
+                { 
+                    X = (int)_startCreationPos.X, 
+                    Y = (int)_startCreationPos.Y,
+                    Width = 0,
+                    Height = 0,
+                    Color = "#FFFF00"
+                };
+            }
         }
 
         public void UpdateCreation(Point pos)

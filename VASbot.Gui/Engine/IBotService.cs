@@ -20,6 +20,7 @@ namespace VASbot.Gui.Engine
         
         // Sync methods
         Task<bool> UpdateRegionsAsync(IEnumerable<RegionModel> regions);
+        Task<bool> UpdateColorClustersAsync(IEnumerable<ColorClusterModel> clusters);
         Task<bool> SetTargetWindowAsync(nint hwnd, string title);
 
         // Recorder
@@ -37,5 +38,8 @@ namespace VASbot.Gui.Engine
         
         // Script control
         Task StopScriptAsync();
+
+        // Advanced Vision Detection
+        Task<List<DetectedShapeResult>> DetectShapesAsync(string shapeType, int minSize, int maxSize);
     }
 }

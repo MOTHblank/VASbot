@@ -4,6 +4,11 @@ import ctypes
 import random
 from ctypes import wintypes
 
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 # --- CRITICAL: Set DPI Awareness BEFORE any other UI/GDI calls ---
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
@@ -29,6 +34,11 @@ try:
     from pywinauto_api import PywinautoBot, is_pywinauto_available
 except ImportError:
     from core.pywinauto_api import PywinautoBot, is_pywinauto_available
+
+
+class ScriptStoppedError(BaseException):
+    """Custom exception raised when the script execution is stopped."""
+    pass
 
 
 class GUIProxy:
@@ -72,6 +82,100 @@ class GUIProxy:
         )
 
 
+def hex_to_bgr(hex_str):
+    hex_str = hex_str.lstrip('#')
+    if len(hex_str) == 3:
+        hex_str = ''.join(c * 2 for c in hex_str)
+    r = int(hex_str[0:2], 16)
+    g = int(hex_str[2:4], 16)
+    b = int(hex_str[4:6], 16)
+    return (b, g, r)
+
+
+class DynamicRegion:
+    def __init__(self, bot, label_id, stats, centroid, mask, offset_x, offset_y):
+        self.bot = bot
+        self.label_id = label_id
+        self._stats = stats          # [left, top, width, height, area]
+        self._centroid = centroid    # (cx, cy)
+        self._mask = mask            # binary mask of this component (cropped to bounding box)
+        self._offset_x = offset_x
+        self._offset_y = offset_y
+        
+    def center(self):
+        """Returns absolute screen coordinates of the component centroid."""
+        left, top, _, _ = _get_true_hwnd_rect(self.bot._target_hwnd)
+        cx = left + self._offset_x + self._centroid[0]
+        cy = top + self._offset_y + self._centroid[1]
+        return int(cx), int(cy)
+        
+    def click(self, button="left", human_like=True):
+        """Clicks the centroid of the component."""
+        cx, cy = self.center()
+        self.bot.click(cx, cy, button=button, human_like=human_like)
+        
+    def bounds(self):
+        """Returns (x, y, w, h) client-relative bounding box."""
+        return (
+            int(self._offset_x + self._stats[0]), 
+            int(self._offset_y + self._stats[1]), 
+            int(self._stats[2]), 
+            int(self._stats[3])
+        )
+        
+    def area(self):
+        """Returns total area of matching pixels in this component."""
+        return int(self._stats[4])
+        
+    def mask(self):
+        """Returns the binary mask of this component."""
+        return self._mask
+
+    def contains(self, hex_color, tolerance=25):
+        """Checks if this component contains a specific color."""
+        left, top, w, h, _ = self._stats
+        b, g, r = hex_to_bgr(hex_color)
+        
+        full_frame = self.bot._get_current_frame()
+        if full_frame is None:
+            return False
+            
+        if full_frame.shape[2] == 4:
+            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
+        else:
+            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
+            
+        gx = self._offset_x + left
+        gy = self._offset_y + top
+        
+        bgr_crop = img_bgr[gy : gy + h, gx : gx + w]
+        
+        lower = np.array([max(0, b - tolerance), max(0, g - tolerance), max(0, r - tolerance)], dtype=np.uint8)
+        upper = np.array([min(255, b + tolerance), min(255, g + tolerance), min(255, r + tolerance)], dtype=np.uint8)
+        color_mask = cv2.inRange(bgr_crop, lower, upper)
+        
+        intersection = cv2.bitwise_and(color_mask, color_mask, mask=self._mask)
+        return cv2.countNonZero(intersection) > 0
+
+    def save(self, filepath):
+        """Saves a crop of this component to a file."""
+        left, top, w, h, _ = self._stats
+        full_frame = self.bot._get_current_frame()
+        if full_frame is None:
+            return False
+            
+        gx = self._offset_x + left
+        gy = self._offset_y + top
+        crop = full_frame[gy : gy + h, gx : gx + w].copy()
+        
+        cv2.imwrite(filepath, crop)
+        return True
+
+    def highlight(self, duration_sec=1.5):
+        """Logs high-level information about the highlighted region."""
+        self.bot.log(f"[Highlight] DynamicRegion at center {self.center()} with bounds {self.bounds()}")
+
+
 class BotAPI:
     def __init__(self, gui_instance=None):
         # Use GUIProxy if no gui_instance provided, otherwise use the provided instance
@@ -85,6 +189,7 @@ class BotAPI:
         self.win = PywinautoBot() if is_pywinauto_available() else None
         self._last_frame = None
         self.regions = []
+        self._color_clusters = []
         self._target_hwnd = None
         self.on_log = None
         self._template_cache = {}
@@ -94,15 +199,24 @@ class BotAPI:
     def set_regions(self, regions):
         self.regions = regions
 
+    def set_color_clusters(self, clusters):
+        self._color_clusters = clusters
+
     def set_target_window(self, hwnd):
         self._target_hwnd = hwnd
 
     def set_frame_buffer(self, buffer):
         self._last_frame = buffer
 
+    def check_running(self):
+        """Raises ScriptStoppedError if the script is no longer running."""
+        if not self._is_running:
+            raise ScriptStoppedError("Script stopped by user")
+
     # --- High-Level Window Automation (Pywinauto) ---
 
     def _get_active_app_window(self):
+        self.check_running()
         if not self.win or not self._target_hwnd:
             return None
         return self.win.get_app(self._target_hwnd)
@@ -138,9 +252,7 @@ class BotAPI:
             return False
 
     def type_text(self, text, delay=0.05, press_enter=False):
-        if not self.is_running:
-            self.log("Script stopped - aborting type_text")
-            return False
+        self.check_running()
         try:
             self.bot.type_text(text, delay=delay)
             if press_enter:
@@ -213,9 +325,7 @@ class BotAPI:
             return False
 
     def send_hotkey(self, *keys):
-        if not self.is_running:
-            self.log("Script stopped - aborting send_hotkey")
-            return False
+        self.check_running()
         if not self._target_hwnd:
             self.log("Error: No target window set.")
             return False
@@ -239,6 +349,7 @@ class BotAPI:
             return False
 
     def wait_window(self, title, timeout=10):
+        self.check_running()
         if not self.win:
             return False
         try:
@@ -285,6 +396,35 @@ class BotAPI:
             self.log("Grabbing full screen frame (no target window)")
         return np.array(ImageGrab.grab())
 
+    def get_window_rect(self):
+        if not self._target_hwnd:
+            return None
+        try:
+            from core.windows_utils import _get_true_hwnd_rect
+            return _get_true_hwnd_rect(self._target_hwnd)
+        except Exception:
+            try:
+                from windows_utils import _get_true_hwnd_rect
+                return _get_true_hwnd_rect(self._target_hwnd)
+            except Exception:
+                return None
+
+    def screen_to_client(self, x, y):
+        """Converts absolute screen coordinates to client-relative coordinates."""
+        rect = self.get_window_rect()
+        if rect:
+            left, top, _, _ = rect
+            return x - left, y - top
+        return x, y
+
+    def client_to_screen(self, x, y):
+        """Converts client-relative coordinates to absolute screen coordinates."""
+        rect = self.get_window_rect()
+        if rect:
+            left, top, _, _ = rect
+            return left + x, top + y
+        return x, y
+
     @property
     def is_running(self):
         return self._is_running
@@ -325,11 +465,13 @@ class BotAPI:
         """Wait for the specified number of seconds, checking if the bot is still running."""
         chunk_size = 0.1
         total_waited = 0
-        while total_waited < seconds and self.is_running:
+        while total_waited < seconds:
+            self.check_running()
             remaining = seconds - total_waited
             wait_time = min(chunk_size, remaining)
             time.sleep(wait_time)
             total_waited += wait_time
+        self.check_running()
 
     def log(self, message):
         if self.on_log:
@@ -341,9 +483,7 @@ class BotAPI:
     def click_region(self, region_index, button="left", modifiers=None, human_like=False):
         if modifiers is None:
             modifiers = []
-        if not self.is_running:
-            self.log("Script stopped - aborting click_region")
-            return False
+        self.check_running()
         if region_index >= len(self.regions):
             self.log(
                 f"Error: Region {region_index} does not exist. Total regions: {len(self.regions)}"
@@ -384,9 +524,7 @@ class BotAPI:
 
     def scroll(self, clicks, x=None, y=None):
         """Scrolls the mouse wheel by the given amount."""
-        if not self.is_running:
-            self.log("Script stopped - aborting scroll")
-            return False
+        self.check_running()
         try:
             self.bot.scroll(clicks, x, y)
             self.log(f"Scrolled {clicks} clicks at {x}, {y}")
@@ -397,9 +535,7 @@ class BotAPI:
 
     def key_down(self, key):
         """Presses and holds a keyboard key."""
-        if not self.is_running:
-            self.log("Script stopped - aborting key_down")
-            return False
+        self.check_running()
         try:
             self.bot.key_down(key)
             self.log(f"Key down: {key}")
@@ -410,9 +546,7 @@ class BotAPI:
 
     def key_up(self, key):
         """Releases a keyboard key."""
-        if not self.is_running:
-            self.log("Script stopped - aborting key_up")
-            return False
+        self.check_running()
         try:
             self.bot.key_up(key)
             self.log(f"Key up: {key}")
@@ -425,9 +559,7 @@ class BotAPI:
         """Performs a double mouse click at the specified coordinates."""
         if modifiers is None:
             modifiers = []
-        if not self.is_running:
-            self.log("Script stopped - aborting double_click")
-            return False
+        self.check_running()
         try:
             if human_like:
                 self.bot.human_move_to(x, y)
@@ -445,9 +577,7 @@ class BotAPI:
 
     def press_button(self, button="left", down=True):
         """Presses or releases a mouse button."""
-        if not self.is_running:
-            self.log("Script stopped - aborting press_button")
-            return False
+        self.check_running()
         try:
             self.bot.press_button(button, down)
             action = "pressed" if down else "released"
@@ -461,9 +591,7 @@ class BotAPI:
         """Clicks at the specified coordinates, supporting optional modifiers and human-like movement."""
         if modifiers is None:
             modifiers = []
-        if not self.is_running:
-            self.log("Script stopped - aborting click")
-            return False
+        self.check_running()
 
         try:
             if human_like:
@@ -481,9 +609,7 @@ class BotAPI:
             return False
 
     def find_color(self, hex_color, region_index, tolerance=10):
-        if not self.is_running:
-            self.log("Script stopped - aborting find_color")
-            return None
+        self.check_running()
         if region_index >= len(self.regions):
             self.log(
                 f"Error: Region {region_index} does not exist. Total regions: {len(self.regions)}"
@@ -596,6 +722,7 @@ class BotAPI:
     ):
         if modifiers is None:
             modifiers = []
+        self.check_running()
         result = self.find_color(hex_color, region_index, tolerance)
         if result:
             abs_x, abs_y = result
@@ -611,8 +738,7 @@ class BotAPI:
         return self.get_pixel_color_fast(x, y)
 
     def move_mouse(self, x, y, human_like=True):
-        if not self.is_running:
-            return
+        self.check_running()
         if human_like:
             self.bot.human_move_to(x, y)
         else:
@@ -622,12 +748,10 @@ class BotAPI:
         return self.bot.get_cursor_pos()
 
     def wait_for_color(self, hex_color, region_index, timeout=10, tolerance=10):
-        if not self.is_running:
-            return False
+        self.check_running()
         start_time = time.time()
         while time.time() - start_time < timeout:
-            if not self.is_running:
-                return False
+            self.check_running()
             if self.find_color(hex_color, region_index, tolerance):
                 return True
             self.wait(0.1)
@@ -663,8 +787,7 @@ class BotAPI:
         return False
 
     def get_pixel_color_fast(self, x, y):
-        if not self.is_running:
-            return None
+        self.check_running()
         try:
             hdc = ctypes.windll.user32.GetDC(0)
             pixel = ctypes.windll.gdi32.GetPixel(hdc, x, y)
@@ -677,9 +800,29 @@ class BotAPI:
             self.log(f"Error in get_pixel_color_fast: {e}")
             return None
 
-    def find_text(self, text, region_index, case_sensitive=False):
-        if not self.is_running:
+    def _resolve_region(self, region_index):
+        if region_index is None:
             return None
+        if isinstance(region_index, int):
+            if region_index >= len(self.regions):
+                self.log(f"Error: Region index {region_index} does not exist.")
+                return None
+            return self.regions[region_index]
+        if isinstance(region_index, dict):
+            if all(k in region_index for k in ("x", "y", "width", "height")):
+                return region_index
+            x = region_index.get("x", 0)
+            y = region_index.get("y", 0)
+            w = region_index.get("width", region_index.get("w", 0))
+            h = region_index.get("height", region_index.get("h", 0))
+            return {"x": x, "y": y, "width": w, "height": h}
+        if isinstance(region_index, (list, tuple)) and len(region_index) == 4:
+            return {"x": region_index[0], "y": region_index[1], "width": region_index[2], "height": region_index[3]}
+        self.log(f"Error: Invalid region representation {region_index}")
+        return None
+
+    def find_text(self, text, region_index, case_sensitive=False):
+        self.check_running()
         try:
             import pytesseract
             import cv2
@@ -727,14 +870,14 @@ class BotAPI:
 
         if not getattr(self, "_tesseract_available", False):
             self.log(getattr(self, "_tesseract_error", "Unknown Tesseract error"))
-        # Auto-detect Tesseract path on Windows if not in PATH
+
+        # Keep original fallback checks for maximum robust redundancy
         tesseract_paths = [
             r"C:\Program Files\Tesseract-OCR\tesseract.exe",
             r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
             os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe"),
         ]
 
-        # Check if tesseract is already in PATH
         from subprocess import run, PIPE
 
         in_path = False
@@ -752,7 +895,6 @@ class BotAPI:
                     pytesseract.pytesseract.tesseract_cmd = path
                     break
 
-        # Check if tesseract is installed/accessible
         try:
             pytesseract.get_tesseract_version()
         except pytesseract.TesseractNotFoundError:
@@ -761,44 +903,11 @@ class BotAPI:
             )
             return None
 
-        if region_index >= len(self.regions):
-
-            # Check if tesseract is already in PATH
-            from subprocess import run, PIPE
-
-            in_path = False
-            try:
-                run(["tesseract", "--version"], stdout=PIPE, stderr=PIPE)
-                in_path = True
-            except:
-                pass
-
-            if not in_path:
-                for path in tesseract_paths:
-                    if os.path.exists(path):
-                        pytesseract.pytesseract.tesseract_cmd = path
-                        break
-
-            # Check if tesseract is installed/accessible
-            try:
-                pytesseract.get_tesseract_version()
-                self._tesseract_available = True
-            except pytesseract.TesseractNotFoundError:
-                self._tesseract_available = False
-                self._tesseract_error = "Vision Error: Tesseract OCR engine not found. Please ensure it is installed and in your PATH, or at C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-            except Exception as e:
-                self._tesseract_available = False
-                self._tesseract_error = f"Vision Error: Tesseract check failed. {e}"
-
-        if not self._tesseract_available:
-            self.log(self._tesseract_error)
+        region = self._resolve_region(region_index)
+        if region is None:
+            self.log(f"Error: Could not resolve region from {region_index}")
             return None
 
-        if region_index >= len(self.regions):
-            self.log(f"Error: Region {region_index} does not exist.")
-            return None
-
-        region = self.regions[region_index]
         self.focus_window()
 
         try:
@@ -817,29 +926,115 @@ class BotAPI:
             else:  # RGB to Gray
                 cv_img = cv2.cvtColor(roi, cv2.COLOR_RGB2GRAY)
 
-            data = pytesseract.image_to_data(
-                cv_img, output_type=pytesseract.Output.DICT
-            )
+            # We will use up to 3 passes to recognize the text:
+            # Pass 1: 2x Interpolated Gray (retains detail, best for small fonts)
+            # Pass 2: 2x Interpolated + Otsu Thresholding (best for high contrast backgrounds)
+            # Pass 3: 2x Interpolated + Inverted Otsu (best for light text on dark background)
+            
+            scale_factor = 2.0
+            scaled_img = cv2.resize(cv_img, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+            
+            _, binarized = cv2.threshold(scaled_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            _, binarized_inv = cv2.threshold(scaled_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+            
+            passes = [
+                (scaled_img, "--psm 3", "2x Scale Interpolated (PSM 3)"),
+                (scaled_img, "--psm 6", "2x Scale Interpolated (PSM 6)"),
+                (scaled_img, "--psm 11", "2x Scale Interpolated (PSM 11)"),
+                (binarized, "--psm 3", "2x Scale + Otsu Binarization (PSM 3)"),
+                (binarized, "--psm 6", "2x Scale + Otsu Binarization (PSM 6)"),
+                (binarized_inv, "--psm 3", "2x Scale + Inverted Otsu (PSM 3)"),
+                (binarized_inv, "--psm 6", "2x Scale + Inverted Otsu (PSM 6)")
+            ]
+            
+            query_words = [q for q in text.split() if q.strip()]
+            if not query_words:
+                return None
+            n_query = len(query_words)
 
-            found_words = [w for w in data["text"] if w.strip()]
-            if self._debug_mode:
-                self.log(f"OCR found words: {found_words}")
+            import re
+            def clean_str(s):
+                return re.sub(r'[^a-z0-9]', '', s.lower())
 
-            for i, word in enumerate(data["text"]):
-                if not word.strip():
-                    continue
-                match = (
-                    (text == word) if case_sensitive else (text.lower() == word.lower())
-                )
-                if match:
-                    rel_x = data["left"][i] + data["width"][i] // 2
-                    rel_y = data["top"][i] + data["height"][i] // 2
+            clean_query = clean_str(text)
+
+            for processed_img, config_str, pass_name in passes:
+                if self._debug_mode:
+                    self.log(f"Running OCR Pass: {pass_name}")
+                
+                data = pytesseract.image_to_data(processed_img, config=config_str, output_type=pytesseract.Output.DICT)
+                found_words = [w for w in data["text"] if w.strip()]
+                
+                if self._debug_mode:
+                    self.log(f"[{pass_name}] found words: {found_words}")
+
+                words_in_data = data["text"]
+                num_words = len(words_in_data)
+
+                found_match = False
+                matched_start = -1
+                matched_len = 0
+
+                # 1. Try exact sequence match
+                for i in range(num_words - n_query + 1):
+                    sub_words = words_in_data[i : i + n_query]
+                    if any(not w.strip() for w in sub_words):
+                        continue
+
+                    match = True
+                    for qw, sw in zip(query_words, sub_words):
+                        m = (qw == sw) if case_sensitive else (qw.lower() == sw.lower())
+                        if not m:
+                            match = False
+                            break
+
+                    if match:
+                        found_match = True
+                        matched_start = i
+                        matched_len = n_query
+                        break
+
+                # 2. Try substring sliding-window fallback if exact match failed
+                if not found_match and len(clean_query) >= 3:
+                    for window_size in range(1, n_query + 3):
+                        for i in range(num_words - window_size + 1):
+                            sub_words = words_in_data[i : i + window_size]
+                            joined_sub = "".join(sub_words)
+                            clean_joined = clean_str(joined_sub)
+                            
+                            if clean_joined and (clean_query in clean_joined or clean_joined in clean_query):
+                                found_match = True
+                                matched_start = i
+                                matched_len = window_size
+                                break
+                        if found_match:
+                            break
+
+                if found_match:
+                    # Reconstruct bounding box in the scaled image coords
+                    left_coords = [data["left"][idx] for idx in range(matched_start, matched_start + matched_len)]
+                    top_coords = [data["top"][idx] for idx in range(matched_start, matched_start + matched_len)]
+                    right_coords = [data["left"][idx] + data["width"][idx] for idx in range(matched_start, matched_start + matched_len)]
+                    bottom_coords = [data["top"][idx] + data["height"][idx] for idx in range(matched_start, matched_start + matched_len)]
+
+                    min_l = min(left_coords)
+                    min_t = min(top_coords)
+                    max_r = max(right_coords)
+                    max_b = max(bottom_coords)
+
+                    # Center coordinate in processed image
+                    scaled_rel_x = min_l + (max_r - min_l) // 2
+                    scaled_rel_y = min_t + (max_b - min_t) // 2
+
+                    # Map back to original image coordinate scale
+                    rel_x = int(scaled_rel_x / scale_factor)
+                    rel_y = int(scaled_rel_y / scale_factor)
 
                     left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
                     abs_x = left + region["x"] + rel_x
                     abs_y = top + region["y"] + rel_y
 
-                    self.log(f"Found text '{text}' at ({abs_x}, {abs_y})")
+                    self.log(f"Found text '{text}' via {pass_name} at ({abs_x}, {abs_y})")
                     return abs_x, abs_y
 
             self.log(f"Text '{text}' not found in region.")
@@ -849,8 +1044,7 @@ class BotAPI:
             return None
 
     def find_image(self, template_path, region_index=None, confidence=0.8):
-        if not self.is_running:
-            return None
+        self.check_running()
         try:
             import cv2
         except ImportError as e:
@@ -858,23 +1052,51 @@ class BotAPI:
             return None
         import os
 
+        # Check template cache (cache tuples of (template, mask, has_alpha))
         if template_path in self._template_cache:
-            template = self._template_cache[template_path]
+            cache_val = self._template_cache[template_path]
+            # Handle legacy cache format where only template was cached
+            if isinstance(cache_val, tuple) and len(cache_val) == 3:
+                template, mask, has_alpha = cache_val
+            else:
+                template = cache_val
+                mask = None
+                has_alpha = False
         else:
             if not os.path.exists(template_path):
                 self.log(f"Error: Template image not found at {template_path}")
                 return None
 
-            template = cv2.imread(template_path, cv2.IMREAD_COLOR)
-            if template is None:
+            # Read unchanged to preserve alpha channel
+            template_img = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
+            if template_img is None:
                 self.log("Error: Failed to load template image.")
                 return None
-            self._template_cache[template_path] = template
+
+            has_alpha = False
+            mask = None
+            if len(template_img.shape) == 3 and template_img.shape[2] == 4:
+                # Extract alpha channel
+                alpha = template_img[:, :, 3]
+                # Only treat as transparent if there are actual non-opaque pixels
+                if np.any(alpha < 255):
+                    template = template_img[:, :, :3] # BGR channels
+                    mask = alpha
+                    has_alpha = True
+                else:
+                    template = template_img[:, :, :3]
+            else:
+                template = template_img
+
+            self._template_cache[template_path] = (template, mask, has_alpha)
 
         self.focus_window()
 
         try:
             full_frame = self._get_current_frame()
+            if full_frame is None:
+                self.log("Vision Error: Could not get screen frame.")
+                return None
 
             # Convert full frame to BGR for matching (assuming BGRA from shared memory)
             if full_frame.shape[2] == 4:
@@ -883,10 +1105,9 @@ class BotAPI:
                 img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
 
             if region_index is not None:
-                if region_index >= len(self.regions):
-                    self.log(f"Error: Region {region_index} does not exist.")
+                region = self._resolve_region(region_index)
+                if region is None:
                     return None
-                region = self.regions[region_index]
                 x, y, w, h = region["x"], region["y"], region["width"], region["height"]
                 search_area = img_bgr[y : y + h, x : x + w]
                 offset_x, offset_y = region["x"], region["y"]
@@ -894,32 +1115,169 @@ class BotAPI:
                 search_area = img_bgr
                 offset_x, offset_y = 0, 0
 
-            res = cv2.matchTemplate(search_area, template, cv2.TM_CCOEFF_NORMED)
-            min_val, max_val, min_loc, max_pos = cv2.minMaxLoc(res)
+            if has_alpha:
+                # SQDIFF_NORMED with mask: best match is at min_val (perfect match is 0.0)
+                res = cv2.matchTemplate(search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask)
+                min_val, max_val, min_loc, max_pos = cv2.minMaxLoc(res)
+                match_val = 1.0 - min_val
+                best_pos = min_loc
+            else:
+                res = cv2.matchTemplate(search_area, template, cv2.TM_CCOEFF_NORMED)
+                min_val, max_val, min_loc, max_pos = cv2.minMaxLoc(res)
+                match_val = max_val
+                best_pos = max_pos
 
-            if max_val >= confidence:
+            if match_val >= confidence:
                 th, tw = template.shape[:2]
-                rel_x = max_pos[0] + tw // 2
-                rel_y = max_pos[1] + th // 2
+                rel_x = best_pos[0] + tw // 2
+                rel_y = best_pos[1] + th // 2
 
                 left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
                 abs_x = left + offset_x + rel_x
                 abs_y = top + offset_y + rel_y
 
                 self.log(
-                    f"Found image '{os.path.basename(template_path)}' (Conf: {max_val:.2f}) at ({abs_x}, {abs_y})"
+                    f"Found image '{os.path.basename(template_path)}' (Conf: {match_val:.2f}) at ({abs_x}, {abs_y})"
                 )
                 return abs_x, abs_y
 
-            self.log(f"Image not found. Max confidence: {max_val:.2f}")
+            self.log(f"Image not found. Max confidence: {match_val:.2f}")
             return None
         except Exception as e:
             self.log(f"Vision Error: {e}")
             return None
 
+    def find_all_images(self, template_path, region_index=None, confidence=0.8, max_results=100):
+        self.check_running()
+        try:
+            import cv2
+        except ImportError as e:
+            self.log(f"Vision Error: Missing dependency. {e}")
+            return []
+        import os
+
+        # Cache template loading with transparency support
+        if template_path in self._template_cache:
+            cache_val = self._template_cache[template_path]
+            if isinstance(cache_val, tuple) and len(cache_val) == 3:
+                template, mask, has_alpha = cache_val
+            else:
+                template = cache_val
+                mask = None
+                has_alpha = False
+        else:
+            if not os.path.exists(template_path):
+                self.log(f"Error: Template image not found at {template_path}")
+                return []
+
+            template_img = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
+            if template_img is None:
+                self.log("Error: Failed to load template image.")
+                return []
+
+            has_alpha = False
+            mask = None
+            if len(template_img.shape) == 3 and template_img.shape[2] == 4:
+                alpha = template_img[:, :, 3]
+                if np.any(alpha < 255):
+                    template = template_img[:, :, :3]
+                    mask = alpha
+                    has_alpha = True
+                else:
+                    template = template_img[:, :, :3]
+            else:
+                template = template_img
+
+            self._template_cache[template_path] = (template, mask, has_alpha)
+
+        self.focus_window()
+
+        try:
+            full_frame = self._get_current_frame()
+            if full_frame is None:
+                self.log("Vision Error: Could not get screen frame.")
+                return []
+
+            if full_frame.shape[2] == 4:
+                img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
+            else:
+                img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
+
+            if region_index is not None:
+                region = self._resolve_region(region_index)
+                if region is None:
+                    return []
+                x, y, w, h = region["x"], region["y"], region["width"], region["height"]
+                search_area = img_bgr[y : y + h, x : x + w]
+                offset_x, offset_y = region["x"], region["y"]
+            else:
+                search_area = img_bgr
+                offset_x, offset_y = 0, 0
+
+            # Match template
+            if has_alpha:
+                res = cv2.matchTemplate(search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask)
+                locs = np.where(res <= (1.0 - confidence))
+                scores = 1.0 - res[locs]
+            else:
+                res = cv2.matchTemplate(search_area, template, cv2.TM_CCOEFF_NORMED)
+                locs = np.where(res >= confidence)
+                scores = res[locs]
+
+            h, w = template.shape[:2]
+            candidates = []
+            for y_val, x_val, score in zip(locs[0], locs[1], scores):
+                candidates.append([int(x_val), int(y_val), int(x_val + w), int(y_val + h), float(score)])
+
+            # Sort by score descending
+            candidates = sorted(candidates, key=lambda c: c[4], reverse=True)
+
+            # Apply Non-Maximum Suppression (NMS) to remove overlapping results
+            keep = []
+            while candidates and len(keep) < max_results:
+                best = candidates.pop(0)
+                keep.append(best)
+                new_candidates = []
+                for cand in candidates:
+                    # Calculate intersection coordinates
+                    ix1 = max(best[0], cand[0])
+                    iy1 = max(best[1], cand[1])
+                    ix2 = min(best[2], cand[2])
+                    iy2 = min(best[3], cand[3])
+                    
+                    iw = max(0, ix2 - ix1)
+                    ih = max(0, iy2 - iy1)
+                    inter_area = iw * ih
+                    
+                    if inter_area > 0:
+                        best_area = (best[2] - best[0]) * (best[3] - best[1])
+                        cand_area = (cand[2] - cand[0]) * (cand[3] - cand[1])
+                        union_area = best_area + cand_area - inter_area
+                        iou = inter_area / union_area
+                        if iou > 0.3:  # Overlap threshold
+                            continue
+                    new_candidates.append(cand)
+                candidates = new_candidates
+
+            left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
+            results = []
+            for box in keep:
+                center_x = left + offset_x + box[0] + w // 2
+                center_y = top + offset_y + box[1] + h // 2
+                results.append((center_x, center_y))
+
+            if results:
+                self.log(f"Found {len(results)} matches for '{os.path.basename(template_path)}'")
+            return results
+        except Exception as e:
+            self.log(f"Vision Error in find_all_images: {e}")
+            return []
+        except Exception as e:
+            self.log(f"Vision Error: {e}")
+            return None
+
     def drag_and_drop(self, src_region_index, dst_region_index, duration=0.5):
-        if not self.is_running:
-            return False
+        self.check_running()
 
         if src_region_index >= len(self.regions) or dst_region_index >= len(
             self.regions
@@ -953,3 +1311,594 @@ class BotAPI:
         except Exception as e:
             self.log(f"Drag and Drop Error: {e}")
             return False
+
+    def find_color_clusters(
+        self, name_or_colors, proximity=None, tolerance=None, region_index=None
+    ):
+        """
+        Connected-Component Labeling (CCL) based Color Cluster Segmentation.
+        Segments the frame, clusters pixels, bridges gaps within 'proximity' pixels,
+        and filters components to only keep those containing all specified colors.
+        
+        Returns a list of DynamicRegion objects.
+        """
+        self.check_running()
+        
+        # 1. Resolve colors, proximity and tolerance
+        colors = []
+        p_val = proximity
+        t_val = tolerance
+
+        if isinstance(name_or_colors, str):
+            # Predefined cluster lookup
+            matched = None
+            for c in self._color_clusters:
+                if c["name"] == name_or_colors:
+                    matched = c
+                    break
+            if matched:
+                colors = matched["colors"]
+                if p_val is None:
+                    p_val = matched["proximity"]
+                if t_val is None:
+                    t_val = matched["tolerance"]
+            else:
+                self.log(f"Warning: Predefined cluster '{name_or_colors}' not found. Treating as single color.")
+                colors = [name_or_colors]
+        elif isinstance(name_or_colors, list):
+            colors = name_or_colors
+
+        if not colors:
+            self.log("Vision Error: No colors specified for color clusters segmentation.")
+            return []
+
+        if p_val is None:
+            p_val = 10
+        if t_val is None:
+            t_val = 25
+
+        # 2. Get frame
+        full_frame = self._get_current_frame()
+        if full_frame is None:
+            self.log("Vision Error: Could not retrieve screen frame.")
+            return []
+
+        # Convert full frame to BGR
+        if full_frame.shape[2] == 4:
+            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
+        else:
+            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
+
+        # 3. Handle ROI (region_index)
+        if region_index is not None:
+            region = self._resolve_region(region_index)
+            if region is None:
+                return []
+            rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
+            search_area = img_bgr[ry : ry + rh, rx : rx + rw]
+            offset_x, offset_y = rx, ry
+        else:
+            search_area = img_bgr
+            offset_x, offset_y = 0, 0
+
+        # 4. Generate binary masks for each color
+        masks = []
+        for hex_col in colors:
+            b, g, r = hex_to_bgr(hex_col)
+            lower = np.array([max(0, b - t_val), max(0, g - t_val), max(0, r - t_val)], dtype=np.uint8)
+            upper = np.array([min(255, b + t_val), min(255, g + t_val), min(255, r + t_val)], dtype=np.uint8)
+            mask = cv2.inRange(search_area, lower, upper)
+            masks.append(mask)
+
+        # 5. Combine and dilate mask (proximity gap bridging)
+        combined_mask = np.zeros(search_area.shape[:2], dtype=np.uint8)
+        for m in masks:
+            combined_mask = cv2.bitwise_or(combined_mask, m)
+
+        if p_val > 1:
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (p_val, p_val))
+            dilated_mask = cv2.dilate(combined_mask, kernel)
+        else:
+            dilated_mask = combined_mask
+
+        # 6. Run native Connected Component Labeling
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(dilated_mask)
+
+        # 7. Check color co-existence on each component
+        valid_regions = []
+        for k in range(1, num_labels): # Skip background label (0)
+            left, top, w, h, area = stats[k]
+            
+            # Fast check: skip very small components immediately
+            if area < 4:
+                continue
+
+            # Crop component mask to bounding box for extreme speedup
+            labels_crop = labels[top : top + h, left : left + w]
+            comp_mask_crop = (labels_crop == k).astype(np.uint8)
+
+            # Check coexistence of ALL original colors in this component
+            coexistence_valid = True
+            for m in masks:
+                m_crop = m[top : top + h, left : left + w]
+                intersection = cv2.bitwise_and(m_crop, m_crop, mask=comp_mask_crop)
+                if cv2.countNonZero(intersection) == 0:
+                    coexistence_valid = False
+                    break
+
+            if coexistence_valid:
+                # Instantiate DynamicRegion
+                centroid = centroids[k]
+                valid_regions.append(
+                    DynamicRegion(
+                        self,
+                        label_id=k,
+                        stats=stats[k],
+                        centroid=centroid,
+                        mask=comp_mask_crop,
+                        offset_x=offset_x,
+                        offset_y=offset_y
+                    )
+                )
+
+        if self._debug_mode:
+            self.log(f"find_color_clusters found {len(valid_regions)} matches out of {num_labels - 1} connected components.")
+
+        return valid_regions
+
+    def find_color_cluster(
+        self, name_or_colors, proximity=None, tolerance=None, region_index=None
+    ):
+        """Returns the first matching DynamicRegion, or None if none found."""
+        regions = self.find_color_clusters(
+            name_or_colors, proximity, tolerance, region_index
+        )
+        return regions[0] if regions else None
+
+    def click_color_cluster(
+        self, name_or_colors, proximity=None, tolerance=None, region_index=None, button="left", human_like=True
+    ):
+        """Finds the first matching cluster and clicks its centroid."""
+        region = self.find_color_cluster(
+            name_or_colors, proximity, tolerance, region_index
+        )
+        if region:
+            region.click(button=button, human_like=human_like)
+            return True
+        else:
+            self.log(f"Vision Error: click_color_cluster could not find cluster '{name_or_colors}'")
+            return False
+
+    def detect_shapes(self, shape_type="all", min_size=15, max_size=None, region_index=None):
+        """
+        Detects circles, rectangles, or grid cells using OpenCV contour analysis.
+        Returns a list of dicts: {"type": ..., "x": ..., "y": ..., "width": ..., "height": ..., "confidence": ...}
+        """
+        self.check_running()
+        full_frame = self._get_current_frame()
+        if full_frame is None:
+            self.log("Vision Error: Could not retrieve screen frame for shape detection.")
+            return []
+
+        # Convert full frame to BGR
+        if full_frame.shape[2] == 4:
+            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
+        else:
+            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
+
+        # Handle ROI
+        if region_index is not None:
+            region = self._resolve_region(region_index)
+            if region is None:
+                return []
+            rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
+            search_area = img_bgr[ry : ry + rh, rx : rx + rw]
+            offset_x, offset_y = rx, ry
+        else:
+            search_area = img_bgr
+            offset_x, offset_y = 0, 0
+
+        # Grayscale, Gaussian Blur & Canny Edge Detection
+        gray = cv2.cvtColor(search_area, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        edges = cv2.Canny(blurred, 50, 150)
+        
+        # Find Contours
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        detected = []
+        rectangles = []  # candidate rectangles for Grid solver
+        
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if w < min_size or h < min_size:
+                continue
+            if max_size is not None and (w > max_size or h > max_size):
+                continue
+                
+            perimeter = cv2.arcLength(cnt, True)
+            area = cv2.contourArea(cnt)
+            if perimeter == 0:
+                continue
+                
+            # 1. Circularity check
+            circularity = 4 * np.pi * area / (perimeter ** 2)
+            if (shape_type == "all" or shape_type == "circle") and circularity > 0.82:
+                (cx, cy), r = cv2.minEnclosingCircle(cnt)
+                cw = int(r * 2)
+                ch = int(r * 2)
+                cx_box = int(cx - r)
+                cy_box = int(cy - r)
+                
+                detected.append({
+                    "type": "circle",
+                    "x": offset_x + cx_box,
+                    "y": offset_y + cy_box,
+                    "width": cw,
+                    "height": ch,
+                    "confidence": float(circularity)
+                })
+                continue
+            
+            # 2. Polygon approximation
+            approx = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
+            if len(approx) == 4 and cv2.isContourConvex(approx):
+                rectangles.append((x, y, w, h))
+
+        # Grid Clustering Solver
+        if shape_type in ("all", "grid"):
+            rects_by_size = []
+            for r in rectangles:
+                rx, ry, rw, rh = r
+                added = False
+                for group in rects_by_size:
+                    rep_w = sum(item[2] for item in group) / len(group)
+                    rep_h = sum(item[3] for item in group) / len(group)
+                    if abs(rw - rep_w) < rep_w * 0.15 and abs(rh - rep_h) < rep_h * 0.15:
+                        group.append(r)
+                        added = True
+                        break
+                if not added:
+                    rects_by_size.append([r])
+            
+            for group in rects_by_size:
+                if len(group) < 4:
+                    continue
+                sorted_group = sort_grid_cells(group)
+                
+                rows = []
+                for cell in sorted_group:
+                    cx, cy, cw, ch = cell
+                    added = False
+                    for r_list in rows:
+                        avg_y = sum(item[1] for item in r_list) / len(r_list)
+                        if abs(cy - avg_y) < ch / 2:
+                            r_list.append(cell)
+                            added = True
+                            break
+                    if not added:
+                        rows.append([cell])
+                
+                if len(rows) >= 2:
+                    cols_counts = [len(r_list) for r_list in rows]
+                    max_cols = max(cols_counts)
+                    if max_cols >= 2 and all(abs(count - max_cols) <= 1 for count in cols_counts):
+                        for r_list in rows:
+                            for cell in r_list:
+                                cx, cy, cw, ch = cell
+                                detected.append({
+                                    "type": "grid_cell",
+                                    "x": offset_x + cx,
+                                    "y": offset_y + cy,
+                                    "width": cw,
+                                    "height": ch,
+                                    "confidence": 1.0
+                                })
+                        continue
+
+        if shape_type in ("all", "rectangle"):
+            for r in rectangles:
+                rx, ry, rw, rh = r
+                detected.append({
+                    "type": "rectangle",
+                    "x": offset_x + rx,
+                    "y": offset_y + ry,
+                    "width": rw,
+                    "height": rh,
+                    "confidence": 1.0
+                })
+
+        return detected
+
+    def find_shapes(self, shape_type="circle", min_size=15, max_size=None, region_index=None):
+        """
+        Returns a list of DynamicRegion objects representing detected shapes.
+        """
+        self.check_running()
+        shapes = self.detect_shapes(
+            shape_type=shape_type,
+            min_size=min_size,
+            max_size=max_size,
+            region_index=region_index
+        )
+        
+        valid_regions = []
+        for i, s in enumerate(shapes):
+            cx, cy, cw, ch = s["x"], s["y"], s["width"], s["height"]
+            stats = [cx, cy, cw, ch, cw * ch]
+            centroid = (cx + cw / 2.0, cy + ch / 2.0)
+            mask = np.ones((ch, cw), dtype=np.uint8) * 255
+            
+            valid_regions.append(
+                DynamicRegion(
+                    bot=self,
+                    label_id=i + 1,
+                    stats=stats,
+                    centroid=centroid,
+                    mask=mask,
+                    offset_x=0,
+                    offset_y=0
+                )
+            )
+        return valid_regions
+
+    def find_grid(self, min_cells=4, size_tolerance=0.15, region_index=None):
+        """
+        Returns a DynamicGrid object representing the largest detected grid, or None.
+        """
+        self.check_running()
+        shapes = self.detect_shapes(shape_type="grid", min_size=15, region_index=region_index)
+        
+        grid_cells = [s for s in shapes if s["type"] == "grid_cell"]
+        if not grid_cells:
+            # Fallback: check raw rectangles and try solver
+            rect_shapes = self.detect_shapes(shape_type="rectangle", min_size=15, region_index=region_index)
+            rects = [(s["x"], s["y"], s["width"], s["height"]) for s in rect_shapes]
+            if len(rects) >= min_cells:
+                rects_by_size = []
+                for r in rects:
+                    rw, rh = r[2], r[3]
+                    added = False
+                    for group in rects_by_size:
+                        rep_w = sum(item[2] for item in group) / len(group)
+                        rep_h = sum(item[3] for item in group) / len(group)
+                        if abs(rw - rep_w) < rep_w * size_tolerance and abs(rh - rep_h) < rep_h * size_tolerance:
+                            group.append(r)
+                            added = True
+                            break
+                    if not added:
+                        rects_by_size.append([r])
+                
+                for group in rects_by_size:
+                    if len(group) >= min_cells:
+                        grid_cells = [{"x": r[0], "y": r[1], "width": r[2], "height": r[3]} for r in group]
+                        break
+                        
+        if len(grid_cells) < min_cells:
+            return None
+            
+        cell_coords = [(c["x"], c["y"], c["width"], c["height"]) for c in grid_cells]
+        sorted_coords = sort_grid_cells(cell_coords)
+        
+        xs = [c[0] for c in sorted_coords]
+        ys = [c[1] for c in sorted_coords]
+        right_coords = [c[0] + c[2] for c in sorted_coords]
+        bottom_coords = [c[1] + c[3] for c in sorted_coords]
+        
+        min_x = min(xs)
+        min_y = min(ys)
+        max_x = max(right_coords)
+        max_y = max(bottom_coords)
+        
+        rows = []
+        for cell in sorted_coords:
+            cx, cy, cw, ch = cell
+            added = False
+            for r_list in rows:
+                avg_y = sum(item[1] for item in r_list) / len(r_list)
+                if abs(cy - avg_y) < ch / 2:
+                    r_list.append(cell)
+                    added = True
+                    break
+            if not added:
+                rows.append([cell])
+                
+        num_rows = len(rows)
+        num_cols = max(len(r_list) for r_list in rows) if rows else 0
+        
+        return DynamicGrid(
+            bot=self,
+            x=min_x,
+            y=min_y,
+            w=max_x - min_x,
+            h=max_y - min_y,
+            rows=num_rows,
+            cols=num_cols,
+            cells=sorted_coords
+        )
+
+    def wait_for_change(self, region_index, threshold=0.02, timeout=10):
+        """
+        Blocks execution until the specified region detects a visual change.
+        """
+        self.check_running()
+        region = self._resolve_region(region_index)
+        if region is None:
+            self.log(f"Motion Trigger Error: Region index {region_index} could not be resolved.")
+            return False
+
+        rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
+        
+        full_frame = self._get_current_frame()
+        if full_frame is None:
+            self.log("Motion Trigger Error: Reference frame could not be retrieved.")
+            return False
+            
+        ref_crop = full_frame[ry : ry + rh, rx : rx + rw]
+        if ref_crop.shape[2] == 4:
+            ref_gray = cv2.cvtColor(ref_crop, cv2.COLOR_BGRA2GRAY)
+        else:
+            ref_gray = cv2.cvtColor(ref_crop, cv2.COLOR_RGB2GRAY)
+            
+        start_time = time.time()
+        self.log(f"Waiting for visual change inside region {region_index}...")
+        
+        while time.time() - start_time < timeout:
+            if not self.is_running:
+                raise ScriptStoppedError()
+                
+            time.sleep(0.05)
+            
+            current_frame = self._get_current_frame()
+            if current_frame is None:
+                continue
+                
+            curr_crop = current_frame[ry : ry + rh, rx : rx + rw]
+            if curr_crop.shape[2] == 4:
+                curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_BGRA2GRAY)
+            else:
+                curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_RGB2GRAY)
+                
+            diff = cv2.absdiff(curr_gray, ref_gray)
+            _, thresh = cv2.threshold(diff, 20, 255, cv2.THRESH_BINARY)
+            
+            change_pixels = cv2.countNonZero(thresh)
+            total_pixels = rw * rh
+            ratio = float(change_pixels) / total_pixels
+            
+            if ratio >= threshold:
+                self.log(f"Motion Detected! Visual change of {ratio:.1%} exceeded threshold {threshold:.1%}.")
+                return True
+                
+        self.log(f"Timeout: No change detected inside region {region_index} after {timeout} seconds.")
+        return False
+
+    def wait_for_no_change(self, region_index, threshold=0.01, timeout=10, duration=1.0):
+        """
+        Blocks execution until the specified region becomes stable/static.
+        """
+        self.check_running()
+        region = self._resolve_region(region_index)
+        if region is None:
+            self.log(f"Motion Trigger Error: Region index {region_index} could not be resolved.")
+            return False
+
+        rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
+        
+        start_time = time.time()
+        stable_start = None
+        
+        full_frame = self._get_current_frame()
+        if full_frame is None:
+            self.log("Motion Trigger Error: Initial frame could not be retrieved.")
+            return False
+            
+        last_crop = full_frame[ry : ry + rh, rx : rx + rw]
+        if last_crop.shape[2] == 4:
+            last_gray = cv2.cvtColor(last_crop, cv2.COLOR_BGRA2GRAY)
+        else:
+            last_gray = cv2.cvtColor(last_crop, cv2.COLOR_RGB2GRAY)
+            
+        self.log(f"Waiting for region {region_index} to stabilize (no change for {duration}s)...")
+        
+        while time.time() - start_time < timeout:
+            if not self.is_running:
+                raise ScriptStoppedError()
+                
+            time.sleep(0.05)
+            
+            current_frame = self._get_current_frame()
+            if current_frame is None:
+                continue
+                
+            curr_crop = current_frame[ry : ry + rh, rx : rx + rw]
+            if curr_crop.shape[2] == 4:
+                curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_BGRA2GRAY)
+            else:
+                curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_RGB2GRAY)
+                
+            diff = cv2.absdiff(curr_gray, last_gray)
+            _, thresh = cv2.threshold(diff, 20, 255, cv2.THRESH_BINARY)
+            
+            change_pixels = cv2.countNonZero(thresh)
+            total_pixels = rw * rh
+            ratio = float(change_pixels) / total_pixels
+            
+            last_gray = curr_gray
+            
+            if ratio < threshold:
+                if stable_start is None:
+                    stable_start = time.time()
+                elif time.time() - stable_start >= duration:
+                    self.log(f"Region {region_index} is stable! Change ratio {ratio:.2%} remained below {threshold:.1%} for {duration}s.")
+                    return True
+            else:
+                stable_start = None
+                
+        self.log(f"Timeout: Region {region_index} did not stabilize after {timeout} seconds.")
+        return False
+
+
+def sort_grid_cells(cells):
+    # Sort by y first
+    cells = sorted(cells, key=lambda c: c[1])
+    rows = []
+    for c in cells:
+        x, y, w, h = c
+        added = False
+        for r in rows:
+            avg_y = sum(item[1] for item in r) / len(r)
+            if abs(y - avg_y) < h / 2:
+                r.append(c)
+                added = True
+                break
+        if not added:
+            rows.append([c])
+            
+    sorted_cells = []
+    rows = sorted(rows, key=lambda r: sum(item[1] for item in r) / len(r))
+    for r in rows:
+        sorted_row = sorted(r, key=lambda c: c[0])
+        sorted_cells.extend(sorted_row)
+    return sorted_cells
+
+
+class DynamicGrid:
+    def __init__(self, bot, x, y, w, h, rows, cols, cells):
+        self.bot = bot
+        self.x = x
+        self.y = y
+        self.width = w
+        self.height = h
+        self.rows = rows
+        self.cols = cols
+        self.cells = cells
+
+    def count(self):
+        """Returns the total number of cells detected."""
+        return len(self.cells)
+
+    def cell(self, cell_index):
+        """
+        Returns a DynamicRegion for the cell at 1-based index (e.g. 1 to 28).
+        """
+        if cell_index < 1 or cell_index > len(self.cells):
+            self.bot.log(f"Grid Error: Cell index {cell_index} out of bounds (1 to {len(self.cells)}).")
+            return None
+            
+        cx, cy, cw, ch = self.cells[cell_index - 1]
+        
+        stats = [cx, cy, cw, ch, cw * ch]
+        centroid = (cx + cw / 2.0, cy + ch / 2.0)
+        mask = np.ones((ch, cw), dtype=np.uint8) * 255
+        
+        return DynamicRegion(
+            bot=self.bot,
+            label_id=cell_index,
+            stats=stats,
+            centroid=centroid,
+            mask=mask,
+            offset_x=0,
+            offset_y=0
+        )
+

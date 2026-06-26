@@ -132,7 +132,7 @@
     "Icon": "🖼️",
     "Category": "Vision",
     "Description": "Find an image template on screen and click its center.",
-    "Template": "pos = bot.find_image('{image_path}', region_index={region_index}, confidence={confidence})\nif pos:\n    bot.bot.click(pos[0], pos[1], button='{button}', modifiers={modifiers})",
+    "Template": "pos = bot.find_image('{image_path}', region_index={region_index}, confidence={confidence})\nif pos:\n    bot.click(pos[0], pos[1], button='{button}', modifiers={modifiers})",
     "Parameters": [
       { "Key": "image_path", "Type": "text", "DefaultValue": "template.png" },
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
@@ -148,7 +148,7 @@
     "Icon": "🔍",
     "Category": "Vision",
     "Description": "Use OCR to find and click a specific word.",
-    "Template": "pos = bot.find_text('{text}', region_index={region_index})\nif pos:\n    bot.bot.click(pos[0], pos[1], button='{button}', modifiers={modifiers})",
+    "Template": "pos = bot.find_text('{text}', region_index={region_index})\nif pos:\n    bot.click(pos[0], pos[1], button='{button}', modifiers={modifiers})",
     "Parameters": [
       { "Key": "text", "Type": "text", "DefaultValue": "Login" },
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },

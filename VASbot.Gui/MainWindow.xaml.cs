@@ -235,6 +235,53 @@ namespace VASbot.Gui
             SnippetNameInput.Text = "";
         }
 
+        private void InsertImage_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "PNG Image (*.png)|*.png|All Files (*.*)|*.*",
+                    Title = "Select Image Template to Insert"
+                };
+
+                // Try to set initial directory to the project's /img directory
+                try
+                {
+                    string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                    string? current = baseDir;
+                    while (current != null)
+                    {
+                        string imgPath = Path.Combine(current, "img");
+                        if (Directory.Exists(imgPath))
+                        {
+                            dialog.InitialDirectory = imgPath;
+                            break;
+                        }
+                        current = Path.GetDirectoryName(current);
+                    }
+                }
+                catch { }
+
+                if (dialog.ShowDialog() == true)
+                {
+                    string fullPath = dialog.FileName;
+                    string fileName = Path.GetFileName(fullPath);
+                    
+                    // Format template code:
+                    // Use simple relative pathing: "img/filename.png"
+                    string relativePath = "img/" + fileName;
+                    string codeSnippet = $"pos = bot.find_image(\"{relativePath}\", region_index=None, confidence=0.8)\nif pos:\n    bot.click(pos[0], pos[1], button='left', human_like=True)";
+                    
+                    ScriptEditor.Document.Replace(ScriptEditor.SelectionStart, ScriptEditor.SelectionLength, codeSnippet);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to insert image template: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Killswitch_Click(object sender, RoutedEventArgs e)
         {
             // F12 KILLSWITCH - Forcefully stop everything

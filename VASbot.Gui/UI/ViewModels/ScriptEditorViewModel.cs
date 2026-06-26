@@ -301,6 +301,14 @@ namespace VASbot.Gui.UI.ViewModels
 
             try
             {
+                // Re-send target window to sidecar before execution
+                // (handles sidecar restarts or missed initial SetTargetWindow calls)
+                var selectedWindow = _mainViewModel?.Capture?.SelectedWindow;
+                if (selectedWindow != null)
+                {
+                    await _botService.SetTargetWindowAsync(selectedWindow.Handle, selectedWindow.Title);
+                }
+
                 // Start streaming execution
                 await _botService.ExecuteScriptAsync(ScriptText, (logMessage) => 
                 {

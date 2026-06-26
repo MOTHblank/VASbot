@@ -12,12 +12,14 @@ service BotService {
   rpc CheckHealth (HealthRequest) returns (HealthResponse);
   rpc NotifyFrameUpdate (FrameNotification) returns (FrameResponse);
   rpc UpdateRegions (RegionList) returns (UpdateResponse);
+  rpc UpdateColorClusters (ColorClusterList) returns (UpdateResponse);
   rpc SetTargetWindow (WindowContext) returns (UpdateResponse);
   rpc StartRecording (Empty) returns (UpdateResponse);
   rpc StopRecording (Empty) returns (RecordingResponse);
   rpc ClickElement (ElementRequest) returns (UpdateResponse);
   rpc TypeIntoElement (TypeRequest) returns (UpdateResponse);
   rpc WaitWindow (WindowRequest) returns (UpdateResponse);
+  rpc DetectShapes (ShapeDetectionRequest) returns (ShapeDetectionResponse);
 }
 
 message Empty {}
@@ -85,6 +87,17 @@ message RegionList {
   int32 ref_height = 3;
 }
 
+message ColorCluster {
+  string name = 1;
+  repeated string colors = 2; // Hex color strings e.g. "#FF0000"
+  int32 proximity = 3;
+  int32 tolerance = 4;
+}
+
+message ColorClusterList {
+  repeated ColorCluster clusters = 1;
+}
+
 message WindowContext {
   uint64 hwnd = 1;
   string title = 2;
@@ -116,3 +129,23 @@ message RecordingResponse {
   bool success = 1;
   string script = 2;
 }
+
+message ShapeDetectionRequest {
+  string shape_type = 1; // "all", "circle", "rectangle", "grid"
+  int32 min_size = 2;
+  int32 max_size = 3;
+}
+
+message DetectedShape {
+  string type = 1; // "circle", "rectangle", "grid_cell"
+  int32 x = 2;
+  int32 y = 3;
+  int32 width = 4;
+  int32 height = 5;
+  double confidence = 6;
+}
+
+message ShapeDetectionResponse {
+  repeated DetectedShape shapes = 1;
+}
+

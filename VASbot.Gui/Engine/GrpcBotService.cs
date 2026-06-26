@@ -118,7 +118,33 @@ namespace VASbot.Gui.Engine
                     list.Regions.Add(new VASbot.Gui.Protos.Region {
                         Name = r.Name, X = r.X, Y = r.Y, Width = r.Width, Height = r.Height, Index = index++
                     });
-                }                var response = await _client.UpdateRegionsAsync(list, WithDeadline());
+                }
+                var response = await _client.UpdateRegionsAsync(list, WithDeadline());
+                return response.Success;
+            }
+            catch { return false; }
+        }
+
+        public async Task<bool> UpdateColorClustersAsync(IEnumerable<ColorClusterModel> clusters)
+        {
+            try
+            {
+                var list = new ColorClusterList();
+                foreach (var c in clusters)
+                {
+                    var cluster = new ColorCluster
+                    {
+                        Name = c.Name,
+                        Proximity = c.Proximity,
+                        Tolerance = c.Tolerance
+                    };
+                    foreach (var col in c.Colors)
+                    {
+                        cluster.Colors.Add(col);
+                    }
+                    list.Clusters.Add(cluster);
+                }
+                var response = await _client.UpdateColorClustersAsync(list, WithDeadline());
                 return response.Success;
             }
             catch { return false; }
@@ -248,6 +274,30 @@ namespace VASbot.Gui.Engine
             {
                 Console.WriteLine($"[gRPC] StopScript error: {ex.Message}");
             }
+        }
+
+        public async Task<List<DetectedShapeResult>> DetectShapesAsync(string shapeType, int minSize, int maxSize)
+        {
+            var results = new List<DetectedShapeResult>();
+            try
+            {
+                var response = await _client.DetectShapesAsync(new ShapeDetectionRequest
+                {
+                    ShapeType = shapeType,
+                    MinSize = minSize,
+                    MaxSize = maxSize
+                }, WithDeadline(5000));
+
+                foreach (var s in response.Shapes)
+                {
+                    results.Add(new DetectedShapeResult(s.Type, s.X, s.Y, s.Width, s.Height, s.Confidence));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[gRPC] DetectShapesAsync error: {ex.Message}");
+            }
+            return results;
         }
 
         public void Dispose()

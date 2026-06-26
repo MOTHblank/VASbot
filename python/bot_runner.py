@@ -25,7 +25,7 @@ sys.path.append(os.path.join(base_dir, "core"))
 
 import bot_pb2
 import bot_pb2_grpc
-from bot_api import BotAPI
+from bot_api import BotAPI, ScriptStoppedError
 from pywinauto_api import PywinautoBot
 from recorder import ActionRecorder
 
@@ -179,6 +179,20 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         self.bot.set_regions(regions)
         return bot_pb2.UpdateResponse(success=True)
 
+    def UpdateColorClusters(self, request, context):
+        clusters = []
+        for c in request.clusters:
+            clusters.append(
+                {
+                    "name": c.name,
+                    "proximity": c.proximity,
+                    "tolerance": c.tolerance,
+                    "colors": list(c.colors),
+                }
+            )
+        self.bot.set_color_clusters(clusters)
+        return bot_pb2.UpdateResponse(success=True)
+
     def ExecuteScript(self, request, context):
         try:
             print(f"[Sidecar] Starting execution (ID: {request.correlation_id})")
@@ -228,10 +242,18 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         # Run script in a background thread so we can yield logs in real-time
         def run_thread():
             try:
+                # Diagnostic: log the first 3 lines of the script
+                lines = request.code.split('\n')
+                for i, line in enumerate(lines[:3]):
+                    log_queue.put(f"[DEBUG] Line {i+1}: {line.strip()}")
                 exec(request.code, globals_dict)
                 log_queue.put("Script completed successfully.")
+            except ScriptStoppedError:
+                log_queue.put("Script stopped by user.")
             except Exception as e:
                 log_queue.put(f"Python Error: {str(e)}")
+            except BaseException as e:
+                log_queue.put(f"Script terminated: {str(e)}")
             finally:
                 self.bot.is_running = False
                 log_queue.put(None)  # Signal end of stream
@@ -299,6 +321,29 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         if success:
             self.target_hwnd = self.bot._target_hwnd
         return bot_pb2.UpdateResponse(success=success)
+
+    def DetectShapes(self, request, context):
+        try:
+            shapes = self.bot.detect_shapes(
+                shape_type=request.shape_type,
+                min_size=request.min_size,
+                max_size=request.max_size
+            )
+            proto_shapes = []
+            for s in shapes:
+                proto_shapes.append(bot_pb2.DetectedShape(
+                    type=s["type"],
+                    x=s["x"],
+                    y=s["y"],
+                    width=s["width"],
+                    height=s["height"],
+                    confidence=s.get("confidence", 1.0)
+                ))
+            return bot_pb2.ShapeDetectionResponse(shapes=proto_shapes)
+        except Exception as e:
+            print(f"[Sidecar] DetectShapes Error: {e}")
+            return bot_pb2.ShapeDetectionResponse(shapes=[])
+
 
 
 def serve():

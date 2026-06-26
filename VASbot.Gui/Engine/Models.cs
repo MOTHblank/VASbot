@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace VASbot.Gui.Engine
@@ -30,4 +31,25 @@ namespace VASbot.Gui.Engine
         public string WindowTitle { get; set; } = "";
         public string WindowClass { get; set; } = "";
     }
+
+    public partial class ColorClusterModel : ObservableObject
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [ObservableProperty]
+        private string _name = "New Cluster";
+
+        [ObservableProperty]
+        private int _proximity = 10;
+
+        [ObservableProperty]
+        private int _tolerance = 25;
+
+        [ObservableProperty]
+        private bool _isActive = true;
+
+        public ObservableCollection<string> Colors { get; set; } = new ObservableCollection<string>();
+    }
+
+    public record DetectedShapeResult(string Type, int X, int Y, int Width, int Height, double Confidence);
 }
