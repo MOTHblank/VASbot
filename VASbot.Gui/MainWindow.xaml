@@ -127,13 +127,81 @@
 
             <!-- A. VIEWPORT: Isolated & Full Height -->
             <GroupBox Header="VIEWPORT" Margin="8,8,4,8" BorderThickness="1" BorderBrush="#222">
-                <Grid Background="#000" ClipToBounds="True">
-                    <skia:SKElement x:Name="SkiaElement" 
-                                    PaintSurface="SkiaElement_PaintSurface"
-                                    MouseDown="SkiaElement_MouseDown"
-                                    MouseMove="SkiaElement_MouseMove"
-                                    MouseUp="SkiaElement_MouseUp"
-                                    MouseWheel="SkiaElement_MouseWheel"/>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Canvas Area -->
+                    <Grid Grid.Row="0" Background="#000" ClipToBounds="True">
+                        <skia:SKElement x:Name="SkiaElement" 
+                                        PaintSurface="SkiaElement_PaintSurface"
+                                        MouseDown="SkiaElement_MouseDown"
+                                        MouseMove="SkiaElement_MouseMove"
+                                        MouseUp="SkiaElement_MouseUp"
+                                        MouseWheel="SkiaElement_MouseWheel"/>
+                        
+                        <!-- FLOATING VIEWPORT HUD -->
+                        <Border VerticalAlignment="Top" HorizontalAlignment="Center" 
+                                Margin="0,15,0,0" Padding="8,4" CornerRadius="8" 
+                                Background="#E0111111" BorderBrush="#44FFFFFF" BorderThickness="1"
+                                IsHitTestVisible="True">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <!-- Layer Toggles -->
+                                <TextBlock Text="LAYERS:" Foreground="#888" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,10,0"/>
+                                
+                                <ToggleButton IsChecked="{Binding Capture.IsRegionsVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Static Regions">Regions</ToggleButton>
+                                <ToggleButton IsChecked="{Binding Capture.IsShapesVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Detected Shapes">Shapes</ToggleButton>
+                                <ToggleButton IsChecked="{Binding Capture.IsClustersVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Color Clusters">Clusters</ToggleButton>
+                                <ToggleButton IsChecked="{Binding Capture.IsUiaVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle UIA Highlights">UIA</ToggleButton>
+                                
+                                <Separator Width="1" Height="14" Background="#33FFFFFF" Margin="10,0"/>
+                                
+                                <TextBlock Text="ZOOM:" Foreground="#888" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,10,0"/>
+                                
+                                <!-- Zoom Controls -->
+                                <Button Command="{Binding Capture.ZoomInCommand}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Zoom In">🔍➕</Button>
+                                <Button Command="{Binding Capture.ZoomOutCommand}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Zoom Out">🔍➖</Button>
+                                <Button Command="{Binding Capture.ResetZoomCommand}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Reset Zoom">🎯 1:1</Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    
+                    <!-- Telemetry Footer Bar -->
+                    <Border Grid.Row="1" Background="#141414" BorderBrush="#222" BorderThickness="0,1,0,0" Padding="10,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Coordinates & Zoom info -->
+                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                <TextBlock Text="COORD:" Foreground="#555" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding Capture.TelemetryCoords}" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" VerticalAlignment="Center" Width="220"/>
+                                
+                                <Separator Width="1" Height="12" Background="#222" Margin="10,0"/>
+                                
+                                <TextBlock Text="ZOOM:" Foreground="#555" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding Capture.ZoomLevel, StringFormat={}{0:P0}}" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" VerticalAlignment="Center" Width="60"/>
+                            </StackPanel>
+                            
+                            <!-- Hovered Win32 Element Info -->
+                            <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center">
+                                <TextBlock Text="ELEMENT:" Foreground="#555" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding Capture.TelemetryElementInfo}" Foreground="#00FFCC" FontSize="11" FontFamily="Consolas" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Color Sample Swatch & Hex -->
+                            <StackPanel Orientation="Horizontal" Grid.Column="2">
+                                <TextBlock Text="COLOR:" Foreground="#555" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <Border Width="16" Height="12" CornerRadius="2" Background="{Binding Capture.TelemetryColorHex}" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding Capture.TelemetryColorHex}" Foreground="#A0A0A0" FontSize="11" FontFamily="Consolas" VerticalAlignment="Center" Width="70"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </GroupBox>
 
@@ -165,16 +233,177 @@
                                 <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..."/>
                                 <Button Content="Save as Snippet" Click="SaveSnippet_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#2c3e50" Foreground="White"/>
                                 <Button Content="Insert Image..." Click="InsertImage_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#16a085" Foreground="White" Margin="4,0"/>
+                                <Button Content="📖 API Drawer" Click="ToggleDrawer_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#8e44ad" Foreground="White" Margin="4,0"/>
                             </StackPanel>
                         </Border>
                         
                         <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0,5,0,0">
                             <TabItem Header="CODE">
-                                <avalonedit:TextEditor Name="ScriptEditor"
-                                                       FontFamily="Consolas" FontSize="12pt"
-                                                       Background="#1e1e1e" Foreground="#d4d4d4"
-                                                       ShowLineNumbers="True" SyntaxHighlighting="Python"
-                                                       TextChanged="ScriptEditor_TextChanged" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <avalonedit:TextEditor Name="ScriptEditor" Grid.Column="0"
+                                                           FontFamily="Consolas" FontSize="12pt"
+                                                           Background="#121212" Foreground="#E0E0E0"
+                                                           ShowLineNumbers="True" SyntaxHighlighting="Python"
+                                                           TextChanged="ScriptEditor_TextChanged"
+                                                           PreviewMouseMove="ScriptEditor_PreviewMouseMove" />
+                                                            
+                                    <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#222" 
+                                                  Visibility="{Binding ElementName=SnippetDrawer, Path=Visibility}"/>
+                                                   
+                                    <Border x:Name="SnippetDrawer" Grid.Column="2" Width="260" Visibility="Collapsed" Background="#1c1c1c" BorderBrush="#333" BorderThickness="1,0,0,0">
+                                        <Grid Margin="10">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                             
+                                            <TextBlock Text="API HELPER DRAWER" FontWeight="Bold" FontSize="11" Foreground="#888" Margin="0,0,0,10"/>
+                                             
+                                            <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0">
+                                                <TabItem Header="CORE" FontSize="10" Padding="6,4">
+                                                    <ListBox x:Name="CoreSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                        <ListBox.ItemContainerStyle>
+                                                            <Style TargetType="ListBoxItem">
+                                                                <Setter Property="Padding" Value="6,4"/>
+                                                                <Setter Property="Margin" Value="0,2"/>
+                                                            </Style>
+                                                        </ListBox.ItemContainerStyle>
+                                                        <ListBoxItem Tag="bot.click(x, y, button='left')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.click" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
+                                                                <TextBlock Text="Click coordinates (x, y)" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.double_click(x, y, button='left')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.double_click" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
+                                                                <TextBlock Text="Double click coordinates" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.move_mouse(x, y)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.move_mouse" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
+                                                                <TextBlock Text="Move mouse to position" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.wait(1.0)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.wait" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
+                                                                <TextBlock Text="Pause script (seconds)" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.type_text('hello', delay=0.05)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.type_text" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
+                                                                <TextBlock Text="Type raw keyboard text" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.scroll(clicks=5)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.scroll" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
+                                                                <TextBlock Text="Scroll mouse wheel" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                    </ListBox>
+                                                </TabItem>
+                                                 
+                                                <TabItem Header="VISION" FontSize="10" Padding="6,4">
+                                                    <ListBox x:Name="VisionSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                        <ListBox.ItemContainerStyle>
+                                                            <Style TargetType="ListBoxItem">
+                                                                <Setter Property="Padding" Value="6,4"/>
+                                                                <Setter Property="Margin" Value="0,2"/>
+                                                            </Style>
+                                                        </ListBox.ItemContainerStyle>
+                                                        <ListBoxItem Tag="bot.click_region(region_index=0)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.click_region" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
+                                                                <TextBlock Text="Click inside selected region" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.find_color('#FF0000', region_index=0, tolerance=10)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.find_color" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
+                                                                <TextBlock Text="Find color coords in region" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.find_and_click_color('#FF0000', region_index=0)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.find_and_click_color" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
+                                                                <TextBlock Text="Find color and click it" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="pos = bot.find_image('img/template.png', confidence=0.8)&#x0a;if pos:&#x0a;    bot.click(pos[0], pos[1])">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.find_image" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
+                                                                <TextBlock Text="Find template PNG image" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="text = bot.ocr_region(region_index=0)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.ocr_region" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
+                                                                <TextBlock Text="Get text via OCR in region" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                    </ListBox>
+                                                </TabItem>
+                                                 
+                                                <TabItem Header="UI AUTO" FontSize="10" Padding="6,4">
+                                                    <ListBox x:Name="UiSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                        <ListBox.ItemContainerStyle>
+                                                            <Style TargetType="ListBoxItem">
+                                                                <Setter Property="Padding" Value="6,4"/>
+                                                                <Setter Property="Margin" Value="0,2"/>
+                                                            </Style>
+                                                        </ListBox.ItemContainerStyle>
+                                                        <ListBoxItem Tag="bot.click_element('ButtonName', control_type='Button')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.click_element" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
+                                                                <TextBlock Text="Click Win32 UIA element" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.type_into('EditName', 'text')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.type_into" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
+                                                                <TextBlock Text="Type into UIA text box" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="text = bot.get_text('TextName')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.get_text" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
+                                                                <TextBlock Text="Get text of UIA element" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.select_dropdown('ComboName', 'Option')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.select_dropdown" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
+                                                                <TextBlock Text="Select item in combobox" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.check_checkbox('CheckboxName', state=True)">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.check_checkbox" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
+                                                                <TextBlock Text="Set checkbox state" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                        <ListBoxItem Tag="bot.wait_for_element('ButtonName')">
+                                                            <StackPanel>
+                                                                <TextBlock Text="bot.wait_for_element" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
+                                                                <TextBlock Text="Wait for element to appear" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ListBoxItem>
+                                                    </ListBox>
+                                                </TabItem>
+                                            </TabControl>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </TabItem>
                             <TabItem Header="VISUAL GRAPH">
                                 <local:VisualEditorView DataContext="{Binding VisualEditor}"/>
@@ -257,6 +486,12 @@
                                                                                 CommandParameter="{Binding}"/>
                                                                     </Grid>
                                                                 </DataTemplate>
+                                                                <DataTemplate x:Key="BoolPicker">
+                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12">
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">True</System:String>
+                                                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">False</System:String>
+                                                                    </ComboBox>
+                                                                </DataTemplate>
                                                                 <DataTemplate x:Key="DefaultEditor">
                                                                     <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12"/>
                                                                 </DataTemplate>
@@ -269,6 +504,7 @@
                                                                         <DataTrigger Binding="{Binding Type}" Value="button"><Setter Property="ContentTemplate" Value="{StaticResource ButtonPicker}"/></DataTrigger>
                                                                         <DataTrigger Binding="{Binding Type}" Value="modifiers"><Setter Property="ContentTemplate" Value="{StaticResource ModifierPicker}"/></DataTrigger>
                                                                         <DataTrigger Binding="{Binding Type}" Value="color"><Setter Property="ContentTemplate" Value="{StaticResource ColorPicker}"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Type}" Value="bool"><Setter Property="ContentTemplate" Value="{StaticResource BoolPicker}"/></DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </ContentControl.Style>
@@ -277,6 +513,17 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+
+                                        <!-- Real-time Code Preview -->
+                                        <TextBlock Text="CODE PREVIEW" FontSize="9" FontWeight="Bold" Foreground="#666" Margin="0,10,0,4"/>
+                                        <Border Background="#0C0C0C" BorderBrush="#222" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,10">
+                                            <TextBox Text="{Binding Templates.CodePreview, Mode=OneWay}" 
+                                                     Background="Transparent" BorderThickness="0" Foreground="#00FFCC" 
+                                                     FontFamily="Consolas" FontSize="11" TextWrapping="NoWrap" 
+                                                     IsReadOnly="True" IsReadOnlyCaretVisible="True" 
+                                                     AcceptsReturn="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="120"/>
+                                        </Border>
+
                                         <Button Content="INSERT CODE" Click="InsertTemplate_Click" HorizontalAlignment="Stretch" Margin="0,10,0,0" Style="{StaticResource AccentButtonStyle}" FontWeight="Bold" Height="35"/>
                                     </StackPanel>
                                 </GroupBox>

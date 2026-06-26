@@ -119,6 +119,30 @@ namespace VASbot.Gui.UI.ViewModels
         [ObservableProperty]
         private bool _isReflecting;
 
+        [ObservableProperty]
+        private bool _isRegionsVisible = true;
+
+        [ObservableProperty]
+        private bool _isShapesVisible = true;
+
+        [ObservableProperty]
+        private bool _isClustersVisible = true;
+
+        [ObservableProperty]
+        private bool _isUiaVisible = true;
+
+        [ObservableProperty]
+        private string _viewportMode = "default";
+
+        [ObservableProperty]
+        private string _telemetryCoords = "X: 0, Y: 0";
+
+        [ObservableProperty]
+        private string _telemetryColorHex = "#000000";
+
+        [ObservableProperty]
+        private string _telemetryElementInfo = "Hover Element: None";
+
         partial void OnIsReflectingChanged(bool value)
         {
             if (value && SelectedWindow != null)
@@ -208,6 +232,27 @@ namespace VASbot.Gui.UI.ViewModels
 
         // Commands for region management - initialized in constructor
 
+        [RelayCommand]
+        public void ResetZoom()
+        {
+            ZoomLevel = 1.0;
+            Offset = new SKPoint(0, 0);
+            _transformer.UpdateTransform(Offset, ZoomLevel);
+        }
+
+        [RelayCommand]
+        public void ZoomIn()
+        {
+            ZoomLevel = Math.Min(20.0, ZoomLevel * 1.2);
+            _transformer.UpdateTransform(Offset, ZoomLevel);
+        }
+
+        [RelayCommand]
+        public void ZoomOut()
+        {
+            ZoomLevel = Math.Max(0.1, ZoomLevel / 1.2);
+            _transformer.UpdateTransform(Offset, ZoomLevel);
+        }
 
         [ObservableProperty]
         private string _detectShapeType = "all";
@@ -475,23 +520,26 @@ namespace VASbot.Gui.UI.ViewModels
                 IsAntialias = true
             };
 
-            foreach (var region in Regions)
+            if (IsRegionsVisible)
             {
-                DrawRegion(canvas, region, paint);
-                
-                if (region == SelectedRegion)
+                foreach (var region in Regions)
                 {
-                    paint.Style = SKPaintStyle.Fill;
-                    paint.Color = SKColors.White;
-                    float hSize = 6 / (float)ZoomLevel;
-                    canvas.DrawRect(region.X - hSize, region.Y - hSize, hSize * 2, hSize * 2, paint);
-                    canvas.DrawRect(region.X + region.Width - hSize, region.Y + region.Height - hSize, hSize * 2, hSize * 2, paint);
-                    paint.Style = SKPaintStyle.Stroke;
+                    DrawRegion(canvas, region, paint);
+                    
+                    if (region == SelectedRegion)
+                    {
+                        paint.Style = SKPaintStyle.Fill;
+                        paint.Color = SKColors.White;
+                        float hSize = 6 / (float)ZoomLevel;
+                        canvas.DrawRect(region.X - hSize, region.Y - hSize, hSize * 2, hSize * 2, paint);
+                        canvas.DrawRect(region.X + region.Width - hSize, region.Y + region.Height - hSize, hSize * 2, hSize * 2, paint);
+                        paint.Style = SKPaintStyle.Stroke;
+                    }
                 }
             }
 
             // 2.5 Draw Active Color Cluster Highlights
-            if (SelectedColorCluster != null && SelectedColorCluster.Colors.Count > 0 && SelectedColorCluster.IsActive)
+            if (IsClustersVisible && SelectedColorCluster != null && SelectedColorCluster.Colors.Count > 0 && SelectedColorCluster.IsActive)
             {
                 var cluster = SelectedColorCluster;
                 var targetColors = new System.Collections.Generic.List<SKColor>();
@@ -549,7 +597,7 @@ namespace VASbot.Gui.UI.ViewModels
             }
 
             // 4. Draw UI Automation Highlight
-            if (HighlightedRect.HasValue)
+            if (IsUiaVisible && HighlightedRect.HasValue)
             {
                 paint.Color = SKColors.Cyan;
                 paint.StrokeWidth = 3 / (float)ZoomLevel;
@@ -593,7 +641,7 @@ namespace VASbot.Gui.UI.ViewModels
             }
 
             // 7. Floating Inspector Overlay
-            if (HighlightedRect.HasValue && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Alt)
+            if (IsUiaVisible && HighlightedRect.HasValue && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Alt)
             {
                 var rect = HighlightedRect.Value;
                 // Move to canvas coords
@@ -648,43 +696,46 @@ namespace VASbot.Gui.UI.ViewModels
             }
 
             // 8.5. Detected Shapes Overlays
-            foreach (var shape in DetectedShapes)
+            if (IsShapesVisible)
             {
-                float left = (float)(shape.X * ZoomLevel + Offset.X);
-                float top = (float)(shape.Y * ZoomLevel + Offset.Y);
-                float right = (float)((shape.X + shape.Width) * ZoomLevel + Offset.X);
-                float bottom = (float)((shape.Y + shape.Height) * ZoomLevel + Offset.Y);
-                var bbox = new SKRect(left, top, right, bottom);
+                foreach (var shape in DetectedShapes)
+                {
+                    float left = (float)(shape.X * ZoomLevel + Offset.X);
+                    float top = (float)(shape.Y * ZoomLevel + Offset.Y);
+                    float right = (float)((shape.X + shape.Width) * ZoomLevel + Offset.X);
+                    float bottom = (float)((shape.Y + shape.Height) * ZoomLevel + Offset.Y);
+                    var bbox = new SKRect(left, top, right, bottom);
 
-                var color = shape.Type == "circle" ? SKColor.Parse("#E000FF") : SKColors.Cyan;
+                    var color = shape.Type == "circle" ? SKColor.Parse("#E000FF") : SKColors.Cyan;
 
-                using (var shapePaint = new SKPaint
-                {
-                    Color = color,
-                    Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 2,
-                    IsAntialias = true,
-                    PathEffect = SKPathEffect.CreateDash(new float[] { 4, 4 }, 0)
-                })
-                using (var labelPaint = new SKPaint
-                {
-                    Color = color,
-                    TextSize = 10,
-                    IsAntialias = true
-                })
-                {
-                    if (shape.Type == "circle")
+                    using (var shapePaint = new SKPaint
                     {
-                        float cx = (left + right) / 2;
-                        float cy = (top + bottom) / 2;
-                        float radius = (right - left) / 2;
-                        canvas.DrawCircle(cx, cy, radius, shapePaint);
-                    }
-                    else
+                        Color = color,
+                        Style = SKPaintStyle.Stroke,
+                        StrokeWidth = 2,
+                        IsAntialias = true,
+                        PathEffect = SKPathEffect.CreateDash(new float[] { 4, 4 }, 0)
+                    })
+                    using (var labelPaint = new SKPaint
                     {
-                        canvas.DrawRect(bbox, shapePaint);
+                        Color = color,
+                        TextSize = 10,
+                        IsAntialias = true
+                    })
+                    {
+                        if (shape.Type == "circle")
+                        {
+                            float cx = (left + right) / 2;
+                            float cy = (top + bottom) / 2;
+                            float radius = (right - left) / 2;
+                            canvas.DrawCircle(cx, cy, radius, shapePaint);
+                        }
+                        else
+                        {
+                            canvas.DrawRect(bbox, shapePaint);
+                        }
+                        canvas.DrawText($"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})", left, top - 2, labelPaint);
                     }
-                    canvas.DrawText($"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})", left, top - 2, labelPaint);
                 }
             }
 
@@ -915,20 +966,35 @@ namespace VASbot.Gui.UI.ViewModels
 
         public async Task EndCreationAsync()
         {
-            if (IsCreatingRegion && CurrentCreationRegion != null && CurrentCreationRegion.Width > 2 && CurrentCreationRegion.Height > 2)
+            if (IsCreatingRegion && CurrentCreationRegion != null)
             {
-                CurrentCreationRegion.Color = PickedColor; // Heritage logic: Use the current picked color
-                CurrentCreationRegion.Name = $"Region {Regions.Count}";
-                
-                if (SelectedWindow != null)
+                if (CurrentCreationRegion.Width > 2 && CurrentCreationRegion.Height > 2)
                 {
-                    CurrentCreationRegion.WindowTitle = SelectedWindow.Title;
-                    CurrentCreationRegion.WindowClass = SelectedWindow.ClassName;
-                }
+                    CurrentCreationRegion.Color = PickedColor; // Heritage logic: Use the current picked color
+                    CurrentCreationRegion.Name = $"Region {Regions.Count}";
+                    
+                    if (SelectedWindow != null)
+                    {
+                        CurrentCreationRegion.WindowTitle = SelectedWindow.Title;
+                        CurrentCreationRegion.WindowClass = SelectedWindow.ClassName;
+                    }
 
-                Regions.Add(CurrentCreationRegion);
-                await _regionManager.SaveRegionsAsync(Regions);
-                await SyncRegionsToSidecar();
+                    Regions.Add(CurrentCreationRegion);
+                    SelectedRegion = CurrentCreationRegion;
+                    await _regionManager.SaveRegionsAsync(Regions);
+                    await SyncRegionsToSidecar();
+                }
+                else
+                {
+                    // Plain click (no drag). Check if we clicked on an existing region
+                    var clickedRegion = Regions.LastOrDefault(r => 
+                        _startCreationPos.X >= r.X && _startCreationPos.X <= r.X + r.Width &&
+                        _startCreationPos.Y >= r.Y && _startCreationPos.Y <= r.Y + r.Height);
+                    if (clickedRegion != null)
+                    {
+                        SelectedRegion = clickedRegion;
+                    }
+                }
             }
             IsCreatingRegion = false;
             CurrentCreationRegion = null;

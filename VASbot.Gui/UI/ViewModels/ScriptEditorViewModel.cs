@@ -22,6 +22,12 @@ namespace VASbot.Gui.UI.ViewModels
         private bool _isRunning;
 
         [ObservableProperty]
+        private int _errorLineNumber = -1;
+
+        [ObservableProperty]
+        private string? _errorMessage;
+
+        [ObservableProperty]
         private bool _isRecording;
 
         [ObservableProperty]
@@ -139,6 +145,27 @@ namespace VASbot.Gui.UI.ViewModels
             string formatted = $"[{DateTime.Now:HH:mm:ss}] {message}";
             Logs.Add(formatted);
             LogsText += formatted + "\n";
+
+            // Parse for python tracebacks
+            if (message.Contains("Traceback") || message.Contains("Error:"))
+            {
+                ErrorLineNumber = -1;
+                ErrorMessage = null;
+            }
+
+            if (message.Contains("File \"") && message.Contains("line "))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(message, @"line (\d+)");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int lineNum))
+                {
+                    ErrorLineNumber = lineNum;
+                    ErrorMessage = message.Trim();
+                }
+            }
+            else if (message.Contains("Exception:") || message.Contains("Error:") || message.Contains("TypeError:") || message.Contains("NameError:") || message.Contains("SyntaxError:"))
+            {
+                ErrorMessage = message.Trim();
+            }
         }
 
         [RelayCommand]
@@ -296,6 +323,8 @@ namespace VASbot.Gui.UI.ViewModels
             if (IsRunning) return;
 
             IsRunning = true;
+            ErrorLineNumber = -1; // Clear error highlights before running
+            ErrorMessage = null;
             LogsText = ""; // Clear for new run
             AddLog("Executing via Sidecar...");
 

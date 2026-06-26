@@ -1,10 +1,16 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Xml;
+using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
+using ICSharpCode.AvalonEdit.Rendering;
 using ModernWpf;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -21,6 +27,8 @@ namespace VASbot.Gui
         private readonly SharedMemoryService _sharedMemory;
         private HotkeyService? _hotkeyService;
         private GlobalHotkeyService? _globalHotkeyService;
+        private ErrorLineBackgroundRenderer? _errorRenderer;
+        private ToolTip? _imageTooltip;
 
         public MainWindow(
             MainViewModel viewModel, 
@@ -58,6 +66,15 @@ namespace VASbot.Gui
             // Initialize editor text from VM
             ScriptEditor.Text = _viewModel.ScriptEditor.ScriptText;
 
+            // Configure modern dark mode aesthetic theme for AvalonEdit
+            ScriptEditor.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(18, 18, 18));
+            ScriptEditor.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(224, 224, 224));
+            ScriptEditor.LineNumbersForeground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(90, 90, 90));
+
+            // Initialize error renderer
+            _errorRenderer = new ErrorLineBackgroundRenderer(ScriptEditor);
+            ScriptEditor.TextArea.TextView.BackgroundRenderers.Add(_errorRenderer);
+
             // Listen for external script text changes (e.g., file load) to update editor
             _viewModel.ScriptEditor.ScriptTextUpdated += () => {
                 Dispatcher.Invoke(() => {
@@ -68,6 +85,24 @@ namespace VASbot.Gui
                         _isSyncingText = false;
                     }
                 });
+            };
+
+            // Listen to VM property changes for ErrorLineNumber to highlight and scroll
+            _viewModel.ScriptEditor.PropertyChanged += (s, ev) => {
+                if (ev.PropertyName == nameof(ScriptEditorViewModel.ErrorLineNumber))
+                {
+                    Dispatcher.Invoke(() => {
+                        int lineNum = _viewModel.ScriptEditor.ErrorLineNumber;
+                        if (_errorRenderer != null)
+                        {
+                            _errorRenderer.ErrorLineNumber = lineNum;
+                        }
+                        if (lineNum > 0 && lineNum <= ScriptEditor.Document.LineCount)
+                        {
+                            ScriptEditor.ScrollTo(lineNum, 1);
+                        }
+                    });
+                }
             };
         }
 
@@ -356,6 +391,21 @@ namespace VASbot.Gui
             var pos = e.GetPosition(SkiaElement);
             _viewModel.Capture.MousePos = new SKPoint((float)pos.X, (float)pos.Y);
 
+            // Live Telemetry Coords & Color sampling
+            var imgPos = _viewModel.Capture.ScreenToImage(pos);
+            _viewModel.Capture.TelemetryCoords = $"Canvas: ({(int)pos.X}, {(int)pos.Y}) | Game: ({(int)imgPos.X}, {(int)imgPos.Y})";
+
+            if (_viewModel.Capture.CurrentFrame != null)
+            {
+                int x = (int)imgPos.X;
+                int y = (int)imgPos.Y;
+                if (x >= 0 && x < _viewModel.Capture.CurrentFrame.Width && y >= 0 && y < _viewModel.Capture.CurrentFrame.Height)
+                {
+                    var color = _viewModel.Capture.CurrentFrame.GetPixel(x, y);
+                    _viewModel.Capture.TelemetryColorHex = $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
+                }
+            }
+
             if (_isPanning)
             {
                 _viewModel.Capture.UpdatePan(pos, _mouseDownPos);
@@ -373,7 +423,6 @@ namespace VASbot.Gui
             {
                 if (Keyboard.Modifiers == ModifierKeys.Alt)
                 {
-                    var imgPos = _viewModel.Capture.ScreenToImage(pos);
                     var screenPos = _viewModel.Capture.ImageToScreen(imgPos);
                     var node = _viewModel.AutomationTree.FindNodeAt(screenPos.X, screenPos.Y);
                     if (node != null)
@@ -383,14 +432,23 @@ namespace VASbot.Gui
                         _viewModel.Capture.ActiveElementInfo = new CaptureViewModel.ElementDiagnosticInfo(
                             node.Type, node.AutomationId, node.Element.Current.ClassName, node.Element.Current.ProcessId.ToString()
                         );
+                        _viewModel.Capture.TelemetryElementInfo = $"{node.Type} (ID: {node.AutomationId}, Class: {node.Element.Current.ClassName})";
+                    }
+                    else
+                    {
+                        _viewModel.Capture.TelemetryElementInfo = "No automation element found";
                     }
                 }
                 else
                 {
                     _viewModel.Inspector.Update(null);
                     _viewModel.Capture.ActiveElementInfo = null;
+                    _viewModel.Capture.TelemetryElementInfo = "None (Hold Alt)";
                 }
             }
+
+            // Smooth live rendering for cursor/crosshairs
+            SkiaElement.InvalidateVisual();
         }
 
         private async void SkiaElement_MouseUp(object sender, MouseButtonEventArgs e)
@@ -429,6 +487,251 @@ namespace VASbot.Gui
             _globalHotkeyService?.Dispose();
             _hotkeyService?.Dispose();
             base.OnClosed(e);
+        }
+
+        private void ToggleDrawer_Click(object sender, RoutedEventArgs e)
+        {
+            if (SnippetDrawer.Visibility == Visibility.Visible)
+            {
+                SnippetDrawer.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                SnippetDrawer.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void SnippetList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ListBox listBox && listBox.SelectedItem is ListBoxItem item)
+            {
+                string snippet = item.Tag as string ?? "";
+                if (!string.IsNullOrEmpty(snippet))
+                {
+                    ScriptEditor.Document.Replace(ScriptEditor.SelectionStart, ScriptEditor.SelectionLength, snippet);
+                    ScriptEditor.Focus();
+                }
+            }
+        }
+
+        private void ScriptEditor_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            try
+            {
+                var textView = ScriptEditor.TextArea.TextView;
+                var pos = e.GetPosition(textView);
+                var position = textView.GetPositionFloor(pos);
+                
+                if (position.HasValue)
+                {
+                    int lineNum = position.Value.Line;
+                    if (lineNum > 0 && lineNum <= ScriptEditor.Document.LineCount)
+                    {
+                        var line = ScriptEditor.Document.GetLineByNumber(lineNum);
+                        string lineText = ScriptEditor.Document.GetText(line.Offset, line.Length);
+                        
+                        var matches = System.Text.RegularExpressions.Regex.Matches(lineText, @"[""']([^""']+\.png)[""']");
+                        bool foundPng = false;
+                        
+                        foreach (System.Text.RegularExpressions.Match match in matches)
+                        {
+                            int startColumn = match.Index + 1; // 1-based column
+                            int endColumn = startColumn + match.Length;
+                            
+                            int cursorColumn = position.Value.Column;
+                            if (cursorColumn >= startColumn && cursorColumn <= endColumn)
+                            {
+                                string relativePath = match.Groups[1].Value;
+                                ShowImageTooltip(relativePath);
+                                foundPng = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!foundPng)
+                        {
+                            HideImageTooltip();
+                        }
+                    }
+                    else
+                    {
+                        HideImageTooltip();
+                    }
+                }
+                else
+                {
+                    HideImageTooltip();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Image hover parse error: {ex.Message}");
+                HideImageTooltip();
+            }
+        }
+
+        private void ShowImageTooltip(string relativePath)
+        {
+            if (_imageTooltip != null && _imageTooltip.IsOpen && _imageTooltip.Tag as string == relativePath)
+            {
+                return;
+            }
+
+            try
+            {
+                string absolutePath = relativePath;
+                if (!Path.IsPathRooted(absolutePath))
+                {
+                    string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                    string? current = baseDir;
+                    while (current != null)
+                    {
+                        string candidate = Path.Combine(current, relativePath);
+                        if (File.Exists(candidate))
+                        {
+                            absolutePath = candidate;
+                            break;
+                        }
+                        if (relativePath.StartsWith("img/"))
+                        {
+                            string rawName = relativePath.Substring("img/".Length);
+                            string candidateImg = Path.Combine(current, "img", rawName);
+                            if (File.Exists(candidateImg))
+                            {
+                                absolutePath = candidateImg;
+                                break;
+                            }
+                        }
+                        current = Path.GetDirectoryName(current);
+                    }
+                }
+
+                if (!File.Exists(absolutePath))
+                {
+                    HideImageTooltip();
+                    return;
+                }
+
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(absolutePath);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+
+                var panel = new StackPanel();
+
+                var tooltipContent = new System.Windows.Controls.Border
+                {
+                    Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 26, 26)),
+                    Padding = new Thickness(8),
+                    BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Child = panel
+                };
+
+                var border = new System.Windows.Controls.Border
+                {
+                    BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(68, 68, 68)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Child = new System.Windows.Controls.Image
+                    {
+                        Source = bitmap,
+                        Width = Math.Min(bitmap.PixelWidth, 200),
+                        Height = Math.Min(bitmap.PixelHeight, 200),
+                        Stretch = Stretch.Uniform
+                    }
+                };
+
+                var infoText = new TextBlock
+                {
+                    Text = $"{Path.GetFileName(relativePath)}\nDimensions: {bitmap.PixelWidth}x{bitmap.PixelHeight} px",
+                    Foreground = System.Windows.Media.Brushes.LightGray,
+                    FontSize = 10,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, 6, 0, 0)
+                };
+
+                panel.Children.Add(border);
+                panel.Children.Add(infoText);
+
+                if (_imageTooltip == null)
+                {
+                    _imageTooltip = new ToolTip
+                    {
+                        PlacementTarget = ScriptEditor,
+                        Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse,
+                        BorderThickness = new Thickness(0),
+                        Background = System.Windows.Media.Brushes.Transparent,
+                        Padding = new Thickness(0)
+                    };
+                }
+
+                _imageTooltip.Content = tooltipContent;
+                _imageTooltip.Tag = relativePath;
+                _imageTooltip.IsOpen = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error showing image tooltip: {ex.Message}");
+                HideImageTooltip();
+            }
+        }
+
+        private void HideImageTooltip()
+        {
+            if (_imageTooltip != null && _imageTooltip.IsOpen)
+            {
+                _imageTooltip.IsOpen = false;
+            }
+        }
+    }
+
+    public class ErrorLineBackgroundRenderer : IBackgroundRenderer
+    {
+        private readonly TextEditor _editor;
+        private int _errorLineNumber = -1;
+
+        public ErrorLineBackgroundRenderer(TextEditor editor)
+        {
+            _editor = editor;
+        }
+
+        public int ErrorLineNumber
+        {
+            get => _errorLineNumber;
+            set
+            {
+                if (_errorLineNumber != value)
+                {
+                    _errorLineNumber = value;
+                    _editor.TextArea.TextView.InvalidateVisual();
+                }
+            }
+        }
+
+        public KnownLayer Layer => KnownLayer.Background;
+
+        public void Draw(TextView textView, DrawingContext drawingContext)
+        {
+            if (_errorLineNumber < 1 || _errorLineNumber > textView.Document.LineCount) return;
+
+            textView.EnsureVisualLines();
+            var line = textView.Document.GetLineByNumber(_errorLineNumber);
+            if (line == null) return;
+
+            var builder = new BackgroundGeometryBuilder();
+            builder.AddSegment(textView, line);
+            var geometry = builder.CreateGeometry();
+            if (geometry != null)
+            {
+                var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(45, 255, 0, 0));
+                var pen = new System.Windows.Media.Pen(System.Windows.Media.Brushes.Red, 1.5);
+                drawingContext.DrawGeometry(brush, pen, geometry);
+            }
         }
     }
 }

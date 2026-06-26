@@ -1,11 +1,11 @@
 <SyntaxDefinition name="Python" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
     <Color name="Comment" foreground="#6A9955" />
-    <Color name="String" foreground="#CE9178" />
-    <Color name="MethodName" foreground="#DCDCAA" fontWeight="bold" />
-    <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
-    <Color name="ControlKeyword" foreground="#C586C0" fontWeight="bold" />
-    <Color name="Digits" foreground="#B5CEA8" />
-    <Color name="GlobalObject" foreground="#4FC1FF" fontWeight="bold" />
+    <Color name="String" foreground="#00FFCC" />
+    <Color name="MethodName" foreground="#BB86FC" fontWeight="bold" />
+    <Color name="Keyword" foreground="#FF79C6" fontWeight="bold" />
+    <Color name="ControlKeyword" foreground="#FF9E0F" fontWeight="bold" />
+    <Color name="Digits" foreground="#FFCC00" />
+    <Color name="GlobalObject" foreground="#03DAC6" fontWeight="bold" />
 
     <RuleSet>
         <!-- Comments -->

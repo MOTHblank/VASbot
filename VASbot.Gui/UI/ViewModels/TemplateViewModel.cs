@@ -21,6 +21,9 @@ namespace VASbot.Gui.UI.ViewModels
         [ObservableProperty]
         private ScriptTemplate? _selectedTemplate;
 
+        [ObservableProperty]
+        private string _codePreview = "";
+
         // Smart parameter options
         public ObservableCollection<string> AvailableRegions { get; } = new();
 
@@ -56,8 +59,30 @@ namespace VASbot.Gui.UI.ViewModels
             if (value != null)
             {
                 foreach (var p in value.Parameters)
-                    CurrentParams.Add(new TemplateParam(p.Key, p.Type, p.DefaultValue));
+                {
+                    var param = new TemplateParam(p.Key, p.Type, p.DefaultValue);
+                    param.PropertyChanged += (s, e) => {
+                        if (e.PropertyName == nameof(TemplateParam.Value))
+                        {
+                            UpdateCodePreview();
+                        }
+                    };
+                    CurrentParams.Add(param);
+                }
             }
+            UpdateCodePreview();
+        }
+
+        public void UpdateCodePreview()
+        {
+            if (SelectedTemplate == null)
+            {
+                CodePreview = "";
+                return;
+            }
+
+            var values = CurrentParams.ToDictionary(p => p.Key, p => p.Value);
+            CodePreview = _templateService.ApplyTemplate(SelectedTemplate, values, "[Selected Code]");
         }
 
         private void ApplyFilter()

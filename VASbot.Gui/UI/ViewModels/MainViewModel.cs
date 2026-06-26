@@ -108,32 +108,62 @@ namespace VASbot.Gui.UI.ViewModels
                 }
             };
 
-            // Enhanced Smart Auto-fill: Pull color from region when parameter changes
-            Templates.PropertyChanged += (s, e) => {
-                if (e.PropertyName == nameof(TemplateViewModel.SelectedTemplate)) return;
-                
-                // If the user selects a region in the parameters, try to pull its color
+            // Link region selection on canvas to template parameter region_index
+            Capture.PropertyChanged += (s, e) => {
+                if (e.PropertyName == nameof(CaptureViewModel.SelectedRegion))
+                {
+                    if (Capture.SelectedRegion != null)
+                    {
+                        int idx = Capture.Regions.IndexOf(Capture.SelectedRegion);
+                        if (idx >= 0)
+                        {
+                            var regionParam = Templates.CurrentParams.FirstOrDefault(p => p.Key == "region_index");
+                            if (regionParam != null)
+                            {
+                                regionParam.Value = $"[{idx}] {Capture.SelectedRegion.Name}";
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Enhanced Smart Auto-fill: Pull color from region when parameter changes (with robust CollectionChanged listener)
+            Templates.CurrentParams.CollectionChanged += (s, e) => {
                 var regionParam = Templates.CurrentParams.FirstOrDefault(p => p.Key == "region_index");
                 if (regionParam != null)
                 {
-                    regionParam.PropertyChanged += (ps, pe) => {
-                        if (pe.PropertyName == nameof(TemplateParam.Value))
-                        {
-                            var val = regionParam.Value;
-                            if (val.StartsWith("[") && val.Contains("]"))
-                            {
-                                int idx = int.Parse(val.Substring(1, val.IndexOf("]") - 1));
-                                if (idx >= 0 && idx < Capture.Regions.Count)
-                                {
-                                    var region = Capture.Regions[idx];
-                                    var colorParam = Templates.CurrentParams.FirstOrDefault(p => p.Key == "hex_color");
-                                    if (colorParam != null) colorParam.Value = region.Color;
-                                }
-                            }
-                        }
-                    };
+                    regionParam.PropertyChanged -= RegionParam_PropertyChanged;
+                    regionParam.PropertyChanged += RegionParam_PropertyChanged;
+                    TriggerColorPull(regionParam);
                 }
             };
+        }
+
+        private void RegionParam_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TemplateParam.Value) && sender is TemplateParam regionParam)
+            {
+                TriggerColorPull(regionParam);
+            }
+        }
+
+        private void TriggerColorPull(TemplateParam regionParam)
+        {
+            var val = regionParam.Value;
+            if (val != null && val.StartsWith("[") && val.Contains("]"))
+            {
+                try
+                {
+                    int idx = int.Parse(val.Substring(1, val.IndexOf("]") - 1));
+                    if (idx >= 0 && idx < Capture.Regions.Count)
+                    {
+                        var region = Capture.Regions[idx];
+                        var colorParam = Templates.CurrentParams.FirstOrDefault(p => p.Key == "hex_color" || p.Key == "color");
+                        if (colorParam != null) colorParam.Value = region.Color;
+                    }
+                }
+                catch { }
+            }
         }
     }
 }
