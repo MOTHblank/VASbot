@@ -197,6 +197,7 @@ class BotAPI:
         self._tesseract_error = None
         self._frame_counter = 0
         self._ccl_cache = {}
+        self._ocr_cache = {}
 
     def set_regions(self, regions):
         self.regions = regions
@@ -923,6 +924,10 @@ class BotAPI:
             x, y, w, h = region["x"], region["y"], region["width"], region["height"]
             roi = full_frame[y : y + h, x : x + w]
 
+            # Compute fast hash of the region to avoid redundant Tesseract OCR processes
+            import hashlib
+            roi_hash = hashlib.md5(roi.tobytes()).hexdigest()
+
             self.log(f"Scanning region {region_index} ({w}x{h}) for text '{text}'...")
 
             if roi.shape[2] == 4:  # BGRA to Gray
@@ -962,11 +967,29 @@ class BotAPI:
 
             clean_query = clean_str(text)
 
-            for processed_img, config_str, pass_name in passes:
-                if self._debug_mode:
-                    self.log(f"Running OCR Pass: {pass_name}")
-                
-                data = pytesseract.image_to_data(processed_img, config=config_str, output_type=pytesseract.Output.DICT)
+            # Initialize OCR cache if not present (defensive)
+            if not hasattr(self, "_ocr_cache"):
+                self._ocr_cache = {}
+
+            for pass_idx, (processed_img, config_str, pass_name) in enumerate(passes):
+                cache_key = (roi_hash, pass_idx)
+                if cache_key in self._ocr_cache:
+                    if self._debug_mode:
+                        self.log(f"Retrieving OCR result from frame-hash cache (Pass: {pass_name})")
+                    data = self._ocr_cache[cache_key]
+                else:
+                    if self._debug_mode:
+                        self.log(f"Running OCR Pass: {pass_name}")
+                    data = pytesseract.image_to_data(processed_img, config=config_str, output_type=pytesseract.Output.DICT)
+                    
+                    # FIFO eviction if cache size exceeds 1000 items (approx 140 images with all 7 passes)
+                    if len(self._ocr_cache) >= 1000:
+                        try:
+                            self._ocr_cache.pop(next(iter(self._ocr_cache)))
+                        except Exception:
+                            pass
+                    self._ocr_cache[cache_key] = data
+
                 found_words = [w for w in data["text"] if w.strip()]
                 
                 if self._debug_mode:
