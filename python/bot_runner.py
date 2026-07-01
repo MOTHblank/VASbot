@@ -110,6 +110,8 @@ def extract_embedded_regions(script_code: str) -> list:
                                 "height": r.get("height", 0),
                                 "color": r.get("color", "#FFFF00"),
                                 "name": r.get("name", f"Region {len(regions)}"),
+                                "active_color": r.get("active_color", ""),
+                                "depleted_color": r.get("depleted_color", ""),
                             }
                         )
                     else:
