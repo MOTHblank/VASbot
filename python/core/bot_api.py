@@ -12,8 +12,8 @@ except ImportError:
 # --- CRITICAL: Set DPI Awareness BEFORE any other UI/GDI calls ---
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-except:
-    pass
+except (AttributeError, OSError):
+    pass  # Ignore failure on non-Windows platforms or older Windows versions
 
 try:
     import win32gui
