@@ -242,10 +242,11 @@ class PywinautoBot:
             result = []
             for hwnd in windows:
                 try:
+                    win = findwindows.find_window(hwnd=hwnd)
                     info = {
                         "hwnd": hwnd,
-                        "title": findwindows.find_window(hwnd=hwnd).window_text(),
-                        "class_name": findwindows.find_window(hwnd=hwnd).class_name(),
+                        "title": win.window_text(),
+                        "class_name": win.class_name(),
                     }
 
                     # Add to result if it has a title (visible window)
