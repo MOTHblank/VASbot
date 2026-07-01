@@ -70,6 +70,8 @@ class GUIProxy:
                                 "color", "#FFFF00"
                             ),  # Default yellow if not specified
                             "name": r.get("name", f"Region {len(self._regions)}"),
+                            "active_color": r.get("active_color", ""),
+                            "depleted_color": r.get("depleted_color", ""),
                         }
                     )
             # Sync to the bot's region list
