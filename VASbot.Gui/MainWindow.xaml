@@ -10,7 +10,7 @@
         xmlns:local="clr-namespace:VASbot.Gui.UI.Views"
         ui:WindowHelper.UseModernWindowStyle="True"
         Title="VASbot3 Studio" Height="1000" Width="1800"
-        Icon="icon.png"
+        Icon="Resources/icon.png"
         Background="#121212">
 
     <Window.Resources>
