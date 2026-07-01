@@ -166,6 +166,22 @@
                                 
                                 <ToggleButton IsChecked="{Binding Capture.IsRegionsVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Static Regions">Regions</ToggleButton>
                                 <ToggleButton IsChecked="{Binding Capture.IsShapesVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Detected Shapes">Shapes</ToggleButton>
+                                
+                                <!-- Conditional Shape Settings inside HUD -->
+                                <StackPanel Orientation="Horizontal" Visibility="{Binding Capture.IsShapesVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="4,0,0,0">
+                                    <ComboBox SelectedValue="{Binding Capture.DetectShapeType, UpdateSourceTrigger=PropertyChanged}" Width="75" Height="22" FontSize="9" Padding="2,0" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0">
+                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">all</System:String>
+                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">circle</System:String>
+                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">rectangle</System:String>
+                                        <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">grid</System:String>
+                                    </ComboBox>
+                                    <TextBlock Text="Min:" Foreground="#888" FontSize="9" VerticalAlignment="Center" Margin="6,0,2,0"/>
+                                    <TextBox Text="{Binding Capture.DetectMinSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0"/>
+                                    <TextBlock Text="Max:" Foreground="#888" FontSize="9" VerticalAlignment="Center" Margin="6,0,2,0"/>
+                                    <TextBox Text="{Binding Capture.DetectMaxSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0"/>
+                                    <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="55" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" Margin="4,0,2,0"/>
+                                </StackPanel>
+                                
                                 <ToggleButton IsChecked="{Binding Capture.IsClustersVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Color Clusters">Clusters</ToggleButton>
                                 <ToggleButton IsChecked="{Binding Capture.IsUiaVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle UIA Highlights">UIA</ToggleButton>
                                 

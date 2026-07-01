@@ -1575,22 +1575,29 @@ class BotAPI:
             search_area = img_bgr
             offset_x, offset_y = 0, 0
 
-        # Grayscale, Gaussian Blur & Canny Edge Detection
+        # Grayscale, Gaussian Blur
         gray = cv2.cvtColor(search_area, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+        # 1. Canny Edges with morphological closing (best for clean outlines, circles, icons)
         edges = cv2.Canny(blurred, 50, 150)
-        
-        # Apply morphological closing to bridge small gaps in edges
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-        
-        # Find Contours - use RETR_LIST to find nested contours (like grid cells inside outer container)
-        contours, _ = cv2.findContours(closed_edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours_edge, _ = cv2.findContours(closed_edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+        # 2. Adaptive Thresholding (perfect for extracting separate grid cells sharing borders)
+        thresh_adaptive = cv2.adaptiveThreshold(
+            blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
+        )
+        contours_thresh, _ = cv2.findContours(thresh_adaptive, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Process all contours
+        all_contours = list(contours_edge) + list(contours_thresh)
         
         detected = []
         rectangles = []  # candidate rectangles for Grid solver
         
-        for cnt in contours:
+        for cnt in all_contours:
             x, y, w, h = cv2.boundingRect(cnt)
             if w < min_size or h < min_size:
                 continue
@@ -1602,38 +1609,47 @@ class BotAPI:
             if perimeter == 0:
                 continue
                 
-            # 1. Circularity check
+            # 1. Circle Check
             circularity = 4 * np.pi * area / (perimeter ** 2)
             
-            # Additional circle check: min enclosing circle similarity
+            # Aspect ratio check (Circles must have aspect ratio close to 1.0)
+            aspect_ratio = float(w) / h if h > 0 else 0
+            is_aspect_circle = (0.80 <= aspect_ratio <= 1.25)
+            
+            # Enclosing circle check
             (cx, cy), r = cv2.minEnclosingCircle(cnt)
             circle_area = np.pi * (r ** 2)
             area_ratio = area / circle_area if circle_area > 0 else 0
             
-            if (shape_type == "all" or shape_type == "circle") and (circularity > 0.76 or area_ratio > 0.8):
+            if (shape_type == "all" or shape_type == "circle") and is_aspect_circle and (circularity > 0.80 or area_ratio > 0.82):
                 cw = int(r * 2)
                 ch = int(r * 2)
                 cx_box = int(cx - r)
                 cy_box = int(cy - r)
                 
-                detected.append({
-                    "type": "circle",
-                    "x": offset_x + cx_box,
-                    "y": offset_y + cy_box,
-                    "width": cw,
-                    "height": ch,
-                    "confidence": float(max(circularity, area_ratio))
-                })
-                continue
+                if cw >= min_size and ch >= min_size:
+                    detected.append({
+                        "type": "circle",
+                        "x": offset_x + cx_box,
+                        "y": offset_y + cy_box,
+                        "width": cw,
+                        "height": ch,
+                        "confidence": float(max(circularity, area_ratio))
+                    })
+                    continue
             
-            # 2. Rectangle/Polygon check
-            # Extent check: ratio of contour area to bounding box area.
-            # UI rectangular elements have high extent (>0.80), even with rounded corners
+            # 2. Rectangle/Polygon Check
+            # Extent (coverage of the bounding box)
             extent = area / (w * h) if w * h > 0 else 0
             approx = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
             
-            # Standard 4-point convex check OR high bounding box coverage (extent) with moderate vertex count
-            if (len(approx) == 4 and cv2.isContourConvex(approx)) or (extent > 0.82 and len(approx) >= 4 and len(approx) <= 8):
+            is_rect_shape = False
+            if (len(approx) == 4 and cv2.isContourConvex(approx)) or (extent > 0.85 and len(approx) >= 4 and len(approx) <= 8):
+                # Avoid extremely thin lines by checking aspect ratio
+                if 0.05 <= aspect_ratio <= 20:
+                    is_rect_shape = True
+            
+            if is_rect_shape:
                 if (shape_type == "all" or shape_type == "rectangle" or shape_type == "grid"):
                     rectangles.append((x, y, w, h))
 
@@ -1646,7 +1662,7 @@ class BotAPI:
                 for group in rects_by_size:
                     rep_w = sum(item[2] for item in group) / len(group)
                     rep_h = sum(item[3] for item in group) / len(group)
-                    if abs(rw - rep_w) < rep_w * 0.15 and abs(rh - rep_h) < rep_h * 0.15:
+                    if abs(rw - rep_w) < rep_w * 0.18 and abs(rh - rep_h) < rep_h * 0.18:
                         group.append(r)
                         added = True
                         break
@@ -1654,7 +1670,7 @@ class BotAPI:
                     rects_by_size.append([r])
             
             for group in rects_by_size:
-                if len(group) < 3:  # Support grids starting at 3 cells (like 1x3 vertical/horizontal or larger)
+                if len(group) < 3:
                     continue
                 sorted_group = sort_grid_cells(group)
                 
@@ -1674,17 +1690,13 @@ class BotAPI:
                 # Check grid alignment structure
                 row_lengths = [len(r_list) for r_list in rows]
                 max_row_len = max(row_lengths) if row_lengths else 0
-                min_row_len = min(row_lengths) if row_lengths else 0
                 
                 is_valid_grid = False
                 if len(rows) == 1 and len(rows[0]) >= 3:
-                    # 1D Horizontal grid (e.g. 1x4)
                     is_valid_grid = True
                 elif len(rows) >= 3 and max_row_len == 1:
-                    # 1D Vertical grid (e.g. 4x1)
                     is_valid_grid = True
                 elif len(rows) >= 2 and max_row_len >= 2:
-                    # 2D Grid: row sizes should be roughly equal (all rows equal or differ by at most 1 cell)
                     if all(abs(count - max_row_len) <= 1 for count in row_lengths):
                         is_valid_grid = True
                 
@@ -1713,7 +1725,7 @@ class BotAPI:
                     "confidence": 1.0
                 })
 
-        # Deduplicate overlapping shapes of the same type (caused by RETR_LIST or thickness offsets)
+        # Deduplicate overlapping shapes of the same type
         unique_detected = []
         for d in detected:
             is_dup = False
@@ -1724,7 +1736,7 @@ class BotAPI:
                     size_diff_w = abs(d["width"] - u["width"]) / max(1, u["width"])
                     size_diff_h = abs(d["height"] - u["height"]) / max(1, u["height"])
                     
-                    if dist_x < 8 and dist_y < 8 and size_diff_w < 0.20 and size_diff_h < 0.20:
+                    if dist_x < 10 and dist_y < 10 and size_diff_w < 0.22 and size_diff_h < 0.22:
                         is_dup = True
                         if d["confidence"] > u["confidence"]:
                             u["x"], u["y"], u["width"], u["height"], u["confidence"] = d["x"], d["y"], d["width"], d["height"], d["confidence"]
@@ -1732,7 +1744,25 @@ class BotAPI:
             if not is_dup:
                 unique_detected.append(d)
 
-        return unique_detected
+        # Cross-type deduplication: remove generic rectangles that overlap/coincide with specific grid cells
+        grid_cells = [s for s in unique_detected if s["type"] == "grid_cell"]
+        final_detected = []
+        for d in unique_detected:
+            if d["type"] == "rectangle":
+                has_overlap = False
+                for g in grid_cells:
+                    dist_x = abs((d["x"] + d["width"]/2.0) - (g["x"] + g["width"]/2.0))
+                    dist_y = abs((d["y"] + d["height"]/2.0) - (g["y"] + g["height"]/2.0))
+                    size_diff_w = abs(d["width"] - g["width"]) / max(1, g["width"])
+                    size_diff_h = abs(d["height"] - g["height"]) / max(1, g["height"])
+                    if dist_x < 8 and dist_y < 8 and size_diff_w < 0.20 and size_diff_h < 0.20:
+                        has_overlap = True
+                        break
+                if has_overlap:
+                    continue
+            final_detected.append(d)
+
+        return final_detected
 
     def find_shapes(self, shape_type="circle", min_size=15, max_size=None, region_index=None):
         """
