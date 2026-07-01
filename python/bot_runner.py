@@ -327,7 +327,7 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
             shapes = self.bot.detect_shapes(
                 shape_type=request.shape_type,
                 min_size=request.min_size,
-                max_size=request.max_size
+                max_size=request.max_size if request.max_size > 0 else None
             )
             proto_shapes = []
             for s in shapes:
