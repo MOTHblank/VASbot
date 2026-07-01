@@ -489,10 +489,8 @@ class BotAPI:
         if modifiers is None:
             modifiers = []
         self.check_running()
-        if region_index >= len(self.regions):
-            self.log(
-                f"Error: Region {region_index} does not exist. Total regions: {len(self.regions)}"
-            )
+        region = self._resolve_region(region_index)
+        if region is None:
             return False
         if not self._target_hwnd:
             self.log("Error: No target window set or window was closed.")
@@ -503,8 +501,6 @@ class BotAPI:
             self.log("Error: Target window no longer exists.")
             self._target_hwnd = None
             return False
-
-        region = self.regions[region_index]
 
         try:
             left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
@@ -615,16 +611,12 @@ class BotAPI:
 
     def find_color(self, hex_color, region_index, tolerance=10):
         self.check_running()
-        if region_index >= len(self.regions):
-            self.log(
-                f"Error: Region {region_index} does not exist. Total regions: {len(self.regions)}"
-            )
+        region = self._resolve_region(region_index)
+        if region is None:
             return None
         if not self._target_hwnd:
             self.log("Error: No target window set or window was closed.")
             return None
-
-        region = self.regions[region_index]
 
         # Parse target color
         try:
@@ -654,13 +646,19 @@ class BotAPI:
             # Get region bounds
             x, y, w, h = region["x"], region["y"], region["width"], region["height"]
 
-            # Validate ROI is within frame bounds
+            # Validate ROI is within frame bounds and apply dynamic clamping for self-healing
             frame_h, frame_w = full_frame.shape[:2]
             if x < 0 or y < 0 or x + w > frame_w or y + h > frame_h:
+                x_clamped = max(0, min(x, frame_w - 1))
+                y_clamped = max(0, min(y, frame_h - 1))
+                w_clamped = max(1, min(w, frame_w - x_clamped))
+                h_clamped = max(1, min(h, frame_h - y_clamped))
+
                 self.log(
-                    f"Error: Region {region_index} bounds ({x},{y},{w},{h}) outside frame ({frame_w}x{frame_h})"
+                    f"Warning: Region {region_index} bounds ({x},{y},{w},{h}) outside frame ({frame_w}x{frame_h}). "
+                    f"Clamping to self-healing bounds ({x_clamped},{y_clamped},{w_clamped},{h_clamped})."
                 )
-                return None
+                x, y, w, h = x_clamped, y_clamped, w_clamped, h_clamped
 
             roi = full_frame[y : y + h, x : x + w]
 
@@ -684,8 +682,8 @@ class BotAPI:
 
                 # Calculate absolute screen coordinates
                 left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
-                abs_x = left + region["x"] + rel_x
-                abs_y = top + region["y"] + rel_y
+                abs_x = left + x + rel_x
+                abs_y = top + y + rel_y
 
                 # Get actual pixel color at click location for debugging
                 actual_color = roi_rgb[rel_y, rel_x]
@@ -808,9 +806,52 @@ class BotAPI:
     def _resolve_region(self, region_index):
         if region_index is None:
             return None
+
+        # Handle string representing a grid cell like "3.21" or "3_21" or "3:21"
+        if isinstance(region_index, str):
+            for sep in ('.', '_', ':'):
+                if sep in region_index:
+                    parts = region_index.split(sep)
+                    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                        parent_idx = int(parts[0])
+                        cell_idx = int(parts[1])
+                        grid = self.find_grid(region_index=parent_idx)
+                        if grid:
+                            cell = grid.cell(cell_idx)
+                            if cell:
+                                bx, by, bw, bh = cell.bounds()
+                                return {"x": bx, "y": by, "width": bw, "height": bh}
+                            else:
+                                self.log(f"Error: Cell index {cell_idx} is out of bounds in grid region {parent_idx}")
+                        else:
+                            self.log(f"Error: No grid detected inside parent region {parent_idx}")
+                        return None
+            if region_index.isdigit():
+                region_index = int(region_index)
+
+        # Handle float representing a grid cell like 3.21
+        if isinstance(region_index, float):
+            direct_str = str(region_index)
+            if "." in direct_str:
+                d_parts = direct_str.split(".")
+                if len(d_parts) == 2 and d_parts[0].isdigit() and d_parts[1].isdigit():
+                    parent_idx = int(d_parts[0])
+                    cell_idx = int(d_parts[1])
+                    grid = self.find_grid(region_index=parent_idx)
+                    if grid:
+                        cell = grid.cell(cell_idx)
+                        if cell:
+                            bx, by, bw, bh = cell.bounds()
+                            return {"x": bx, "y": by, "width": bw, "height": bh}
+                        else:
+                            self.log(f"Error: Cell index {cell_idx} is out of bounds in grid region {parent_idx}")
+                    else:
+                        self.log(f"Error: No grid detected inside parent region {parent_idx}")
+                    return None
+
         if isinstance(region_index, int):
             if region_index >= len(self.regions):
-                self.log(f"Error: Region index {region_index} does not exist.")
+                self.log(f"Error: Region index {region_index} does not exist. Total: {len(self.regions)}")
                 return None
             return self.regions[region_index]
         if isinstance(region_index, dict):
@@ -1306,14 +1347,11 @@ class BotAPI:
     def drag_and_drop(self, src_region_index, dst_region_index, duration=0.5):
         self.check_running()
 
-        if src_region_index >= len(self.regions) or dst_region_index >= len(
-            self.regions
-        ):
+        r1 = self._resolve_region(src_region_index)
+        r2 = self._resolve_region(dst_region_index)
+        if r1 is None or r2 is None:
             self.log("Error: Invalid region index for drag and drop.")
             return False
-
-        r1 = self.regions[src_region_index]
-        r2 = self.regions[dst_region_index]
         self.focus_window()
 
         try:
@@ -1755,6 +1793,35 @@ class BotAPI:
             cols=num_cols,
             cells=sorted_coords
         )
+
+    def click_shape(self, shape_type="circle", min_size=15, max_size=None, region_index=None, index=0, button="left", modifiers=None, human_like=False):
+        """
+        Detects shapes on screen and clicks the shape at the specified index.
+        Single-line shortcut for: find_shapes(shape_type, min_size, max_size, region_index)[index].click()
+        """
+        self.check_running()
+        shapes = self.find_shapes(shape_type=shape_type, min_size=min_size, max_size=max_size, region_index=region_index)
+        if not shapes:
+            self.log(f"Vision Error: No shapes of type '{shape_type}' detected.")
+            return False
+        if index >= len(shapes):
+            self.log(f"Vision Error: Shape index {index} is out of bounds. Detected {len(shapes)} shapes.")
+            return False
+        
+        shapes[index].click(button=button, human_like=human_like)
+        return True
+
+    def click_circle(self, min_size=15, max_size=None, region_index=None, index=0, button="left", modifiers=None, human_like=False):
+        """
+        Shortcut to click a detected circle on the screen in a single line.
+        """
+        return self.click_shape(shape_type="circle", min_size=min_size, max_size=max_size, region_index=region_index, index=index, button=button, modifiers=modifiers, human_like=human_like)
+
+    def click_rectangle(self, min_size=15, max_size=None, region_index=None, index=0, button="left", modifiers=None, human_like=False):
+        """
+        Shortcut to click a detected rectangle on the screen in a single line.
+        """
+        return self.click_shape(shape_type="rectangle", min_size=min_size, max_size=max_size, region_index=region_index, index=index, button=button, modifiers=modifiers, human_like=human_like)
 
     def wait_for_change(self, region_index, threshold=0.02, timeout=10):
         """

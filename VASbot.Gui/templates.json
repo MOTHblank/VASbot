@@ -111,6 +111,113 @@
     "InsertMode": "append"
   },
   {
+    "Name": "Double Click",
+    "Icon": "🖱️",
+    "Category": "Mouse",
+    "Description": "Double clicks at the specified coordinates with optional modifiers and human-like pathing.",
+    "Template": "bot.double_click(x={x}, y={y}, button='{button}', modifiers={modifiers}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "x", "Type": "number", "DefaultValue": "100" },
+      { "Key": "y", "Type": "number", "DefaultValue": "100" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Hover/Move Mouse",
+    "Icon": "✈️",
+    "Category": "Mouse",
+    "Description": "Moves the mouse cursor to the specified coordinates with optional human-like pathing.",
+    "Template": "bot.move_mouse(x={x}, y={y}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "x", "Type": "number", "DefaultValue": "100" },
+      { "Key": "y", "Type": "number", "DefaultValue": "100" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Scroll Mouse",
+    "Icon": "📜",
+    "Category": "Mouse",
+    "Description": "Scrolls the mouse wheel up (positive) or down (negative) clicks.",
+    "Template": "bot.scroll(clicks={clicks}, x={x}, y={y})",
+    "Parameters": [
+      { "Key": "clicks", "Type": "number", "DefaultValue": "3" },
+      { "Key": "x", "Type": "text", "DefaultValue": "None" },
+      { "Key": "y", "Type": "text", "DefaultValue": "None" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Press Mouse Button",
+    "Icon": "👇",
+    "Category": "Mouse",
+    "Description": "Holds down or releases a specific mouse button.",
+    "Template": "bot.press_button(button='{button}', down={down})",
+    "Parameters": [
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "down", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Mouse Position",
+    "Icon": "📍",
+    "Category": "Mouse",
+    "Description": "Retrieves the current absolute coordinates of the mouse cursor.",
+    "Template": "{var_name} = bot.get_mouse_position()",
+    "Parameters": [
+      { "Key": "var_name", "Type": "text", "DefaultValue": "pos" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Drag and Drop",
+    "Icon": "↔️",
+    "Category": "Mouse",
+    "Description": "Drag from center of Region A to center of Region B.",
+    "Template": "bot.drag_and_drop(src_region_index={src_idx}, dst_region_index={dst_idx}, duration={duration})",
+    "Parameters": [
+      { "Key": "src_idx", "Type": "region", "DefaultValue": "0" },
+      { "Key": "dst_idx", "Type": "region", "DefaultValue": "1" },
+      { "Key": "duration", "Type": "number", "DefaultValue": "0.5" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Key Down",
+    "Icon": "⬇️",
+    "Category": "Keyboard",
+    "Description": "Holds a key down.",
+    "Template": "bot.key_down('{key}')",
+    "Parameters": [
+      { "Key": "key", "Type": "text", "DefaultValue": "shift" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Key Up",
+    "Icon": "⬆️",
+    "Category": "Keyboard",
+    "Description": "Releases a held key.",
+    "Template": "bot.key_up('{key}')",
+    "Parameters": [
+      { "Key": "key", "Type": "text", "DefaultValue": "shift" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
     "Name": "Find & Click Color",
     "Icon": "🎨",
     "Category": "Vision",
@@ -154,6 +261,282 @@
       { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
       { "Key": "button", "Type": "button", "DefaultValue": "left" },
       { "Key": "modifiers", "Type": "modifiers", "DefaultValue": "[]" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Hover Color",
+    "Icon": "🎨",
+    "Category": "Vision",
+    "Description": "Finds the specified color in a region and hovers the mouse over it.",
+    "Template": "bot.hover_color(hex_color='{hex_color}', region_index={region_index}, tolerance={tolerance}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "hex_color", "Type": "color", "DefaultValue": "#FFFFFF" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Hover Image",
+    "Icon": "🖼️",
+    "Category": "Vision",
+    "Description": "Finds an image template in a region and hovers the mouse over its center.",
+    "Template": "bot.hover_image(template_path='{image_path}', region_index={region_index}, confidence={confidence}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "image_path", "Type": "text", "DefaultValue": "template.png" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "confidence", "Type": "number", "DefaultValue": "0.8" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Hover Text (OCR)",
+    "Icon": "🔍",
+    "Category": "Vision",
+    "Description": "Uses OCR to find specific text in a region and hovers the mouse over it.",
+    "Template": "bot.hover_text(text='{text}', region_index={region_index}, case_sensitive={case_sensitive}, human_like={human_like})",
+    "Parameters": [
+      { "Key": "text", "Type": "text", "DefaultValue": "Target Text" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "case_sensitive", "Type": "bool", "DefaultValue": "False" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Wait for Color",
+    "Icon": "⏳",
+    "Category": "Vision",
+    "Description": "Waits until a color appears in a region or until timeout occurs.",
+    "Template": "success = bot.wait_for_color(hex_color='{hex_color}', region_index={region_index}, timeout={timeout}, tolerance={tolerance})",
+    "Parameters": [
+      { "Key": "hex_color", "Type": "color", "DefaultValue": "#FFFFFF" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "timeout", "Type": "number", "DefaultValue": "10" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find Color",
+    "Icon": "🎨",
+    "Category": "Vision",
+    "Description": "Finds the first occurrence of a color in a region and returns its coordinates.",
+    "Template": "pos = bot.find_color(hex_color='{hex_color}', region_index={region_index}, tolerance={tolerance})\nif pos:\n    bot.log(f'Color found at {pos}')",
+    "Parameters": [
+      { "Key": "hex_color", "Type": "color", "DefaultValue": "#FFFFFF" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Pixel Color",
+    "Icon": "👁️",
+    "Category": "Vision",
+    "Description": "Gets the hex color code of a specific coordinate point on screen.",
+    "Template": "{var_name} = bot.get_pixel_color(x={x}, y={y})",
+    "Parameters": [
+      { "Key": "var_name", "Type": "text", "DefaultValue": "color" },
+      { "Key": "x", "Type": "number", "DefaultValue": "100" },
+      { "Key": "y", "Type": "number", "DefaultValue": "100" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find Color Cluster",
+    "Icon": "🔮",
+    "Category": "Vision",
+    "Description": "Finds a color cluster region by name or hex list. Returns a DynamicRegion or None.",
+    "Template": "{var_name} = bot.find_color_cluster(name_or_colors='{name_or_colors}', proximity={proximity}, tolerance={tolerance}, region_index={region_index})",
+    "Parameters": [
+      { "Key": "var_name", "Type": "text", "DefaultValue": "cluster" },
+      { "Key": "name_or_colors", "Type": "text", "DefaultValue": "ClusterName" },
+      { "Key": "proximity", "Type": "number", "DefaultValue": "20" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click Color Cluster",
+    "Icon": "🔮",
+    "Category": "Vision",
+    "Description": "Finds a color cluster and clicks its centroid center.",
+    "Template": "success = bot.click_color_cluster(name_or_colors='{name_or_colors}', proximity={proximity}, tolerance={tolerance}, region_index={region_index}, button='{button}', human_like={human_like})",
+    "Parameters": [
+      { "Key": "name_or_colors", "Type": "text", "DefaultValue": "ClusterName" },
+      { "Key": "proximity", "Type": "number", "DefaultValue": "20" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find All Color Clusters",
+    "Icon": "🔮",
+    "Category": "Vision",
+    "Description": "Finds all separate matching color clusters in a region. Returns a list of DynamicRegions.",
+    "Template": "clusters = bot.find_color_clusters(name_or_colors='{name_or_colors}', proximity={proximity}, tolerance={tolerance}, region_index={region_index})",
+    "Parameters": [
+      { "Key": "name_or_colors", "Type": "text", "DefaultValue": "ClusterName" },
+      { "Key": "proximity", "Type": "number", "DefaultValue": "20" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "10" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find All Images",
+    "Icon": "🖼️",
+    "Category": "Vision",
+    "Description": "Finds all occurrences of an image template in a region and returns coordinate list.",
+    "Template": "points = bot.find_all_images(template_path='{image_path}', region_index={region_index}, confidence={confidence}, max_results={max_results})",
+    "Parameters": [
+      { "Key": "image_path", "Type": "text", "DefaultValue": "template.png" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "confidence", "Type": "number", "DefaultValue": "0.8" },
+      { "Key": "max_results", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Detect Shapes (Raw)",
+    "Icon": "📐",
+    "Category": "Vision - Shapes",
+    "Description": "Detects circles, rectangles, or grids in a region. Returns list of raw dict data.",
+    "Template": "shapes = bot.detect_shapes(shape_type='{shape_type}', min_size={min_size}, max_size={max_size}, region_index={region_index})",
+    "Parameters": [
+      { "Key": "shape_type", "Type": "text", "DefaultValue": "circle" },
+      { "Key": "min_size", "Type": "number", "DefaultValue": "15" },
+      { "Key": "max_size", "Type": "text", "DefaultValue": "None" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find Shapes",
+    "Icon": "📐",
+    "Category": "Vision - Shapes",
+    "Description": "Finds shapes (circle/rectangle/grid) and returns list of interactive DynamicRegion objects.",
+    "Template": "shapes = bot.find_shapes(shape_type='{shape_type}', min_size={min_size}, max_size={max_size}, region_index={region_index})",
+    "Parameters": [
+      { "Key": "shape_type", "Type": "text", "DefaultValue": "circle" },
+      { "Key": "min_size", "Type": "number", "DefaultValue": "15" },
+      { "Key": "max_size", "Type": "text", "DefaultValue": "None" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Find Grid",
+    "Icon": "🏁",
+    "Category": "Vision - Shapes",
+    "Description": "Detects a grid of slot coordinates and returns a DynamicGrid object for cell-based clicks.",
+    "Template": "grid = bot.find_grid(min_cells={min_cells}, size_tolerance={size_tolerance}, region_index={region_index})",
+    "Parameters": [
+      { "Key": "min_cells", "Type": "number", "DefaultValue": "4" },
+      { "Key": "size_tolerance", "Type": "number", "DefaultValue": "0.15" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click Circle",
+    "Icon": "🟡",
+    "Category": "Vision - Shapes",
+    "Description": "Shortcut to detect and click a specific circle on screen in a single line.",
+    "Template": "bot.click_circle(min_size={min_size}, max_size={max_size}, region_index={region_index}, index={index}, button='{button}', human_like={human_like})",
+    "Parameters": [
+      { "Key": "min_size", "Type": "number", "DefaultValue": "15" },
+      { "Key": "max_size", "Type": "text", "DefaultValue": "None" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "index", "Type": "number", "DefaultValue": "0" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click Rectangle",
+    "Icon": "🟩",
+    "Category": "Vision - Shapes",
+    "Description": "Shortcut to detect and click a specific rectangle on screen in a single line.",
+    "Template": "bot.click_rectangle(min_size={min_size}, max_size={max_size}, region_index={region_index}, index={index}, button='{button}', human_like={human_like})",
+    "Parameters": [
+      { "Key": "min_size", "Type": "number", "DefaultValue": "15" },
+      { "Key": "max_size", "Type": "text", "DefaultValue": "None" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "index", "Type": "number", "DefaultValue": "0" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click Shape",
+    "Icon": "📐",
+    "Category": "Vision - Shapes",
+    "Description": "Shortcut to detect and click any shape on screen in a single line.",
+    "Template": "bot.click_shape(shape_type='{shape_type}', min_size={min_size}, max_size={max_size}, region_index={region_index}, index={index}, button='{button}', human_like={human_like})",
+    "Parameters": [
+      { "Key": "shape_type", "Type": "text", "DefaultValue": "circle" },
+      { "Key": "min_size", "Type": "number", "DefaultValue": "15" },
+      { "Key": "max_size", "Type": "text", "DefaultValue": "None" },
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "index", "Type": "number", "DefaultValue": "0" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "False" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Wait for Visual Change",
+    "Icon": "⏳",
+    "Category": "Vision - Motion",
+    "Description": "Blocks execution until the specified region detects a visual change.",
+    "Template": "bot.wait_for_change(region_index={region_index}, threshold={threshold}, timeout={timeout})",
+    "Parameters": [
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "threshold", "Type": "number", "DefaultValue": "0.02" },
+      { "Key": "timeout", "Type": "number", "DefaultValue": "10" }
+    ],
+    "RequiresRegion": true,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Wait for No Change (Stabilize)",
+    "Icon": "⏳",
+    "Category": "Vision - Motion",
+    "Description": "Blocks execution until the specified region becomes stable and static.",
+    "Template": "bot.wait_for_no_change(region_index={region_index}, threshold={threshold}, timeout={timeout}, duration={duration})",
+    "Parameters": [
+      { "Key": "region_index", "Type": "region", "DefaultValue": "0" },
+      { "Key": "threshold", "Type": "number", "DefaultValue": "0.01" },
+      { "Key": "timeout", "Type": "number", "DefaultValue": "10" },
+      { "Key": "duration", "Type": "number", "DefaultValue": "1.0" }
     ],
     "RequiresRegion": true,
     "InsertMode": "append"
@@ -280,17 +663,176 @@
     "InsertMode": "append"
   },
   {
-    "Name": "Drag and Drop",
-    "Icon": "↔️",
-    "Category": "Mouse",
-    "Description": "Drag from center of Region A to center of Region B.",
-    "Template": "bot.drag_and_drop(src_region_index={src_idx}, dst_region_index={dst_idx}, duration={duration})",
+    "Name": "Focus Target Window",
+    "Icon": "🖥️",
+    "Category": "Window",
+    "Description": "Brings the target game/application window to the foreground.",
+    "Template": "bot.focus_window()",
+    "Parameters": [],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Window Rectangle",
+    "Icon": "📏",
+    "Category": "Window",
+    "Description": "Retrieves the window boundaries (X, Y, Width, Height) of the target window.",
+    "Template": "rect = bot.get_window_rect()",
+    "Parameters": [],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Log Message",
+    "Icon": "📝",
+    "Category": "Helpers",
+    "Description": "Write a debug, warning, or status message to the bot log console.",
+    "Template": "bot.log('{message}')",
     "Parameters": [
-      { "Key": "src_idx", "Type": "region", "DefaultValue": "0" },
-      { "Key": "dst_idx", "Type": "region", "DefaultValue": "1" },
-      { "Key": "duration", "Type": "number", "DefaultValue": "0.5" }
+      { "Key": "message", "Type": "text", "DefaultValue": "Hello from VASbot!" }
     ],
-    "RequiresRegion": true,
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Screen to Client",
+    "Icon": "🌐",
+    "Category": "Helpers",
+    "Description": "Converts absolute screen coordinates to client window coordinates.",
+    "Template": "client_x, client_y = bot.screen_to_client(x={screen_x}, y={screen_y})",
+    "Parameters": [
+      { "Key": "screen_x", "Type": "number", "DefaultValue": "500" },
+      { "Key": "screen_y", "Type": "number", "DefaultValue": "500" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Client to Screen",
+    "Icon": "🖥️",
+    "Category": "Helpers",
+    "Description": "Converts client window coordinates to absolute screen coordinates.",
+    "Template": "screen_x, screen_y = bot.client_to_screen(x={client_x}, y={client_y})",
+    "Parameters": [
+      { "Key": "client_x", "Type": "number", "DefaultValue": "100" },
+      { "Key": "client_y", "Type": "number", "DefaultValue": "100" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Click Dynamic Region",
+    "Icon": "🎯",
+    "Category": "Dynamic Elements",
+    "Description": "Clicks the center of a resolved DynamicRegion object.",
+    "Template": "{region_var}.click(button='{button}', human_like={human_like})",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" },
+      { "Key": "button", "Type": "button", "DefaultValue": "left" },
+      { "Key": "human_like", "Type": "bool", "DefaultValue": "True" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Dynamic Region Center",
+    "Icon": "📍",
+    "Category": "Dynamic Elements",
+    "Description": "Gets absolute screen coordinates (cx, cy) of a DynamicRegion centroid.",
+    "Template": "cx, cy = {region_var}.center()",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Dynamic Region Bounds",
+    "Icon": "📏",
+    "Category": "Dynamic Elements",
+    "Description": "Gets client-relative bounds (x, y, w, h) of a DynamicRegion.",
+    "Template": "rx, ry, rw, rh = {region_var}.bounds()",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Dynamic Region Area",
+    "Icon": "📊",
+    "Category": "Dynamic Elements",
+    "Description": "Gets the count of active color pixels in a DynamicRegion.",
+    "Template": "area_px = {region_var}.area()",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Check Color in Dynamic Region",
+    "Icon": "🎨",
+    "Category": "Dynamic Elements",
+    "Description": "Checks if the DynamicRegion contains a specific hex color within tolerance.",
+    "Template": "has_color = {region_var}.contains(hex_color='{hex_color}', tolerance={tolerance})",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" },
+      { "Key": "hex_color", "Type": "color", "DefaultValue": "#FFFFFF" },
+      { "Key": "tolerance", "Type": "number", "DefaultValue": "25" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Save Dynamic Region Image",
+    "Icon": "💾",
+    "Category": "Dynamic Elements",
+    "Description": "Saves a crop of the DynamicRegion's bounding box as an image file.",
+    "Template": "success = {region_var}.save(filepath='{filepath}')",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" },
+      { "Key": "filepath", "Type": "text", "DefaultValue": "crop.png" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Highlight Dynamic Region",
+    "Icon": "✨",
+    "Category": "Dynamic Elements",
+    "Description": "Draws a temporary visual outline around the DynamicRegion on the overlay.",
+    "Template": "{region_var}.highlight(duration_sec={duration})",
+    "Parameters": [
+      { "Key": "region_var", "Type": "text", "DefaultValue": "shape_region" },
+      { "Key": "duration", "Type": "number", "DefaultValue": "1.5" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Grid Cell Count",
+    "Icon": "🔢",
+    "Category": "Dynamic Elements",
+    "Description": "Returns the number of cells detected in a DynamicGrid object.",
+    "Template": "count = {grid_var}.count()",
+    "Parameters": [
+      { "Key": "grid_var", "Type": "text", "DefaultValue": "inventory_grid" }
+    ],
+    "RequiresRegion": false,
+    "InsertMode": "append"
+  },
+  {
+    "Name": "Get Grid Cell",
+    "Icon": "🧩",
+    "Category": "Dynamic Elements",
+    "Description": "Returns an interactive DynamicRegion for a specific 1-indexed cell of a DynamicGrid.",
+    "Template": "cell_region = {grid_var}.cell(cell_index={cell_index})",
+    "Parameters": [
+      { "Key": "grid_var", "Type": "text", "DefaultValue": "inventory_grid" },
+      { "Key": "cell_index", "Type": "number", "DefaultValue": "1" }
+    ],
+    "RequiresRegion": false,
     "InsertMode": "append"
   }
 ]

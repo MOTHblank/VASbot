@@ -85,6 +85,19 @@
                                       Background="{Binding Capture.IsReflecting, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="130"/>
                         
+                        <ToggleButton Content="🖥️ OVERLAY" IsChecked="{Binding Capture.IsOverlayMirrorActive}" 
+                                      AutomationProperties.Name="Toggle Overlay Mirror"
+                                      Background="{Binding Capture.IsOverlayMirrorActive, Converter={StaticResource BooleanToRedConverter}}"
+                                      Foreground="White" FontWeight="Bold" Width="100"
+                                      ToolTip="Popout a transparent overlay directly on top of the target window client area"/>
+
+                        <ToggleButton Content="🖱️ CLICK-THRU" IsChecked="{Binding Capture.IsOverlayClickThrough}" 
+                                      Visibility="{Binding Capture.IsOverlayMirrorActive, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      AutomationProperties.Name="Toggle Overlay Click-Through"
+                                      Background="{Binding Capture.IsOverlayClickThrough, Converter={StaticResource BooleanToRedConverter}}"
+                                      Foreground="White" FontWeight="Bold" Width="115"
+                                      ToolTip="Enable click-through so clicks pass directly to the target window. Disable to select/create regions on the overlay."/>
+                        
                         <Button Content="📸 SNAP" Command="{Binding Capture.StaticCaptureCommand}" 
                                 AutomationProperties.Name="Take Static Screenshot"
                                 Visibility="{Binding Capture.IsReflecting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
@@ -427,20 +440,62 @@
                         <ScrollViewer Padding="12">
                             <StackPanel>
                                 <TextBlock Text="ACTION BUILDER" Style="{StaticResource StudioHeader}"/>
-                                <ListBox ItemsSource="{Binding Templates.FilteredTemplates}" 
-                                         SelectedItem="{Binding Templates.SelectedTemplate}"
-                                         Background="Transparent" BorderThickness="0" Margin="0,0,0,12">
-                                    <ListBox.ItemsPanel>
-                                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                    </ListBox.ItemsPanel>
-                                    <ListBox.ItemTemplate>
+                                <TextBox Text="{Binding Templates.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         ui:ControlHelper.PlaceholderText="Search actions..."
+                                         Margin="0,0,0,12" Height="32" Padding="8,4" FontSize="12"
+                                         Background="#222" Foreground="#fff" BorderBrush="#3a3a3a"
+                                         VerticalContentAlignment="Center" />
+
+                                <ItemsControl ItemsSource="{Binding Templates.GroupedTemplates}" Margin="0,0,0,12">
+                                    <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Width="42" Height="42" Background="#252525" CornerRadius="4" Margin="2" ToolTip="{Binding Name}">
-                                                <TextBlock Text="{Binding Icon}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
+                                            <Expander Header="{Binding HeaderText}" 
+                                                      IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                                                      Margin="0,0,0,6"
+                                                      Background="#202020" BorderBrush="#2a2a2a" BorderThickness="1"
+                                                      Padding="0">
+                                                <ListBox ItemsSource="{Binding Templates}"
+                                                         SelectedItem="{Binding DataContext.Templates.SelectedTemplate, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                         Background="Transparent" BorderThickness="0" Margin="0" Padding="0"
+                                                         HorizontalContentAlignment="Stretch">
+                                                    <ListBox.ItemContainerStyle>
+                                                        <Style TargetType="ListBoxItem">
+                                                            <Setter Property="Padding" Value="8,6"/>
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                            <Setter Property="Margin" Value="0,1"/>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#2A2A2A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter Property="Background" Value="#1A3333"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ListBox.ItemContainerStyle>
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,2">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Width="26" Height="26" Background="#2c2c2c" CornerRadius="4" Margin="0,0,8,0">
+                                                                    <TextBlock Text="{Binding Icon}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" Foreground="#eee"/>
+                                                                    <TextBlock Text="{Binding Description}" FontSize="9" Foreground="#888" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </Expander>
                                         </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
                                 <GroupBox Header="CONFIGURATION">
                                     <StackPanel Margin="10">
@@ -572,6 +627,7 @@
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                                                 <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="60" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold"/>
                                                 <Button Content="✕ CLEAR" Command="{Binding Capture.ClearDetectedShapesCommand}" Height="22" Width="55" Margin="4,0,0,0" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" FontSize="9" FontWeight="Bold"/>
+                                                <Button Content="💾 SAVE SHAPE" Command="{Binding Capture.SaveSelectedShapeAsRegionCommand}" Visibility="{Binding Capture.IsSaveShapeVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Height="22" Width="85" Margin="4,0,0,0" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>

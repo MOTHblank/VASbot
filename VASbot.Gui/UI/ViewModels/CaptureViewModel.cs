@@ -22,6 +22,7 @@ namespace VASbot.Gui.UI.ViewModels
         private readonly CoordinateTransformer _transformer;
         private readonly RegionManager _regionManager;
         private readonly ColorClusterManager _colorClusterManager = new();
+        private readonly System.Threading.CancellationTokenSource _bgDetectionCts = new();
 
         public ObservableCollection<ColorClusterModel> ColorClusters { get; } = new();
 
@@ -143,6 +144,25 @@ namespace VASbot.Gui.UI.ViewModels
         [ObservableProperty]
         private string _telemetryElementInfo = "Hover Element: None";
 
+        [ObservableProperty]
+        private bool _isOverlayMirrorActive;
+
+        [ObservableProperty]
+        private bool _isOverlayClickThrough = true;
+
+        partial void OnIsOverlayMirrorActiveChanged(bool value)
+        {
+            if (value && SelectedWindow != null)
+            {
+                if (!IsReflecting)
+                {
+                    IsReflecting = true;
+                }
+            }
+        }
+
+
+
         partial void OnIsReflectingChanged(bool value)
         {
             if (value && SelectedWindow != null)
@@ -214,6 +234,18 @@ namespace VASbot.Gui.UI.ViewModels
 
         [ObservableProperty]
         private RegionModel? _selectedRegion;
+
+        [ObservableProperty]
+        private DetectedShapeResult? _selectedDetectedShape;
+
+        public bool IsSaveShapeVisible => SelectedDetectedShape != null;
+
+        partial void OnSelectedDetectedShapeChanged(DetectedShapeResult? value)
+        {
+            OnPropertyChanged(nameof(IsSaveShapeVisible));
+        }
+
+        private bool _hasMouseMovedSignificantly;
 
         [ObservableProperty]
         private bool _isDraggingRegion;
@@ -327,6 +359,7 @@ namespace VASbot.Gui.UI.ViewModels
             }
             SelectedColorCluster = ColorClusters.FirstOrDefault();
             await SyncColorClustersToSidecar();
+            _ = Task.Run(() => StartBackgroundShapeDetectionLoop(_bgDetectionCts.Token));
         }
 
         partial void OnSelectedWindowChanged(WindowInfo? value)
@@ -478,6 +511,7 @@ namespace VASbot.Gui.UI.ViewModels
                     DetectedShapes.Add(s);
                 }
                 Status = $"Detected {DetectedShapes.Count} shapes.";
+                OnPropertyChanged(nameof(DetectedShapes));
             }
             catch (Exception ex)
             {
@@ -489,34 +523,110 @@ namespace VASbot.Gui.UI.ViewModels
         public void ClearDetectedShapes()
         {
             DetectedShapes.Clear();
+            SelectedDetectedShape = null;
             Status = "Cleared detected shapes.";
+            OnPropertyChanged(nameof(DetectedShapes));
+        }
+
+        [RelayCommand]
+        public async Task SaveSelectedShapeAsRegion()
+        {
+            if (SelectedDetectedShape != null)
+            {
+                var newRegion = new RegionModel
+                {
+                    X = SelectedDetectedShape.X,
+                    Y = SelectedDetectedShape.Y,
+                    Width = SelectedDetectedShape.Width,
+                    Height = SelectedDetectedShape.Height,
+                    Color = PickedColor,
+                    Name = $"Region {Regions.Count}"
+                };
+
+                if (SelectedWindow != null)
+                {
+                    newRegion.WindowTitle = SelectedWindow.Title;
+                    newRegion.WindowClass = SelectedWindow.ClassName;
+                }
+
+                Regions.Add(newRegion);
+                SelectedRegion = newRegion;
+                SelectedDetectedShape = null; // Clear selection after saving
+                
+                await _regionManager.SaveRegionsAsync(Regions);
+                await SyncRegionsToSidecar();
+                Status = $"Saved shape as {newRegion.Name}.";
+            }
+        }
+
+        private async Task StartBackgroundShapeDetectionLoop(System.Threading.CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(1000, token);
+
+                    if (IsShapesVisible && !_botService.IsRunning && IsReflecting && SelectedWindow != null && !IsMinimized)
+                    {
+                        var shapes = await _botService.DetectShapesAsync(DetectShapeType, DetectMinSize, DetectMaxSize);
+                        
+                        App.Current.Dispatcher.Invoke(() =>
+                        {
+                            // Avoid updating if both are empty to prevent property-change triggers
+                            if (shapes.Count == 0 && DetectedShapes.Count == 0) return;
+
+                            DetectedShapes.Clear();
+                            foreach (var s in shapes)
+                            {
+                                DetectedShapes.Add(s);
+                            }
+                            OnPropertyChanged(nameof(DetectedShapes));
+                        });
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception)
+                {
+                    // Ignore background errors to prevent crashing on transient RPC disconnects
+                }
+            }
         }
 
         private DateTime _lastRenderTime = DateTime.Now;
 
-        public void Render(SKCanvas canvas, float width, float height)
+        public void Render(SKCanvas canvas, float width, float height, bool isOverlay = false)
         {
             var startTime = DateTime.Now;
             ActualFps = 1.0 / (startTime - _lastRenderTime).TotalSeconds;
             _lastRenderTime = startTime;
 
-            canvas.Clear(SKColors.Black);
-            if (CurrentFrame == null) return;
+            canvas.Clear(isOverlay ? SKColors.Transparent : SKColors.Black);
+            if (!isOverlay && CurrentFrame == null) return;
 
-            _transformer.UpdateTransform(Offset, ZoomLevel);
+            var renderOffset = isOverlay ? new SKPoint(0, 0) : Offset;
+            var renderZoom = isOverlay ? 1.0 : ZoomLevel;
+
+            _transformer.UpdateTransform(renderOffset, renderZoom);
 
             canvas.Save();
-            canvas.Translate(Offset.X, Offset.Y);
-            canvas.Scale((float)ZoomLevel);
+            canvas.Translate(renderOffset.X, renderOffset.Y);
+            canvas.Scale((float)renderZoom);
 
             // 1. Draw Captured Window
-            canvas.DrawBitmap(CurrentFrame, 0, 0);
+            if (!isOverlay && CurrentFrame != null)
+            {
+                canvas.DrawBitmap(CurrentFrame, 0, 0);
+            }
 
             // 2. Draw Regions
             using var paint = new SKPaint
             {
                 Style = SKPaintStyle.Stroke,
-                StrokeWidth = 2 / (float)ZoomLevel, 
+                StrokeWidth = 2 / (float)renderZoom, 
                 IsAntialias = true
             };
 
@@ -530,7 +640,7 @@ namespace VASbot.Gui.UI.ViewModels
                     {
                         paint.Style = SKPaintStyle.Fill;
                         paint.Color = SKColors.White;
-                        float hSize = 6 / (float)ZoomLevel;
+                        float hSize = 6 / (float)renderZoom;
                         canvas.DrawRect(region.X - hSize, region.Y - hSize, hSize * 2, hSize * 2, paint);
                         canvas.DrawRect(region.X + region.Width - hSize, region.Y + region.Height - hSize, hSize * 2, hSize * 2, paint);
                         paint.Style = SKPaintStyle.Stroke;
@@ -600,12 +710,62 @@ namespace VASbot.Gui.UI.ViewModels
             if (IsUiaVisible && HighlightedRect.HasValue)
             {
                 paint.Color = SKColors.Cyan;
-                paint.StrokeWidth = 3 / (float)ZoomLevel;
+                paint.StrokeWidth = 3 / (float)renderZoom;
                 canvas.DrawRect(HighlightedRect.Value, paint);
                 
                 paint.Style = SKPaintStyle.Fill;
                 paint.Color = paint.Color.WithAlpha(40);
                 canvas.DrawRect(HighlightedRect.Value, paint);
+            }
+
+            // 4.5. Detected Shapes Overlays
+            if (IsShapesVisible)
+            {
+                foreach (var shape in DetectedShapes)
+                {
+                    float left = (float)shape.X;
+                    float top = (float)shape.Y;
+                    float right = (float)(shape.X + shape.Width);
+                    float bottom = (float)(shape.Y + shape.Height);
+                    var bbox = new SKRect(left, top, right, bottom);
+
+                    bool isSelected = SelectedDetectedShape != null && 
+                                     SelectedDetectedShape.X == shape.X && 
+                                     SelectedDetectedShape.Y == shape.Y && 
+                                     SelectedDetectedShape.Width == shape.Width && 
+                                     SelectedDetectedShape.Height == shape.Height;
+
+                    var color = isSelected ? SKColor.Parse("#39FF14") : (shape.Type == "circle" ? SKColor.Parse("#E000FF") : SKColors.Cyan);
+
+                    using (var shapePaint = new SKPaint
+                    {
+                        Color = color,
+                        Style = SKPaintStyle.Stroke,
+                        StrokeWidth = (isSelected ? 3 : 2) / (float)renderZoom,
+                        IsAntialias = true,
+                        PathEffect = isSelected ? null : SKPathEffect.CreateDash(new float[] { 4 / (float)renderZoom, 4 / (float)renderZoom }, 0)
+                    })
+                    using (var labelPaint = new SKPaint
+                    {
+                        Color = color,
+                        TextSize = 10 / (float)renderZoom,
+                        IsAntialias = true
+                    })
+                    {
+                        if (shape.Type == "circle")
+                        {
+                            float cx = (left + right) / 2;
+                            float cy = (top + bottom) / 2;
+                            float radius = (right - left) / 2;
+                            canvas.DrawCircle(cx, cy, radius, shapePaint);
+                        }
+                        else
+                        {
+                            canvas.DrawRect(bbox, shapePaint);
+                        }
+                        canvas.DrawText($"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})", left, top - 2 / (float)renderZoom, labelPaint);
+                    }
+                }
             }
 
             canvas.Restore();
@@ -631,13 +791,16 @@ namespace VASbot.Gui.UI.ViewModels
             }
 
             // 6. Performance Overlay
-            using (var perfPaint = new SKPaint { Color = SKColors.Lime, TextSize = 14, IsAntialias = true })
+            if (!isOverlay)
             {
-                MemoryUsageMb = GC.GetTotalMemory(false) / (1024 * 1024);
-                RenderTimeMs = (DateTime.Now - startTime).TotalMilliseconds;
-                
-                string perfText = $"FPS: {ActualFps:F1} | Render: {RenderTimeMs:F1}ms | RAM: {MemoryUsageMb}MB";
-                canvas.DrawText(perfText, 10, 25, perfPaint);
+                using (var perfPaint = new SKPaint { Color = SKColors.Lime, TextSize = 14, IsAntialias = true })
+                {
+                    MemoryUsageMb = GC.GetTotalMemory(false) / (1024 * 1024);
+                    RenderTimeMs = (DateTime.Now - startTime).TotalMilliseconds;
+                    
+                    string perfText = $"FPS: {ActualFps:F1} | Render: {RenderTimeMs:F1}ms | RAM: {MemoryUsageMb}MB";
+                    canvas.DrawText(perfText, 10, 25, perfPaint);
+                }
             }
 
             // 7. Floating Inspector Overlay
@@ -646,10 +809,10 @@ namespace VASbot.Gui.UI.ViewModels
                 var rect = HighlightedRect.Value;
                 // Move to canvas coords
                 var canvasRect = new SKRect(
-                    (float)(rect.Left * ZoomLevel + Offset.X),
-                    (float)(rect.Top * ZoomLevel + Offset.Y),
-                    (float)(rect.Right * ZoomLevel + Offset.X),
-                    (float)(rect.Bottom * ZoomLevel + Offset.Y)
+                    (float)(rect.Left * renderZoom + renderOffset.X),
+                    (float)(rect.Top * renderZoom + renderOffset.Y),
+                    (float)((rect.Left + rect.Width) * renderZoom + renderOffset.X),
+                    (float)((rect.Top + rect.Height) * renderZoom + renderOffset.Y)
                 );
 
                 using (var bgPaint = new SKPaint { Color = SKColors.Black.WithAlpha(180), Style = SKPaintStyle.Fill })
@@ -692,50 +855,6 @@ namespace VASbot.Gui.UI.ViewModels
                 {
                     canvas.DrawRect(ov.Bbox, ovPaint);
                     canvas.DrawText(ov.Text, ov.Bbox.Left, ov.Bbox.Top - 2, labelPaint);
-                }
-            }
-
-            // 8.5. Detected Shapes Overlays
-            if (IsShapesVisible)
-            {
-                foreach (var shape in DetectedShapes)
-                {
-                    float left = (float)(shape.X * ZoomLevel + Offset.X);
-                    float top = (float)(shape.Y * ZoomLevel + Offset.Y);
-                    float right = (float)((shape.X + shape.Width) * ZoomLevel + Offset.X);
-                    float bottom = (float)((shape.Y + shape.Height) * ZoomLevel + Offset.Y);
-                    var bbox = new SKRect(left, top, right, bottom);
-
-                    var color = shape.Type == "circle" ? SKColor.Parse("#E000FF") : SKColors.Cyan;
-
-                    using (var shapePaint = new SKPaint
-                    {
-                        Color = color,
-                        Style = SKPaintStyle.Stroke,
-                        StrokeWidth = 2,
-                        IsAntialias = true,
-                        PathEffect = SKPathEffect.CreateDash(new float[] { 4, 4 }, 0)
-                    })
-                    using (var labelPaint = new SKPaint
-                    {
-                        Color = color,
-                        TextSize = 10,
-                        IsAntialias = true
-                    })
-                    {
-                        if (shape.Type == "circle")
-                        {
-                            float cx = (left + right) / 2;
-                            float cy = (top + bottom) / 2;
-                            float radius = (right - left) / 2;
-                            canvas.DrawCircle(cx, cy, radius, shapePaint);
-                        }
-                        else
-                        {
-                            canvas.DrawRect(bbox, shapePaint);
-                        }
-                        canvas.DrawText($"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})", left, top - 2, labelPaint);
-                    }
                 }
             }
 
@@ -899,6 +1018,7 @@ namespace VASbot.Gui.UI.ViewModels
         {
             IsCreatingRegion = true;
             _startCreationPos = _transformer.CanvasToImage(new SKPoint((float)pos.X, (float)pos.Y));
+            _hasMouseMovedSignificantly = false;
 
             // Check if we clicked inside any detected shape
             DetectedShapeResult? clickedShape = null;
@@ -920,6 +1040,8 @@ namespace VASbot.Gui.UI.ViewModels
 
             if (clickedShape != null)
             {
+                SelectedDetectedShape = clickedShape;
+                
                 // Instantly pre-populate creation region with the detected shape's bounds
                 CurrentCreationRegion = new RegionModel 
                 { 
@@ -934,6 +1056,7 @@ namespace VASbot.Gui.UI.ViewModels
             }
             else
             {
+                SelectedDetectedShape = null;
                 CurrentCreationRegion = new RegionModel 
                 { 
                     X = (int)_startCreationPos.X, 
@@ -951,24 +1074,41 @@ namespace VASbot.Gui.UI.ViewModels
 
             var currentPos = _transformer.CanvasToImage(new SKPoint((float)pos.X, (float)pos.Y));
             
-            int x = (int)Math.Min(_startCreationPos.X, currentPos.X);
-            int y = (int)Math.Min(_startCreationPos.Y, currentPos.Y);
-            int w = (int)Math.Abs(_startCreationPos.X - currentPos.X);
-            int h = (int)Math.Abs(_startCreationPos.Y - currentPos.Y);
+            // Track if user dragged significantly (e.g. > 3 pixels in image space) from the creation start pos
+            double dist = Math.Sqrt(Math.Pow(currentPos.X - _startCreationPos.X, 2) + Math.Pow(currentPos.Y - _startCreationPos.Y, 2));
+            if (dist > 3)
+            {
+                _hasMouseMovedSignificantly = true;
+            }
 
-            CurrentCreationRegion.X = x;
-            CurrentCreationRegion.Y = y;
-            CurrentCreationRegion.Width = w;
-            CurrentCreationRegion.Height = h;
-            
-            OnPropertyChanged(nameof(CurrentCreationRegion));
+            if (_hasMouseMovedSignificantly || SelectedDetectedShape == null)
+            {
+                int x = (int)Math.Min(_startCreationPos.X, currentPos.X);
+                int y = (int)Math.Min(_startCreationPos.Y, currentPos.Y);
+                int w = (int)Math.Abs(_startCreationPos.X - currentPos.X);
+                int h = (int)Math.Abs(_startCreationPos.Y - currentPos.Y);
+
+                CurrentCreationRegion.X = x;
+                CurrentCreationRegion.Y = y;
+                CurrentCreationRegion.Width = w;
+                CurrentCreationRegion.Height = h;
+                
+                OnPropertyChanged(nameof(CurrentCreationRegion));
+            }
         }
 
         public async Task EndCreationAsync()
         {
             if (IsCreatingRegion && CurrentCreationRegion != null)
             {
-                if (CurrentCreationRegion.Width > 2 && CurrentCreationRegion.Height > 2)
+                if (SelectedDetectedShape != null && !_hasMouseMovedSignificantly)
+                {
+                    // Plain click inside a shape (no significant dragging). 
+                    // Select it so the neon green highlight draws, but don't add to static regions yet.
+                    // The user can now click "SAVE SHAPE" to save it by choice!
+                    CurrentCreationRegion = null;
+                }
+                else if (CurrentCreationRegion.Width > 2 && CurrentCreationRegion.Height > 2)
                 {
                     CurrentCreationRegion.Color = PickedColor; // Heritage logic: Use the current picked color
                     CurrentCreationRegion.Name = $"Region {Regions.Count}";
@@ -981,6 +1121,7 @@ namespace VASbot.Gui.UI.ViewModels
 
                     Regions.Add(CurrentCreationRegion);
                     SelectedRegion = CurrentCreationRegion;
+                    SelectedDetectedShape = null; // Clear shape selection since we drew a custom region
                     await _regionManager.SaveRegionsAsync(Regions);
                     await SyncRegionsToSidecar();
                 }
@@ -993,6 +1134,13 @@ namespace VASbot.Gui.UI.ViewModels
                     if (clickedRegion != null)
                     {
                         SelectedRegion = clickedRegion;
+                        SelectedDetectedShape = null;
+                    }
+                    else
+                    {
+                        // Clicked empty space: clear selections
+                        SelectedRegion = null;
+                        SelectedDetectedShape = null;
                     }
                 }
             }
@@ -1040,6 +1188,8 @@ namespace VASbot.Gui.UI.ViewModels
 
         public void Dispose()
         {
+            try { _bgDetectionCts.Cancel(); } catch {}
+            try { _bgDetectionCts.Dispose(); } catch {}
             _reflectionService.Stop();
             _screenshotService.Dispose();
         }
@@ -1053,6 +1203,16 @@ namespace VASbot.Gui.UI.ViewModels
                 return new System.Windows.Rect(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
             }
             return null;
+        }
+
+        public void UpdateTransformerState()
+        {
+            _transformer.UpdateTransform(Offset, ZoomLevel);
+        }
+
+        public void UpdateTransformerStateForOverlay()
+        {
+            _transformer.UpdateTransform(new SKPoint(0, 0), 1.0);
         }
 
         public void HighlightScreenRect(System.Windows.Rect screenRect)

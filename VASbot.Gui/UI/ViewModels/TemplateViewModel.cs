@@ -14,12 +14,36 @@ namespace VASbot.Gui.UI.ViewModels
 
         public ObservableCollection<ScriptTemplate> FilteredTemplates { get; } = new();
         public ObservableCollection<string> Categories { get; } = new();
+        public ObservableCollection<TemplateCategoryGroup> GroupedTemplates { get; } = new();
 
         [ObservableProperty]
         private string? _selectedCategory;
 
         [ObservableProperty]
+        private string _searchQuery = "";
+
         private ScriptTemplate? _selectedTemplate;
+        public ScriptTemplate? SelectedTemplate
+        {
+            get => _selectedTemplate;
+            set
+            {
+                if (_selectedTemplate == value) return;
+
+                // Guard: Ignore setting to null if it's triggered by WPF listbox selection mismatched items,
+                // unless we explicitly allow it (e.g. when we are resetting or filtering).
+                if (value == null && !_allowNullSelection)
+                {
+                    return;
+                }
+
+                _selectedTemplate = value;
+                OnPropertyChanged(nameof(SelectedTemplate));
+                OnSelectedTemplateChanged(value);
+            }
+        }
+
+        private bool _allowNullSelection = false;
 
         [ObservableProperty]
         private string _codePreview = "";
@@ -53,7 +77,9 @@ namespace VASbot.Gui.UI.ViewModels
 
         partial void OnSelectedCategoryChanged(string? value) => ApplyFilter();
 
-        partial void OnSelectedTemplateChanged(ScriptTemplate? value)
+        partial void OnSearchQueryChanged(string value) => ApplyFilter();
+
+        private void OnSelectedTemplateChanged(ScriptTemplate? value)
         {
             CurrentParams.Clear();
             if (value != null)
@@ -88,12 +114,66 @@ namespace VASbot.Gui.UI.ViewModels
         private void ApplyFilter()
         {
             FilteredTemplates.Clear();
+            GroupedTemplates.Clear();
+
             var query = _allTemplates.AsEnumerable();
-            if (SelectedCategory != "All")
+            if (SelectedCategory != "All" && SelectedCategory != null)
                 query = query.Where(t => t.Category == SelectedCategory);
-            
-            foreach (var t in query)
+
+            if (!string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                var q = SearchQuery.Trim();
+                query = query.Where(t =>
+                    (t.Name != null && t.Name.Contains(q, System.StringComparison.OrdinalIgnoreCase)) ||
+                    (t.Description != null && t.Description.Contains(q, System.StringComparison.OrdinalIgnoreCase)) ||
+                    (t.Category != null && t.Category.Contains(q, System.StringComparison.OrdinalIgnoreCase))
+                );
+            }
+
+            var list = query.ToList();
+            foreach (var t in list)
                 FilteredTemplates.Add(t);
+
+            // Group by category
+            var groups = list.GroupBy(t => t.Category ?? "Helpers")
+                             .OrderBy(g => g.Key);
+
+            bool isSearching = !string.IsNullOrWhiteSpace(SearchQuery);
+
+            foreach (var g in groups)
+            {
+                var categoryName = g.Key;
+                var icon = GetCategoryIcon(categoryName);
+                var groupObj = new TemplateCategoryGroup(categoryName, icon, g);
+                groupObj.IsExpanded = isSearching; // Auto-expand when searching
+                GroupedTemplates.Add(groupObj);
+            }
+
+            if (SelectedTemplate != null && !FilteredTemplates.Contains(SelectedTemplate))
+            {
+                _allowNullSelection = true;
+                SelectedTemplate = null;
+                _allowNullSelection = false;
+            }
+        }
+
+        private static string GetCategoryIcon(string category)
+        {
+            return category switch
+            {
+                "Logic" => "🧠",
+                "Time" => "⏱️",
+                "Mouse" => "🖱️",
+                "Keyboard" => "⌨️",
+                "Vision" => "👁️",
+                "Vision - Shapes" => "🎨",
+                "Vision - Motion" => "🔄",
+                "Window" => "🪟",
+                "Helpers" => "🛠️",
+                "Dynamic Elements" => "⚡",
+                "User Snippets" => "📦",
+                _ => "📁"
+            };
         }
 
         [RelayCommand]
@@ -135,6 +215,26 @@ namespace VASbot.Gui.UI.ViewModels
             _templateService.SaveTemplate(newTemplate);
             LoadTemplates();
             SelectedCategory = "User Snippets";
+        }
+    }
+
+    public partial class TemplateCategoryGroup : ObservableObject
+    {
+        public string Name { get; }
+        public string Icon { get; }
+        public string HeaderText => $"{Icon}  {Name} ({Templates.Count})";
+
+        public ObservableCollection<ScriptTemplate> Templates { get; }
+
+        [ObservableProperty]
+        private bool _isExpanded;
+
+        public TemplateCategoryGroup(string name, string icon, IEnumerable<ScriptTemplate> templates)
+        {
+            Name = name;
+            Icon = icon;
+            Templates = new ObservableCollection<ScriptTemplate>(templates);
+            _isExpanded = false;
         }
     }
 

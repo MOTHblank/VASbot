@@ -29,6 +29,7 @@ namespace VASbot.Gui
         private GlobalHotkeyService? _globalHotkeyService;
         private ErrorLineBackgroundRenderer? _errorRenderer;
         private ToolTip? _imageTooltip;
+        private UI.Views.LiveMirrorOverlayWindow? _overlayWindow;
 
         public MainWindow(
             MainViewModel viewModel, 
@@ -57,6 +58,7 @@ namespace VASbot.Gui
         {
             SetupScriptEditorSync();
             SetupCaptureInvalidation();
+            SetupOverlayMirrorTracking();
             SetupGlobalHotkeys();
             SetupTemplateListener();
         }
@@ -113,11 +115,64 @@ namespace VASbot.Gui
                 if (e.PropertyName == nameof(CaptureViewModel.CurrentFrame) || 
                     e.PropertyName == nameof(CaptureViewModel.ZoomLevel) ||
                     e.PropertyName == nameof(CaptureViewModel.Offset) ||
-                    e.PropertyName == nameof(CaptureViewModel.HighlightedRect))
+                    e.PropertyName == nameof(CaptureViewModel.HighlightedRect) ||
+                    e.PropertyName == nameof(CaptureViewModel.IsShapesVisible) ||
+                    e.PropertyName == nameof(CaptureViewModel.DetectedShapes))
                 {
                     Application.Current.Dispatcher.Invoke(() => SkiaElement.InvalidateVisual());
                 }
             };
+        }
+
+        private void SetupOverlayMirrorTracking()
+        {
+            _viewModel.Capture.PropertyChanged += (s, e) => {
+                if (e.PropertyName == nameof(CaptureViewModel.IsOverlayMirrorActive))
+                {
+                    Dispatcher.Invoke(() => {
+                        if (_viewModel.Capture.IsOverlayMirrorActive)
+                        {
+                            OpenOverlayWindow();
+                        }
+                        else
+                        {
+                            CloseOverlayWindow();
+                        }
+                    });
+                }
+            };
+        }
+
+        private void OpenOverlayWindow()
+        {
+            if (_overlayWindow != null) return;
+
+            if (_viewModel.Capture.SelectedWindow == null)
+            {
+                MessageBox.Show("Please select a target window first.", "No Target Window", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _viewModel.Capture.IsOverlayMirrorActive = false;
+                return;
+            }
+
+            _overlayWindow = new UI.Views.LiveMirrorOverlayWindow(_viewModel);
+            _overlayWindow.Closed += (s, e) => {
+                _overlayWindow = null;
+                _viewModel.Capture.IsOverlayMirrorActive = false;
+            };
+            _overlayWindow.Show();
+        }
+
+        private void CloseOverlayWindow()
+        {
+            if (_overlayWindow != null)
+            {
+                try
+                {
+                    _overlayWindow.Close();
+                }
+                catch { }
+                _overlayWindow = null;
+            }
         }
 
         private void SetupGlobalHotkeys()
@@ -479,6 +534,8 @@ namespace VASbot.Gui
 
         protected override void OnClosed(EventArgs e)
         {
+            CloseOverlayWindow();
+
             // Note: Services are stopped by the AppHost in App.xaml.cs, 
             // but we ensure immediate disposal here if necessary.
             _viewModel.Capture.Dispose();
