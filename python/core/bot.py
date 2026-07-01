@@ -396,20 +396,34 @@ class Bot:
 
     def type_text(self, text, delay=0.05):
         """Types the given text using unicode characters."""
-        for char in text:
-            key_input_down = KeyBdInput(
-                wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE
-            )
-            key_input_up = KeyBdInput(
-                wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
-            )
-            self._send_input(
-                [
-                    Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_down)),
-                    Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_up)),
-                ]
-            )
-            time.sleep(delay)
+        if delay <= 0:
+            inputs = []
+            for char in text:
+                key_input_down = KeyBdInput(
+                    wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE
+                )
+                key_input_up = KeyBdInput(
+                    wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
+                )
+                inputs.append(Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_down)))
+                inputs.append(Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_up)))
+            if inputs:
+                self._send_input(inputs)
+        else:
+            for char in text:
+                key_input_down = KeyBdInput(
+                    wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE
+                )
+                key_input_up = KeyBdInput(
+                    wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
+                )
+                self._send_input(
+                    [
+                        Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_down)),
+                        Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_up)),
+                    ]
+                )
+                time.sleep(delay)
 
     def press_key(self, key, modifiers=None):
         """Presses a key with optional modifiers."""
