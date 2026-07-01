@@ -776,6 +776,48 @@ class BotAPI:
         )
         return False
 
+    def get_region_state(self, region_index, tolerance=10):
+        self.check_running()
+        region = self._resolve_region(region_index)
+        if not region:
+            return "unknown"
+            
+        active_color = region.get("active_color", "")
+        depleted_color = region.get("depleted_color", "")
+        
+        if active_color and self.find_color(active_color, region_index, tolerance):
+            return "active"
+        if depleted_color and self.find_color(depleted_color, region_index, tolerance):
+            return "depleted"
+            
+        return "unknown"
+
+    def wait_for_region_state(self, region_index, state, timeout=30.0, tolerance=10, check_interval=0.15):
+        self.check_running()
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            self.check_running()
+            if self.get_region_state(region_index, tolerance) == state:
+                return True
+            self.wait(check_interval)
+        self.log(
+            f"Timeout: Region {region_index} did not transition to state '{state}' after {timeout} seconds."
+        )
+        return False
+
+    def click_region_color(self, region_index, state, tolerance=10, button="left"):
+        self.check_running()
+        region = self._resolve_region(region_index)
+        if not region:
+            return False
+            
+        color = region.get(f"{state}_color", "")
+        if not color:
+            self.log(f"Error: State '{state}' is not configured with a color for region {region_index}")
+            return False
+            
+        return self.find_and_click_color(color, region_index, tolerance, button)
+
     def hover_color(self, hex_color, region_index, tolerance=10, human_like=True):
         result = self.find_color(hex_color, region_index, tolerance)
         if result:

@@ -402,6 +402,34 @@ namespace VASbot.Gui.UI.ViewModels
         }
 
         [RelayCommand]
+        public async Task PickRegionActiveColor(RegionModel region)
+        {
+            if (region == null) return;
+            var dialog = new System.Windows.Forms.ColorDialog();
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var color = dialog.Color;
+                region.ActiveColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                await _regionManager.SaveRegionsAsync(Regions);
+                await SyncRegionsToSidecar();
+            }
+        }
+
+        [RelayCommand]
+        public async Task PickRegionDepletedColor(RegionModel region)
+        {
+            if (region == null) return;
+            var dialog = new System.Windows.Forms.ColorDialog();
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var color = dialog.Color;
+                region.DepletedColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                await _regionManager.SaveRegionsAsync(Regions);
+                await SyncRegionsToSidecar();
+            }
+        }
+
+        [RelayCommand]
         public async Task SaveRegionAsPngAsync(RegionModel region)
         {
             if (region == null || CurrentFrame == null) return;

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tbot.proto\x12\x06vasbot\"\x07\n\x05\x45mpty\"5\n\rScriptRequest\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x02 \x01(\t\"4\n\tScriptLog\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x02 \x01(\t\"\r\n\x0bStopRequest\"\x1f\n\x0cStopResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x0f\n\rStatusRequest\"$\n\x0eStatusResponse\x12\x12\n\nis_running\x18\x01 \x01(\x08\"\r\n\x0bPingRequest\"!\n\x0cPingResponse\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\"\x0f\n\rHealthRequest\"\x82\x01\n\x0eHealthResponse\x12\x34\n\x06status\x18\x01 \x01(\x0e\x32$.vasbot.HealthResponse.ServingStatus\":\n\rServingStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07SERVING\x10\x01\x12\x0f\n\x0bNOT_SERVING\x10\x02\"[\n\x11\x46rameNotification\x12\x17\n\x0fmemory_map_name\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0e\n\x06stride\x18\x04 \x01(\x05\"%\n\rFrameResponse\x12\x14\n\x0c\x61\x63knowledged\x18\x01 \x01(\x08\"i\n\x06Region\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\r\n\x05width\x18\x04 \x01(\x05\x12\x0e\n\x06height\x18\x05 \x01(\x05\x12\r\n\x05index\x18\x06 \x01(\x05\x12\r\n\x05\x63olor\x18\x07 \x01(\t\"T\n\nRegionList\x12\x1f\n\x07regions\x18\x01 \x03(\x0b\x32\x0e.vasbot.Region\x12\x11\n\tref_width\x18\x02 \x01(\x05\x12\x12\n\nref_height\x18\x03 \x01(\x05\"R\n\x0c\x43olorCluster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06\x63olors\x18\x02 \x03(\t\x12\x11\n\tproximity\x18\x03 \x01(\x05\x12\x11\n\ttolerance\x18\x04 \x01(\x05\":\n\x10\x43olorClusterList\x12&\n\x08\x63lusters\x18\x01 \x03(\x0b\x32\x14.vasbot.ColorCluster\",\n\rWindowContext\x12\x0c\n\x04hwnd\x18\x01 \x01(\x04\x12\r\n\x05title\x18\x02 \x01(\t\"P\n\x0e\x45lementRequest\x12\x14\n\x0c\x63ontrol_type\x18\x01 \x01(\t\x12\x12\n\nidentifier\x18\x02 \x01(\t\x12\x14\n\x0c\x64ouble_click\x18\x03 \x01(\x08\"D\n\x0bTypeRequest\x12\x12\n\nidentifier\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x13\n\x0b\x63lear_first\x18\x03 \x01(\x08\"/\n\rWindowRequest\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0f\n\x07timeout\x18\x02 \x01(\x02\"2\n\x0eUpdateResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"4\n\x11RecordingResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06script\x18\x02 \x01(\t\"O\n\x15ShapeDetectionRequest\x12\x12\n\nshape_type\x18\x01 \x01(\t\x12\x10\n\x08min_size\x18\x02 \x01(\x05\x12\x10\n\x08max_size\x18\x03 \x01(\x05\"f\n\rDetectedShape\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\r\n\x05width\x18\x04 \x01(\x05\x12\x0e\n\x06height\x18\x05 \x01(\x05\x12\x12\n\nconfidence\x18\x06 \x01(\x01\"?\n\x16ShapeDetectionResponse\x12%\n\x06shapes\x18\x01 \x03(\x0b\x32\x15.vasbot.DetectedShape2\xbe\x07\n\nBotService\x12;\n\rExecuteScript\x12\x15.vasbot.ScriptRequest\x1a\x11.vasbot.ScriptLog0\x01\x12\x37\n\nStopScript\x12\x13.vasbot.StopRequest\x1a\x14.vasbot.StopResponse\x12:\n\tGetStatus\x12\x15.vasbot.StatusRequest\x1a\x16.vasbot.StatusResponse\x12\x31\n\x04Ping\x12\x13.vasbot.PingRequest\x1a\x14.vasbot.PingResponse\x12<\n\x0b\x43heckHealth\x12\x15.vasbot.HealthRequest\x1a\x16.vasbot.HealthResponse\x12\x45\n\x11NotifyFrameUpdate\x12\x19.vasbot.FrameNotification\x1a\x15.vasbot.FrameResponse\x12;\n\rUpdateRegions\x12\x12.vasbot.RegionList\x1a\x16.vasbot.UpdateResponse\x12G\n\x13UpdateColorClusters\x12\x18.vasbot.ColorClusterList\x1a\x16.vasbot.UpdateResponse\x12@\n\x0fSetTargetWindow\x12\x15.vasbot.WindowContext\x1a\x16.vasbot.UpdateResponse\x12\x37\n\x0eStartRecording\x12\r.vasbot.Empty\x1a\x16.vasbot.UpdateResponse\x12\x39\n\rStopRecording\x12\r.vasbot.Empty\x1a\x19.vasbot.RecordingResponse\x12>\n\x0c\x43lickElement\x12\x16.vasbot.ElementRequest\x1a\x16.vasbot.UpdateResponse\x12>\n\x0fTypeIntoElement\x12\x13.vasbot.TypeRequest\x1a\x16.vasbot.UpdateResponse\x12;\n\nWaitWindow\x12\x15.vasbot.WindowRequest\x1a\x16.vasbot.UpdateResponse\x12M\n\x0c\x44\x65tectShapes\x12\x1d.vasbot.ShapeDetectionRequest\x1a\x1e.vasbot.ShapeDetectionResponseB\x14\xaa\x02\x11VASbot.Gui.Protosb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tbot.proto\x12\x06vasbot\"\x07\n\x05\x45mpty\"5\n\rScriptRequest\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x02 \x01(\t\"4\n\tScriptLog\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x02 \x01(\t\"\r\n\x0bStopRequest\"\x1f\n\x0cStopResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x0f\n\rStatusRequest\"$\n\x0eStatusResponse\x12\x12\n\nis_running\x18\x01 \x01(\x08\"\r\n\x0bPingRequest\"!\n\x0cPingResponse\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\"\x0f\n\rHealthRequest\"\x82\x01\n\x0eHealthResponse\x12\x34\n\x06status\x18\x01 \x01(\x0e\x32$.vasbot.HealthResponse.ServingStatus\":\n\rServingStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07SERVING\x10\x01\x12\x0f\n\x0bNOT_SERVING\x10\x02\"[\n\x11\x46rameNotification\x12\x17\n\x0fmemory_map_name\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0e\n\x06stride\x18\x04 \x01(\x05\"%\n\rFrameResponse\x12\x14\n\x0c\x61\x63knowledged\x18\x01 \x01(\x08\"\x97\x01\n\x06Region\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\r\n\x05width\x18\x04 \x01(\x05\x12\x0e\n\x06height\x18\x05 \x01(\x05\x12\r\n\x05index\x18\x06 \x01(\x05\x12\r\n\x05\x63olor\x18\x07 \x01(\t\x12\x14\n\x0c\x61\x63tive_color\x18\x08 \x01(\t\x12\x16\n\x0e\x64\x65pleted_color\x18\t \x01(\t\"T\n\nRegionList\x12\x1f\n\x07regions\x18\x01 \x03(\x0b\x32\x0e.vasbot.Region\x12\x11\n\tref_width\x18\x02 \x01(\x05\x12\x12\n\nref_height\x18\x03 \x01(\x05\"R\n\x0c\x43olorCluster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06\x63olors\x18\x02 \x03(\t\x12\x11\n\tproximity\x18\x03 \x01(\x05\x12\x11\n\ttolerance\x18\x04 \x01(\x05\":\n\x10\x43olorClusterList\x12&\n\x08\x63lusters\x18\x01 \x03(\x0b\x32\x14.vasbot.ColorCluster\",\n\rWindowContext\x12\x0c\n\x04hwnd\x18\x01 \x01(\x04\x12\r\n\x05title\x18\x02 \x01(\t\"P\n\x0e\x45lementRequest\x12\x14\n\x0c\x63ontrol_type\x18\x01 \x01(\t\x12\x12\n\nidentifier\x18\x02 \x01(\t\x12\x14\n\x0c\x64ouble_click\x18\x03 \x01(\x08\"D\n\x0bTypeRequest\x12\x12\n\nidentifier\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x13\n\x0b\x63lear_first\x18\x03 \x01(\x08\"/\n\rWindowRequest\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0f\n\x07timeout\x18\x02 \x01(\x02\"2\n\x0eUpdateResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"4\n\x11RecordingResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06script\x18\x02 \x01(\t\"O\n\x15ShapeDetectionRequest\x12\x12\n\nshape_type\x18\x01 \x01(\t\x12\x10\n\x08min_size\x18\x02 \x01(\x05\x12\x10\n\x08max_size\x18\x03 \x01(\x05\"f\n\rDetectedShape\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\r\n\x05width\x18\x04 \x01(\x05\x12\x0e\n\x06height\x18\x05 \x01(\x05\x12\x12\n\nconfidence\x18\x06 \x01(\x01\"?\n\x16ShapeDetectionResponse\x12%\n\x06shapes\x18\x01 \x03(\x0b\x32\x15.vasbot.DetectedShape2\xbe\x07\n\nBotService\x12;\n\rExecuteScript\x12\x15.vasbot.ScriptRequest\x1a\x11.vasbot.ScriptLog0\x01\x12\x37\n\nStopScript\x12\x13.vasbot.StopRequest\x1a\x14.vasbot.StopResponse\x12:\n\tGetStatus\x12\x15.vasbot.StatusRequest\x1a\x16.vasbot.StatusResponse\x12\x31\n\x04Ping\x12\x13.vasbot.PingRequest\x1a\x14.vasbot.PingResponse\x12<\n\x0b\x43heckHealth\x12\x15.vasbot.HealthRequest\x1a\x16.vasbot.HealthResponse\x12\x45\n\x11NotifyFrameUpdate\x12\x19.vasbot.FrameNotification\x1a\x15.vasbot.FrameResponse\x12;\n\rUpdateRegions\x12\x12.vasbot.RegionList\x1a\x16.vasbot.UpdateResponse\x12G\n\x13UpdateColorClusters\x12\x18.vasbot.ColorClusterList\x1a\x16.vasbot.UpdateResponse\x12@\n\x0fSetTargetWindow\x12\x15.vasbot.WindowContext\x1a\x16.vasbot.UpdateResponse\x12\x37\n\x0eStartRecording\x12\r.vasbot.Empty\x1a\x16.vasbot.UpdateResponse\x12\x39\n\rStopRecording\x12\r.vasbot.Empty\x1a\x19.vasbot.RecordingResponse\x12>\n\x0c\x43lickElement\x12\x16.vasbot.ElementRequest\x1a\x16.vasbot.UpdateResponse\x12>\n\x0fTypeIntoElement\x12\x13.vasbot.TypeRequest\x1a\x16.vasbot.UpdateResponse\x12;\n\nWaitWindow\x12\x15.vasbot.WindowRequest\x1a\x16.vasbot.UpdateResponse\x12M\n\x0c\x44\x65tectShapes\x12\x1d.vasbot.ShapeDetectionRequest\x1a\x1e.vasbot.ShapeDetectionResponseB\x14\xaa\x02\x11VASbot.Gui.Protosb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -60,32 +60,32 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_FRAMENOTIFICATION']._serialized_end=533
   _globals['_FRAMERESPONSE']._serialized_start=535
   _globals['_FRAMERESPONSE']._serialized_end=572
-  _globals['_REGION']._serialized_start=574
-  _globals['_REGION']._serialized_end=679
-  _globals['_REGIONLIST']._serialized_start=681
-  _globals['_REGIONLIST']._serialized_end=765
-  _globals['_COLORCLUSTER']._serialized_start=767
-  _globals['_COLORCLUSTER']._serialized_end=849
-  _globals['_COLORCLUSTERLIST']._serialized_start=851
-  _globals['_COLORCLUSTERLIST']._serialized_end=909
-  _globals['_WINDOWCONTEXT']._serialized_start=911
-  _globals['_WINDOWCONTEXT']._serialized_end=955
-  _globals['_ELEMENTREQUEST']._serialized_start=957
-  _globals['_ELEMENTREQUEST']._serialized_end=1037
-  _globals['_TYPEREQUEST']._serialized_start=1039
-  _globals['_TYPEREQUEST']._serialized_end=1107
-  _globals['_WINDOWREQUEST']._serialized_start=1109
-  _globals['_WINDOWREQUEST']._serialized_end=1156
-  _globals['_UPDATERESPONSE']._serialized_start=1158
-  _globals['_UPDATERESPONSE']._serialized_end=1208
-  _globals['_RECORDINGRESPONSE']._serialized_start=1210
-  _globals['_RECORDINGRESPONSE']._serialized_end=1262
-  _globals['_SHAPEDETECTIONREQUEST']._serialized_start=1264
-  _globals['_SHAPEDETECTIONREQUEST']._serialized_end=1343
-  _globals['_DETECTEDSHAPE']._serialized_start=1345
-  _globals['_DETECTEDSHAPE']._serialized_end=1447
-  _globals['_SHAPEDETECTIONRESPONSE']._serialized_start=1449
-  _globals['_SHAPEDETECTIONRESPONSE']._serialized_end=1512
-  _globals['_BOTSERVICE']._serialized_start=1515
-  _globals['_BOTSERVICE']._serialized_end=2473
+  _globals['_REGION']._serialized_start=575
+  _globals['_REGION']._serialized_end=726
+  _globals['_REGIONLIST']._serialized_start=728
+  _globals['_REGIONLIST']._serialized_end=812
+  _globals['_COLORCLUSTER']._serialized_start=814
+  _globals['_COLORCLUSTER']._serialized_end=896
+  _globals['_COLORCLUSTERLIST']._serialized_start=898
+  _globals['_COLORCLUSTERLIST']._serialized_end=956
+  _globals['_WINDOWCONTEXT']._serialized_start=958
+  _globals['_WINDOWCONTEXT']._serialized_end=1002
+  _globals['_ELEMENTREQUEST']._serialized_start=1004
+  _globals['_ELEMENTREQUEST']._serialized_end=1084
+  _globals['_TYPEREQUEST']._serialized_start=1086
+  _globals['_TYPEREQUEST']._serialized_end=1154
+  _globals['_WINDOWREQUEST']._serialized_start=1156
+  _globals['_WINDOWREQUEST']._serialized_end=1203
+  _globals['_UPDATERESPONSE']._serialized_start=1205
+  _globals['_UPDATERESPONSE']._serialized_end=1255
+  _globals['_RECORDINGRESPONSE']._serialized_start=1257
+  _globals['_RECORDINGRESPONSE']._serialized_end=1309
+  _globals['_SHAPEDETECTIONREQUEST']._serialized_start=1311
+  _globals['_SHAPEDETECTIONREQUEST']._serialized_end=1390
+  _globals['_DETECTEDSHAPE']._serialized_start=1392
+  _globals['_DETECTEDSHAPE']._serialized_end=1494
+  _globals['_SHAPEDETECTIONRESPONSE']._serialized_start=1496
+  _globals['_SHAPEDETECTIONRESPONSE']._serialized_end=1559
+  _globals['_BOTSERVICE']._serialized_start=1562
+  _globals['_BOTSERVICE']._serialized_end=2520
 # @@protoc_insertion_point(module_scope)

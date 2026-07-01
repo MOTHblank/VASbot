@@ -81,20 +81,33 @@ namespace VASbot.Gui.UI.ViewModels
                 _mainViewModel.Regions.Clear();
                 _mainViewModel.Capture.Regions.Clear();
                 
+                // Helper functions to extract properties from a single dict block
+                int GetIntParam(string block, string key)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(block, $"'{key}':\\s*(\\d+)");
+                    return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+                }
+
+                string GetStringParam(string block, string key, string defaultValue = "")
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(block, $"'{key}':\\s*'([^']*)'");
+                    return match.Success ? match.Groups[1].Value : defaultValue;
+                }
+
                 // Parse each region entry
-                var regionMatches = System.Text.RegularExpressions.Regex.Matches(
-                    regionsContent,
-                    @"\{'x':\s*(\d+),\s*'y':\s*(\d+),\s*'width':\s*(\d+),\s*'height':\s*(\d+),\s*'color':\s*'([^']+)'\}"
-                );
+                var regionBlocks = System.Text.RegularExpressions.Regex.Matches(regionsContent, @"\{([^}]+)\}");
                 
                 int index = 0;
-                foreach (System.Text.RegularExpressions.Match rMatch in regionMatches)
+                foreach (System.Text.RegularExpressions.Match rBlock in regionBlocks)
                 {
-                    int x = int.Parse(rMatch.Groups[1].Value);
-                    int y = int.Parse(rMatch.Groups[2].Value);
-                    int w = int.Parse(rMatch.Groups[3].Value);
-                    int h = int.Parse(rMatch.Groups[4].Value);
-                    string color = rMatch.Groups[5].Value;
+                    string block = rBlock.Groups[1].Value;
+                    int x = GetIntParam(block, "x");
+                    int y = GetIntParam(block, "y");
+                    int w = GetIntParam(block, "width");
+                    int h = GetIntParam(block, "height");
+                    string color = GetStringParam(block, "color", "#FF3A3A");
+                    string activeColor = GetStringParam(block, "active_color", "");
+                    string depletedColor = GetStringParam(block, "depleted_color", "");
                     
                     // Create RegionModel for Capture (UI display)
                     var regionModel = new RegionModel
@@ -105,7 +118,9 @@ namespace VASbot.Gui.UI.ViewModels
                         Y = y,
                         Width = w,
                         Height = h,
-                        Color = color
+                        Color = color,
+                        ActiveColor = activeColor,
+                        DepletedColor = depletedColor
                     };
                     
                     // Also create RegionViewModel for MainViewModel
@@ -121,7 +136,7 @@ namespace VASbot.Gui.UI.ViewModels
                     _mainViewModel.Capture.Regions.Add(regionModel);
                     _mainViewModel.Regions.Add(regionViewModel);
                     
-                    AddLog($"Added region {index}: x={x}, y={y}, color={color}");
+                    AddLog($"Added region {index}: x={x}, y={y}, color={color}, active={activeColor}, depleted={depletedColor}");
                     index++;
                 }
                 
@@ -284,7 +299,7 @@ namespace VASbot.Gui.UI.ViewModels
             for (int i = 0; i < (_mainViewModel?.Capture?.Regions?.Count ?? 0); i++)
             {
                 var r = _mainViewModel!.Capture!.Regions![i]!;
-                string line = $"    {{'x': {r.X}, 'y': {r.Y}, 'width': {r.Width}, 'height': {r.Height}, 'color': '{r.Color}'}}";
+                string line = $"    {{'x': {r.X}, 'y': {r.Y}, 'width': {r.Width}, 'height': {r.Height}, 'color': '{r.Color}', 'active_color': '{r.ActiveColor}', 'depleted_color': '{r.DepletedColor}'}}";
                 if (i < _mainViewModel.Capture.Regions.Count - 1)
                     line += ",";
                 regionsCode.AppendLine(line);

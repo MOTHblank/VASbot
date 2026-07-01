@@ -79,6 +79,8 @@ message Region {
   int32 height = 5;
   int32 index = 6;
   string color = 7;  // Hex color string e.g. "#FF0000"
+  string active_color = 8;
+  string depleted_color = 9;
 }
 
 message RegionList {

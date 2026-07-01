@@ -116,7 +116,15 @@ namespace VASbot.Gui.Engine
                 foreach (var r in regions)
                 {
                     list.Regions.Add(new VASbot.Gui.Protos.Region {
-                        Name = r.Name, X = r.X, Y = r.Y, Width = r.Width, Height = r.Height, Index = index++
+                        Name = r.Name, 
+                        X = r.X, 
+                        Y = r.Y, 
+                        Width = r.Width, 
+                        Height = r.Height, 
+                        Index = index++,
+                        Color = r.Color ?? "",
+                        ActiveColor = r.ActiveColor ?? "",
+                        DepletedColor = r.DepletedColor ?? ""
                     });
                 }
                 var response = await _client.UpdateRegionsAsync(list, WithDeadline());

@@ -610,6 +610,7 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
                                     <!-- Shape Detection Toolbar -->
@@ -679,6 +680,41 @@
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
                                     </ListBox>
+
+                                    <!-- Selected Region Inspector (Active/Depleted States) -->
+                                    <Border Grid.Row="2" Background="#1c1c1c" BorderBrush="#2d2d2d" BorderThickness="0,1,0,0" Padding="8"
+                                            Visibility="{Binding Capture.SelectedRegion, Converter={StaticResource NullToVisibilityConverter}}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Header -->
+                                            <TextBlock Grid.ColumnSpan="2" Text="{Binding Capture.SelectedRegion.Name, StringFormat='REGION STATES: {0}'}" 
+                                                       Foreground="#aaa" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+
+                                            <!-- Active Color State -->
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,4,0">
+                                                <TextBlock Text="Active:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating active/available state"/>
+                                                <TextBox Text="{Binding Capture.SelectedRegion.ActiveColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus"/>
+                                                <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionActiveColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
+                                                        Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick active color from screen"/>
+                                            </StackPanel>
+
+                                            <!-- Depleted Color State -->
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="4,0,0,0">
+                                                <TextBlock Text="Depleted:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating depleted/empty state"/>
+                                                <TextBox Text="{Binding Capture.SelectedRegion.DepletedColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus"/>
+                                                <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionDepletedColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
+                                                        Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick depleted color from screen"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </Grid>
                             </TabItem>
                             <TabItem Header="🎨 CLUSTERS">

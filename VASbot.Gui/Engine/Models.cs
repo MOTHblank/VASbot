@@ -24,9 +24,14 @@ namespace VASbot.Gui.Engine
         
         [ObservableProperty]
         private int _height;
-        
         [ObservableProperty]
         private string _color = "#FF3A3A";
+
+        [ObservableProperty]
+        private string _activeColor = "";
+
+        [ObservableProperty]
+        private string _depletedColor = "";
         
         public string WindowTitle { get; set; } = "";
         public string WindowClass { get; set; } = "";

@@ -174,6 +174,8 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
                     "y": r.y,
                     "width": r.width,
                     "height": r.height,
+                    "active_color": r.active_color,
+                    "depleted_color": r.depleted_color,
                 }
             )
         self.bot.set_regions(regions)
