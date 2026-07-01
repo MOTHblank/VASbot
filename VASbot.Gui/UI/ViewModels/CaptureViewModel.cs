@@ -988,14 +988,58 @@ namespace VASbot.Gui.UI.ViewModels
                 switch (ActiveResizeEdge)
                 {
                     case ResizeEdge.TopLeft:
-                        SelectedRegion.X = _dragStartRect.X + deltaX;
-                        SelectedRegion.Y = _dragStartRect.Y + deltaY;
-                        SelectedRegion.Width = _dragStartRect.Width - deltaX;
-                        SelectedRegion.Height = _dragStartRect.Height - deltaY;
+                        {
+                            int newWidth = _dragStartRect.Width - deltaX;
+                            int newHeight = _dragStartRect.Height - deltaY;
+                            if (newWidth >= 2)
+                            {
+                                SelectedRegion.X = _dragStartRect.X + deltaX;
+                                SelectedRegion.Width = newWidth;
+                            }
+                            if (newHeight >= 2)
+                            {
+                                SelectedRegion.Y = _dragStartRect.Y + deltaY;
+                                SelectedRegion.Height = newHeight;
+                            }
+                        }
+                        break;
+                    case ResizeEdge.TopRight:
+                        {
+                            int newWidth = _dragStartRect.Width + deltaX;
+                            int newHeight = _dragStartRect.Height - deltaY;
+                            if (newWidth >= 2)
+                            {
+                                SelectedRegion.Width = newWidth;
+                            }
+                            if (newHeight >= 2)
+                            {
+                                SelectedRegion.Y = _dragStartRect.Y + deltaY;
+                                SelectedRegion.Height = newHeight;
+                            }
+                        }
+                        break;
+                    case ResizeEdge.BottomLeft:
+                        {
+                            int newWidth = _dragStartRect.Width - deltaX;
+                            int newHeight = _dragStartRect.Height + deltaY;
+                            if (newWidth >= 2)
+                            {
+                                SelectedRegion.X = _dragStartRect.X + deltaX;
+                                SelectedRegion.Width = newWidth;
+                            }
+                            if (newHeight >= 2)
+                            {
+                                SelectedRegion.Height = newHeight;
+                            }
+                        }
                         break;
                     case ResizeEdge.BottomRight:
-                        SelectedRegion.Width = _dragStartRect.Width + deltaX;
-                        SelectedRegion.Height = _dragStartRect.Height + deltaY;
+                        {
+                            int newWidth = _dragStartRect.Width + deltaX;
+                            int newHeight = _dragStartRect.Height + deltaY;
+                            if (newWidth >= 2) SelectedRegion.Width = newWidth;
+                            if (newHeight >= 2) SelectedRegion.Height = newHeight;
+                        }
                         break;
                 }
             }

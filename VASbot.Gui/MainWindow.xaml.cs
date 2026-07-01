@@ -408,6 +408,7 @@ namespace VASbot.Gui
 
         private void SkiaElement_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            _viewModel.Capture.UpdateTransformerState();
             var pos = e.GetPosition(SkiaElement);
             if (_viewModel.Capture.IsEyedropperActive)
             {
@@ -443,6 +444,7 @@ namespace VASbot.Gui
 
         private void SkiaElement_MouseMove(object sender, MouseEventArgs e)
         {
+            _viewModel.Capture.UpdateTransformerState();
             var pos = e.GetPosition(SkiaElement);
             _viewModel.Capture.MousePos = new SKPoint((float)pos.X, (float)pos.Y);
 
@@ -508,6 +510,7 @@ namespace VASbot.Gui
 
         private async void SkiaElement_MouseUp(object sender, MouseButtonEventArgs e)
         {
+            _viewModel.Capture.UpdateTransformerState();
             if (_isPanning)
             {
                 _isPanning = false;
