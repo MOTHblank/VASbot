@@ -476,9 +476,15 @@ namespace VASbot.Gui.UI.ViewModels
             }
         }
 
-        private async Task SyncRegionsToSidecar()
+        public async Task SyncRegionsToSidecar()
         {
             await _botService.UpdateRegionsAsync(Regions);
+        }
+
+        public async Task SaveAndSyncRegionsAsync()
+        {
+            await _regionManager.SaveRegionsAsync(Regions);
+            await SyncRegionsToSidecar();
         }
 
         [RelayCommand]

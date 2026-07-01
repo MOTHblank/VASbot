@@ -141,6 +141,7 @@ namespace VASbot.Gui.UI.ViewModels
                 }
                 
                 AddLog($"Total regions loaded: {index}");
+                _ = _mainViewModel.Capture.SaveAndSyncRegionsAsync();
             }
             catch (Exception ex)
             {
