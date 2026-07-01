@@ -159,8 +159,23 @@ namespace VASbot.Gui.UI.ViewModels
         public void AddLog(string message)
         {
             string formatted = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            
+            if (Logs.Count >= 500)
+            {
+                Logs.RemoveAt(0);
+            }
             Logs.Add(formatted);
+
             LogsText += formatted + "\n";
+            if (LogsText.Length > 50000)
+            {
+                int half = LogsText.Length / 2;
+                int nextNewLine = LogsText.IndexOf('\n', half);
+                if (nextNewLine != -1)
+                {
+                    LogsText = "[... Logs Truncated to Save Memory ...]\n" + LogsText.Substring(nextNewLine + 1);
+                }
+            }
 
             // Parse for python tracebacks
             if (message.Contains("Traceback") || message.Contains("Error:"))
