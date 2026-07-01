@@ -1706,13 +1706,13 @@ class BotAPI:
             
             if is_rect_shape:
                 if (shape_type == "all" or shape_type == "rectangle" or shape_type == "grid"):
-                    rectangles.append((x, y, w, h))
+                    rectangles.append((x, y, w, h, float(extent)))
 
         # Grid Clustering Solver
         if shape_type in ("all", "grid"):
             rects_by_size = []
             for r in rectangles:
-                rx, ry, rw, rh = r
+                rx, ry, rw, rh, rextent = r
                 added = False
                 for group in rects_by_size:
                     rep_w = sum(item[2] for item in group) / len(group)
@@ -1731,7 +1731,7 @@ class BotAPI:
                 
                 rows = []
                 for cell in sorted_group:
-                    cx, cy, cw, ch = cell
+                    cx, cy, cw, ch, cextent = cell
                     added = False
                     for r_list in rows:
                         avg_y = sum(item[1] for item in r_list) / len(r_list)
@@ -1758,26 +1758,26 @@ class BotAPI:
                 if is_valid_grid:
                     for r_list in rows:
                         for cell in r_list:
-                            cx, cy, cw, ch = cell
+                            cx, cy, cw, ch, cextent = cell
                             detected.append({
                                 "type": "grid_cell",
                                 "x": offset_x + cx,
                                 "y": offset_y + cy,
                                 "width": cw,
                                 "height": ch,
-                                "confidence": 1.0
+                                "confidence": cextent
                             })
 
         if shape_type in ("all", "rectangle"):
             for r in rectangles:
-                rx, ry, rw, rh = r
+                rx, ry, rw, rh, rextent = r
                 detected.append({
                     "type": "rectangle",
                     "x": offset_x + rx,
                     "y": offset_y + ry,
                     "width": rw,
                     "height": rh,
-                    "confidence": 1.0
+                    "confidence": rextent
                 })
 
         # Deduplicate overlapping shapes of the same type
@@ -1851,18 +1851,18 @@ class BotAPI:
             )
         return valid_regions
 
-    def find_grid(self, min_cells=4, size_tolerance=0.15, region_index=None):
+    def find_grid(self, min_cells=4, size_tolerance=0.15, region_index=None, max_size=None):
         """
         Returns a DynamicGrid object representing the largest detected grid, or None.
         """
         self.check_running()
-        shapes = self.detect_shapes(shape_type="grid", min_size=15, region_index=region_index)
+        shapes = self.detect_shapes(shape_type="grid", min_size=15, max_size=max_size, region_index=region_index)
         
         grid_cells = [s for s in shapes if s["type"] == "grid_cell"]
         if not grid_cells:
             # Fallback: check raw rectangles and try solver
-            rect_shapes = self.detect_shapes(shape_type="rectangle", min_size=15, region_index=region_index)
-            rects = [(s["x"], s["y"], s["width"], s["height"]) for s in rect_shapes]
+            rect_shapes = self.detect_shapes(shape_type="rectangle", min_size=15, max_size=max_size, region_index=region_index)
+            rects = [(s["x"], s["y"], s["width"], s["height"], s.get("confidence", 1.0)) for s in rect_shapes]
             if len(rects) >= min_cells:
                 rects_by_size = []
                 for r in rects:
@@ -1880,13 +1880,13 @@ class BotAPI:
                 
                 for group in rects_by_size:
                     if len(group) >= min_cells:
-                        grid_cells = [{"x": r[0], "y": r[1], "width": r[2], "height": r[3]} for r in group]
+                        grid_cells = [{"x": r[0], "y": r[1], "width": r[2], "height": r[3], "confidence": r[4] if len(r) > 4 else 1.0} for r in group]
                         break
                         
         if len(grid_cells) < min_cells:
             return None
             
-        cell_coords = [(c["x"], c["y"], c["width"], c["height"]) for c in grid_cells]
+        cell_coords = [(c["x"], c["y"], c["width"], c["height"], c.get("confidence", 1.0)) for c in grid_cells]
         sorted_coords = sort_grid_cells(cell_coords)
         
         xs = [c[0] for c in sorted_coords]
@@ -1901,7 +1901,7 @@ class BotAPI:
         
         rows = []
         for cell in sorted_coords:
-            cx, cy, cw, ch = cell
+            cx, cy, cw, ch, cextent = cell
             added = False
             for r_list in rows:
                 avg_y = sum(item[1] for item in r_list) / len(r_list)
@@ -2082,7 +2082,7 @@ def sort_grid_cells(cells):
     cells = sorted(cells, key=lambda c: c[1])
     rows = []
     for c in cells:
-        x, y, w, h = c
+        x, y, w, h, *_ = c
         added = False
         for r in rows:
             avg_y = sum(item[1] for item in r) / len(r)
