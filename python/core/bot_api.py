@@ -763,6 +763,19 @@ class BotAPI:
         )
         return False
 
+    def wait_while_color(self, hex_color, region_index, timeout=30.0, tolerance=10, check_interval=0.15):
+        self.check_running()
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            self.check_running()
+            if not self.find_color(hex_color, region_index, tolerance):
+                return True
+            self.wait(check_interval)
+        self.log(
+            f"Timeout: Color {hex_color} still present in region {region_index} after {timeout} seconds."
+        )
+        return False
+
     def hover_color(self, hex_color, region_index, tolerance=10, human_like=True):
         result = self.find_color(hex_color, region_index, tolerance)
         if result:
