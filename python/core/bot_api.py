@@ -818,7 +818,12 @@ class BotAPI:
             self.log(f"Error: State '{state}' is not configured with a color for region {region_index}")
             return False
             
-        return self.find_and_click_color(color, region_index, tolerance, button)
+        return self.find_and_click_color(
+            hex_color=color,
+            region_index=region_index,
+            tolerance=tolerance,
+            button=button
+        )
 
     def hover_color(self, hex_color, region_index, tolerance=10, human_like=True):
         result = self.find_color(hex_color, region_index, tolerance)
