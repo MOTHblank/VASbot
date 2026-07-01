@@ -721,6 +721,7 @@ namespace VASbot.Gui.UI.ViewModels
             // 4.5. Detected Shapes Overlays
             if (IsShapesVisible)
             {
+                int gridCellIndex = 0;
                 foreach (var shape in DetectedShapes)
                 {
                     float left = (float)shape.X;
@@ -763,7 +764,14 @@ namespace VASbot.Gui.UI.ViewModels
                         {
                             canvas.DrawRect(bbox, shapePaint);
                         }
-                        canvas.DrawText($"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})", left, top - 2 / (float)renderZoom, labelPaint);
+
+                        string label = $"{shape.Type.ToUpper()} ({shape.Width}x{shape.Height})";
+                        if (shape.Type == "grid_cell")
+                        {
+                            label = $"CELL {gridCellIndex} ({shape.Width}x{shape.Height})";
+                            gridCellIndex++;
+                        }
+                        canvas.DrawText(label, left, top - 2 / (float)renderZoom, labelPaint);
                     }
                 }
             }
@@ -937,7 +945,7 @@ namespace VASbot.Gui.UI.ViewModels
         public void StartDrag(Point pos)
         {
             var imgPos = _transformer.CanvasToImage(new SKPoint((float)pos.X, (float)pos.Y));
-            float handleSize = 10 / (float)ZoomLevel; 
+            float handleSize = 8 / (float)ZoomLevel; 
 
             var region = Regions.LastOrDefault(r => 
                 imgPos.X >= r.X - handleSize && imgPos.X <= r.X + r.Width + handleSize &&
@@ -949,10 +957,16 @@ namespace VASbot.Gui.UI.ViewModels
                 _dragStartPos = imgPos;
                 _dragStartRect = new Rectangle(region.X, region.Y, region.Width, region.Height);
 
-                bool nearLeft = Math.Abs(imgPos.X - region.X) < handleSize;
-                bool nearRight = Math.Abs(imgPos.X - (region.X + region.Width)) < handleSize;
-                bool nearTop = Math.Abs(imgPos.Y - region.Y) < handleSize;
-                bool nearBottom = Math.Abs(imgPos.Y - (region.Y + region.Height)) < handleSize;
+                // Cap the resize handle size to 1/3 of the region's dimensions to guarantee the middle area is always draggable.
+                float maxHandleX = region.Width / 3.0f;
+                float maxHandleY = region.Height / 3.0f;
+                float handleX = Math.Max(2.0f, Math.Min(handleSize, maxHandleX));
+                float handleY = Math.Max(2.0f, Math.Min(handleSize, maxHandleY));
+
+                bool nearLeft = Math.Abs(imgPos.X - region.X) < handleX;
+                bool nearRight = Math.Abs(imgPos.X - (region.X + region.Width)) < handleX;
+                bool nearTop = Math.Abs(imgPos.Y - region.Y) < handleY;
+                bool nearBottom = Math.Abs(imgPos.Y - (region.Y + region.Height)) < handleY;
 
                 if (nearLeft && nearTop) ActiveResizeEdge = ResizeEdge.TopLeft;
                 else if (nearRight && nearTop) ActiveResizeEdge = ResizeEdge.TopRight;
