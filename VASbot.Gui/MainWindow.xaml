@@ -704,6 +704,7 @@
                                                 <TextBlock Text="Active:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating active/available state"/>
                                                 <TextBox Text="{Binding Capture.SelectedRegion.ActiveColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus"/>
                                                 <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionActiveColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
+                                                        AutomationProperties.Name="Pick active color from screen"
                                                         Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick active color from screen"/>
                                             </StackPanel>
 
@@ -712,6 +713,7 @@
                                                 <TextBlock Text="Depleted:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating depleted/empty state"/>
                                                 <TextBox Text="{Binding Capture.SelectedRegion.DepletedColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus"/>
                                                 <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionDepletedColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
+                                                        AutomationProperties.Name="Pick depleted color from screen"
                                                         Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick depleted color from screen"/>
                                             </StackPanel>
                                         </Grid>
@@ -743,6 +745,7 @@
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Text="{Binding Name}" Foreground="#ccc" FontSize="10" VerticalAlignment="Center"/>
                                                             <Button Grid.Column="1" Content="✕" FontSize="8" Padding="4,0" Background="Transparent" Foreground="#c0392b"
+                                                                    AutomationProperties.Name="Delete Color Cluster" ToolTip="Delete Color Cluster"
                                                                     Command="{Binding DataContext.Capture.DeleteColorClusterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}"/>
                                                         </Grid>
@@ -802,6 +805,7 @@
                                                             <Border Width="12" Height="12" Background="{Binding}" CornerRadius="2" Margin="0,0,8,0" BorderBrush="#444" BorderThickness="1"/>
                                                             <TextBlock Grid.Column="1" Text="{Binding}" Foreground="#ccc" FontSize="10" VerticalAlignment="Center"/>
                                                             <Button Grid.Column="2" Content="✕" FontSize="8" Padding="4,0" Background="Transparent" Foreground="#c0392b"
+                                                                    AutomationProperties.Name="Remove Color from Cluster" ToolTip="Remove Color from Cluster"
                                                                     Command="{Binding DataContext.Capture.RemoveColorFromClusterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}"/>
                                                         </Grid>
