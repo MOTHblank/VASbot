@@ -338,6 +338,9 @@ namespace VASbot.Gui.UI.ViewModels
         {
             if (IsRunning) return;
 
+            // Extract and sync any embedded regions in the script before running
+            ExtractAndSyncRegions();
+
             IsRunning = true;
             ErrorLineNumber = -1; // Clear error highlights before running
             ErrorMessage = null;
