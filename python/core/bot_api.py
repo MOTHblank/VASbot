@@ -611,7 +611,7 @@ class BotAPI:
             self.log(f"Stack: {traceback.format_exc()}")
             return False
 
-    def find_color(self, hex_color, region_index, tolerance=10):
+    def find_color(self, hex_color, region_index, tolerance=10, verbose=True, focus=True):
         self.check_running()
         region = self._resolve_region(region_index)
         if region is None:
@@ -637,7 +637,8 @@ class BotAPI:
             self._target_hwnd = None
             return None
 
-        self.focus_window()
+        if focus:
+            self.focus_window()
 
         try:
             full_frame = self._get_current_frame()
@@ -690,24 +691,26 @@ class BotAPI:
                 # Get actual pixel color at click location for debugging
                 actual_color = roi_rgb[rel_y, rel_x]
 
-                self.log(
-                    f"[{hex_color}] Found at region[{region_index}] offset({rel_x},{rel_y}) -> screen({abs_x},{abs_y}) | actual RGB: {actual_color}"
-                )
+                if verbose:
+                    self.log(
+                        f"[{hex_color}] Found at region[{region_index}] offset({rel_x},{rel_y}) -> screen({abs_x},{abs_y}) | actual RGB: {actual_color}"
+                    )
 
                 return abs_x, abs_y
             else:
                 # Log what colors ARE in the region for debugging
-                if roi_rgb.size > 0:
-                    avg_color = np.mean(roi_rgb.reshape(-1, 3), axis=0)
-                    min_color = np.min(roi_rgb.reshape(-1, 3), axis=0)
-                    max_color = np.max(roi_rgb.reshape(-1, 3), axis=0)
-                    self.log(
-                        f"[{hex_color}] NOT found in region[{region_index}]. RGB range: {min_color}-{max_color}, avg: {avg_color}"
-                    )
-                else:
-                    self.log(
-                        f"[{hex_color}] NOT found in region[{region_index}] (empty region)"
-                    )
+                if verbose:
+                    if roi_rgb.size > 0:
+                        avg_color = np.mean(roi_rgb.reshape(-1, 3), axis=0)
+                        min_color = np.min(roi_rgb.reshape(-1, 3), axis=0)
+                        max_color = np.max(roi_rgb.reshape(-1, 3), axis=0)
+                        self.log(
+                            f"[{hex_color}] NOT found in region[{region_index}]. RGB range: {min_color}-{max_color}, avg: {avg_color}"
+                        )
+                    else:
+                        self.log(
+                            f"[{hex_color}] NOT found in region[{region_index}] (empty region)"
+                        )
                 return None
         except Exception as e:
             self.log(f"Error in find_color: {e}")
@@ -787,9 +790,9 @@ class BotAPI:
         active_color = region.get("active_color", "")
         depleted_color = region.get("depleted_color", "")
         
-        if active_color and self.find_color(active_color, region_index, tolerance):
+        if active_color and self.find_color(active_color, region_index, tolerance, verbose=False, focus=False):
             return "active"
-        if depleted_color and self.find_color(depleted_color, region_index, tolerance):
+        if depleted_color and self.find_color(depleted_color, region_index, tolerance, verbose=False, focus=False):
             return "depleted"
             
         return "unknown"

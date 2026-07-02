@@ -24,7 +24,8 @@ namespace VASbot.Gui.Engine
             try
             {
                 string appRoot = AppDomain.CurrentDomain.BaseDirectory;
-                string pythonDir = Path.GetFullPath(Path.Combine(appRoot, "..", "..", "..", "..", "python"));
+				string vasbotRoot = Path.GetFullPath(Path.Combine(appRoot, "..", "..", "..", ".."));
+                string pythonDir = Path.Combine(vasbotRoot, "python");
                 string scriptPath = Path.Combine(pythonDir, "bot_runner.py");
 
                 if (!File.Exists(scriptPath))
@@ -37,7 +38,7 @@ namespace VASbot.Gui.Engine
                 {
                     FileName = _pythonPath,
                     Arguments = $"-u \"{scriptPath}\"",
-                    WorkingDirectory = pythonDir,
+                    WorkingDirectory = vasbotRoot,
                     UseShellExecute = false, 
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,

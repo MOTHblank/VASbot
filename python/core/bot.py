@@ -171,9 +171,9 @@ class Bot:
         self.user32.GetCursorPos(ctypes.byref(pt))
         return pt.x, pt.y
 
-    def human_move_to(self, target_x, target_y, duration=0.4, steps=40):
+    def human_move_to(self, target_x, target_y, duration=0.12, steps=15):
         """Moves the mouse to the target coordinates using a Bezier curve to simulate human movement.
-        Refined to be more precise and less 'wavy'.
+        Fast but not instant — still uses a curved path so it doesn't look robotic.
         """
         start_x, start_y = self.get_cursor_pos()
 
@@ -181,7 +181,7 @@ class Bot:
         dist = ((target_x - start_x) ** 2 + (target_y - start_y) ** 2) ** 0.5
         if dist < 5:
             self.move_to(target_x, target_y)
-            time.sleep(random.uniform(0.1, 0.2))
+            time.sleep(random.uniform(0.02, 0.05))
             return
 
         # Define control points for the Bezier curve
@@ -218,9 +218,8 @@ class Bot:
             self.move_to(int(x), int(y))
             time.sleep(sleep_time)
 
-        # REST: Rest on the final position for a while before clicking
-        # This allows the user/system to 'see' the cursor is on the right place
-        time.sleep(random.uniform(0.1, 0.2))
+        # Brief rest on the final position before clicking
+        time.sleep(random.uniform(0.02, 0.06))
 
     def _send_input(self, inputs):
         """Internal method to send a list of INPUT structures to the OS."""
