@@ -1,8 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Text;
 using System.Windows;
+using System.Windows.Threading;
 using System.Threading.Tasks;
 using VASbot.Gui.Engine;
 
@@ -12,6 +15,10 @@ namespace VASbot.Gui.UI.ViewModels
     {
         private readonly PythonSidecarService _sidecarService;
         private readonly IBotService _botService;
+        private readonly ConcurrentQueue<string> _logQueue = new();
+        private readonly DispatcherTimer _logTimer;
+        private readonly StringBuilder _logBuffer = new();
+        private const int MaxLogChars = 100000;
 
         [ObservableProperty]
         private bool _isRunning;
@@ -28,9 +35,7 @@ namespace VASbot.Gui.UI.ViewModels
             _botService = botService;
 
             _sidecarService.OutputReceived += (msg) => {
-                App.Current.Dispatcher.Invoke(() => {
-                    LogsText += $"[{DateTime.Now:HH:mm:ss}] {msg}\n";
-                });
+                _logQueue.Enqueue($"[{DateTime.Now:HH:mm:ss}] {msg}");
             };
 
             _sidecarService.StateChanged += (running) => {
@@ -39,13 +44,58 @@ namespace VASbot.Gui.UI.ViewModels
             };
 
             IsRunning = _sidecarService.IsRunning;
+
+            _logTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _logTimer.Tick += ProcessLogQueue;
+            _logTimer.Start();
+        }
+
+        private void ProcessLogQueue(object? sender, EventArgs e)
+        {
+            if (_logQueue.IsEmpty) return;
+
+            bool changed = false;
+            while (_logQueue.TryDequeue(out var msg))
+            {
+                _logBuffer.AppendLine(msg);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                if (_logBuffer.Length > MaxLogChars)
+                {
+                    int toRemove = _logBuffer.Length - MaxLogChars;
+                    int nextNewLine = -1;
+                    for (int i = toRemove; i < _logBuffer.Length; i++)
+                    {
+                        if (_logBuffer[i] == '\n')
+                        {
+                            nextNewLine = i;
+                            break;
+                        }
+                    }
+                    if (nextNewLine != -1)
+                    {
+                        _logBuffer.Remove(0, nextNewLine + 1);
+                    }
+                    else
+                    {
+                        _logBuffer.Remove(0, toRemove);
+                    }
+                }
+                LogsText = _logBuffer.ToString();
+            }
         }
 
         [RelayCommand]
         public void RestartSidecar()
         {
             _sidecarService.Stop();
-            LogsText += "--- Restarting Sidecar ---\n";
+            _logQueue.Enqueue($"[{DateTime.Now:HH:mm:ss}] --- Restarting Sidecar ---");
             _sidecarService.Start();
             
             // Re-connect gRPC
@@ -57,6 +107,11 @@ namespace VASbot.Gui.UI.ViewModels
         }
 
         [RelayCommand]
-        public void ClearLogs() => LogsText = "";
+        public void ClearLogs()
+        {
+            _logQueue.Clear();
+            _logBuffer.Clear();
+            LogsText = "";
+        }
     }
 }

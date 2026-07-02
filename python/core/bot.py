@@ -171,7 +171,7 @@ class Bot:
         self.user32.GetCursorPos(ctypes.byref(pt))
         return pt.x, pt.y
 
-    def human_move_to(self, target_x, target_y, duration=0.12, steps=15):
+    def human_move_to(self, target_x, target_y, duration=0.06, steps=8):
         """Moves the mouse to the target coordinates using a Bezier curve to simulate human movement.
         Fast but not instant — still uses a curved path so it doesn't look robotic.
         """

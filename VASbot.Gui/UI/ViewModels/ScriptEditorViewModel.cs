@@ -1,9 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Text;
 using System.Threading.Tasks;
 using System;
 using System.Windows;
+using System.Windows.Threading;
 using System.IO;
 using System.Linq;
 using VASbot.Gui.Engine;
@@ -14,6 +17,10 @@ namespace VASbot.Gui.UI.ViewModels
     {
         private readonly IBotService _botService;
         private MainViewModel? _mainViewModel;
+        private readonly ConcurrentQueue<string> _logQueue = new();
+        private readonly DispatcherTimer _logTimer;
+        private readonly StringBuilder _logBuffer = new();
+        private const int MaxLogChars = 100000;
 
         [ObservableProperty]
         private string _scriptText = "# VASbot Python Script\nbot.log('WPF script system online.')";
@@ -44,6 +51,13 @@ namespace VASbot.Gui.UI.ViewModels
         public ScriptEditorViewModel(IBotService botService)
         {
             _botService = botService;
+
+            _logTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _logTimer.Tick += ProcessLogQueue;
+            _logTimer.Start();
         }
 
         public void SetMainViewModel(MainViewModel mainVm)
@@ -158,44 +172,73 @@ namespace VASbot.Gui.UI.ViewModels
 
         public void AddLog(string message)
         {
-            string formatted = $"[{DateTime.Now:HH:mm:ss}] {message}";
-            
-            if (Logs.Count >= 500)
-            {
-                Logs.RemoveAt(0);
-            }
-            Logs.Add(formatted);
+            _logQueue.Enqueue(message);
+        }
 
-            LogsText += formatted + "\n";
-            if (LogsText.Length > 50000)
+        private void ProcessLogQueue(object? sender, EventArgs e)
+        {
+            if (_logQueue.IsEmpty) return;
+
+            bool changed = false;
+            while (_logQueue.TryDequeue(out var message))
             {
-                int half = LogsText.Length / 2;
-                int nextNewLine = LogsText.IndexOf('\n', half);
-                if (nextNewLine != -1)
+                string formatted = $"[{DateTime.Now:HH:mm:ss}] {message}";
+                
+                if (Logs.Count >= 500)
                 {
-                    LogsText = "[... Logs Truncated to Save Memory ...]\n" + LogsText.Substring(nextNewLine + 1);
+                    Logs.RemoveAt(0);
                 }
-            }
+                Logs.Add(formatted);
 
-            // Parse for python tracebacks
-            if (message.Contains("Traceback") || message.Contains("Error:"))
-            {
-                ErrorLineNumber = -1;
-                ErrorMessage = null;
-            }
+                _logBuffer.AppendLine(formatted);
+                changed = true;
 
-            if (message.Contains("File \"") && message.Contains("line "))
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(message, @"line (\d+)");
-                if (match.Success && int.TryParse(match.Groups[1].Value, out int lineNum))
+                // Parse for python tracebacks
+                if (message.Contains("Traceback") || message.Contains("Error:"))
                 {
-                    ErrorLineNumber = lineNum;
+                    ErrorLineNumber = -1;
+                    ErrorMessage = null;
+                }
+
+                if (message.Contains("File \"") && message.Contains("line "))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(message, @"line (\d+)");
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out int lineNum))
+                    {
+                        ErrorLineNumber = lineNum;
+                        ErrorMessage = message.Trim();
+                    }
+                }
+                else if (message.Contains("Exception:") || message.Contains("Error:") || message.Contains("TypeError:") || message.Contains("NameError:") || message.Contains("SyntaxError:"))
+                {
                     ErrorMessage = message.Trim();
                 }
             }
-            else if (message.Contains("Exception:") || message.Contains("Error:") || message.Contains("TypeError:") || message.Contains("NameError:") || message.Contains("SyntaxError:"))
+
+            if (changed)
             {
-                ErrorMessage = message.Trim();
+                if (_logBuffer.Length > MaxLogChars)
+                {
+                    int toRemove = _logBuffer.Length - MaxLogChars;
+                    int nextNewLine = -1;
+                    for (int i = toRemove; i < _logBuffer.Length; i++)
+                    {
+                        if (_logBuffer[i] == '\n')
+                        {
+                            nextNewLine = i;
+                            break;
+                        }
+                    }
+                    if (nextNewLine != -1)
+                    {
+                        _logBuffer.Remove(0, nextNewLine + 1);
+                    }
+                    else
+                    {
+                        _logBuffer.Remove(0, toRemove);
+                    }
+                }
+                LogsText = _logBuffer.ToString();
             }
         }
 
@@ -359,7 +402,13 @@ namespace VASbot.Gui.UI.ViewModels
             IsRunning = true;
             ErrorLineNumber = -1; // Clear error highlights before running
             ErrorMessage = null;
-            LogsText = ""; // Clear for new run
+            
+            // Clear logs and queue
+            _logQueue.Clear();
+            _logBuffer.Clear();
+            Logs.Clear();
+            LogsText = "";
+            
             AddLog("Executing via Sidecar...");
 
             try
@@ -375,7 +424,7 @@ namespace VASbot.Gui.UI.ViewModels
                 // Start streaming execution
                 await _botService.ExecuteScriptAsync(ScriptText, (logMessage) => 
                 {
-                    App.Current.Dispatcher.Invoke(() => AddLog(logMessage));
+                    AddLog(logMessage);
                 });
             }
             catch (Exception ex)
