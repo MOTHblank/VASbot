@@ -68,9 +68,9 @@
         
         <Border Background="#1a1a1a" Padding="8,4" BorderBrush="#222" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
-                <Button Content="Generate Code" Command="{Binding GenerateCodeCommand}" Padding="12,4" Margin="4,0" FontSize="10" Background="#27ae60" Foreground="White" FontWeight="Bold"/>
+                <Button Content="Generate Code" Command="{Binding GenerateCodeCommand}" Padding="12,4" Margin="4,0" FontSize="10" Background="#27ae60" Foreground="White" FontWeight="Bold" AutomationProperties.Name="Generate Code" ToolTip="Generate Code"/>
                 <Separator Margin="10,0" Opacity="0.2"/>
-                <Button Content="Delete Selected" Command="{Binding RemoveSelectedNodeCommand}" Padding="12,4" Margin="4,0" FontSize="10" Background="#c0392b" Foreground="White"/>
+                <Button Content="Delete Selected" Command="{Binding RemoveSelectedNodeCommand}" Padding="12,4" Margin="4,0" FontSize="10" Background="#c0392b" Foreground="White" AutomationProperties.Name="Delete Selected Node" ToolTip="Delete Selected Node"/>
             </StackPanel>
         </Border>
 
