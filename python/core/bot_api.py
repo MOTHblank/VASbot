@@ -1306,6 +1306,16 @@ class BotAPI:
                 search_area = img_bgr
                 offset_x, offset_y = 0, 0
 
+            # Ensure template is smaller than search area
+            sh, sw = search_area.shape[:2]
+            th, tw = template.shape[:2]
+            if tw > sw or th > sh:
+                self.log(
+                    f"Vision Warning: Template '{os.path.basename(template_path)}' ({tw}x{th}) "
+                    f"is larger than search area ({sw}x{sh})."
+                )
+                return None
+
             if has_alpha:
                 # SQDIFF_NORMED with mask: best match is at min_val (perfect match is 0.0)
                 res = cv2.matchTemplate(search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask)
@@ -1404,6 +1414,16 @@ class BotAPI:
             else:
                 search_area = img_bgr
                 offset_x, offset_y = 0, 0
+
+            # Ensure template is smaller than search area
+            sh, sw = search_area.shape[:2]
+            th, tw = template.shape[:2]
+            if tw > sw or th > sh:
+                self.log(
+                    f"Vision Warning: Template '{os.path.basename(template_path)}' ({tw}x{th}) "
+                    f"is larger than search area ({sw}x{sh})."
+                )
+                return []
 
             # Match template
             if has_alpha:
