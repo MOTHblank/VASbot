@@ -742,6 +742,64 @@ class BotAPI:
             return True
         return False
 
+    def find_and_click_image(
+        self,
+        template_path,
+        region_index=None,
+        confidence=0.8,
+        button="left",
+        modifiers=None,
+        human_like=False,
+        wait_disappear=True,
+        timeout=2.0,
+    ):
+        if modifiers is None:
+            modifiers = []
+        self.check_running()
+        result = self.find_image(template_path, region_index, confidence)
+        if result:
+            abs_x, abs_y = result
+            self.click(abs_x, abs_y, button=button, modifiers=modifiers, human_like=human_like)
+            
+            if wait_disappear:
+                start_time = time.time()
+                while time.time() - start_time < timeout:
+                    self.check_running()
+                    if not self.find_image(template_path, region_index, confidence):
+                        break
+                    self.wait(0.1)
+            return True
+        return False
+
+    def find_and_click_text(
+        self,
+        text,
+        region_index,
+        button="left",
+        modifiers=None,
+        case_sensitive=False,
+        human_like=False,
+        wait_disappear=True,
+        timeout=2.0,
+    ):
+        if modifiers is None:
+            modifiers = []
+        self.check_running()
+        result = self.find_text(text, region_index, case_sensitive)
+        if result:
+            abs_x, abs_y = result
+            self.click(abs_x, abs_y, button=button, modifiers=modifiers, human_like=human_like)
+            
+            if wait_disappear:
+                start_time = time.time()
+                while time.time() - start_time < timeout:
+                    self.check_running()
+                    if not self.find_text(text, region_index, case_sensitive):
+                        break
+                    self.wait(0.1)
+            return True
+        return False
+
     def get_pixel_color(self, x, y):
         return self.get_pixel_color_fast(x, y)
 

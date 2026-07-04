@@ -361,7 +361,7 @@ namespace VASbot.Gui
                     // Format template code:
                     // Use simple relative pathing: "img/filename.png"
                     string relativePath = "img/" + fileName;
-                    string codeSnippet = $"pos = bot.find_image(\"{relativePath}\", region_index=None, confidence=0.8)\nif pos:\n    bot.click(pos[0], pos[1], button='left', human_like=True)";
+                    string codeSnippet = $"bot.find_and_click_image('{relativePath}', region_index=None, confidence=0.8, button='left', human_like=True, wait_disappear=True)";
                     
                     ScriptEditor.Document.Replace(ScriptEditor.SelectionStart, ScriptEditor.SelectionLength, codeSnippet);
                 }
