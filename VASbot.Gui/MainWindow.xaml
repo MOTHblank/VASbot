@@ -180,7 +180,7 @@
                                     <TextBox Text="{Binding Capture.DetectMinSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0"/>
                                     <TextBlock Text="Max:" Foreground="#888" FontSize="9" VerticalAlignment="Center" Margin="6,0,2,0"/>
                                     <TextBox Text="{Binding Capture.DetectMaxSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0"/>
-                                    <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="55" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" Margin="4,0,2,0"/>
+                                    <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="55" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" Margin="4,0,2,0" AutomationProperties.Name="Detect Shapes" ToolTip="Detect Shapes"/>
                                 </StackPanel>
                                 
                                 <ToggleButton IsChecked="{Binding Capture.IsClustersVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Color Clusters">Clusters</ToggleButton>
@@ -263,7 +263,7 @@
                                 <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..."/>
                                 <Button Content="Save as Snippet" Click="SaveSnippet_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#2c3e50" Foreground="White"/>
                                 <Button Content="Insert Image..." Click="InsertImage_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#16a085" Foreground="White" Margin="4,0"/>
-                                <Button Content="📖 API Drawer" Click="ToggleDrawer_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#8e44ad" Foreground="White" Margin="4,0"/>
+                                <Button Content="📖 API Drawer" Click="ToggleDrawer_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#8e44ad" Foreground="White" Margin="4,0" AutomationProperties.Name="Toggle API Drawer" ToolTip="Toggle API Drawer"/>
                             </StackPanel>
                         </Border>
                         
@@ -643,9 +643,9 @@
 
                                             <!-- Action Buttons -->
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="60" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold"/>
-                                                <Button Content="✕ CLEAR" Command="{Binding Capture.ClearDetectedShapesCommand}" Height="22" Width="55" Margin="4,0,0,0" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" FontSize="9" FontWeight="Bold"/>
-                                                <Button Content="💾 SAVE SHAPE" Command="{Binding Capture.SaveSelectedShapeAsRegionCommand}" Visibility="{Binding Capture.IsSaveShapeVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Height="22" Width="85" Margin="4,0,0,0" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold"/>
+                                                <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="60" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" AutomationProperties.Name="Detect Shapes" ToolTip="Detect Shapes"/>
+                                                <Button Content="✕ CLEAR" Command="{Binding Capture.ClearDetectedShapesCommand}" Height="22" Width="55" Margin="4,0,0,0" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" FontSize="9" FontWeight="Bold" AutomationProperties.Name="Clear Detected Shapes" ToolTip="Clear Detected Shapes"/>
+                                                <Button Content="💾 SAVE SHAPE" Command="{Binding Capture.SaveSelectedShapeAsRegionCommand}" Visibility="{Binding Capture.IsSaveShapeVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Height="22" Width="85" Margin="4,0,0,0" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" AutomationProperties.Name="Save Shape" ToolTip="Save Shape"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -753,7 +753,7 @@
                                                 </ListBox.ItemTemplate>
                                             </ListBox>
                                             
-                                            <Button Grid.Row="1" Content="+ ADD CLUSTER" Command="{Binding Capture.AddColorClusterCommand}" Height="24" Margin="4" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold"/>
+                                            <Button Grid.Row="1" Content="+ ADD CLUSTER" Command="{Binding Capture.AddColorClusterCommand}" Height="24" Margin="4" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" AutomationProperties.Name="Add Color Cluster" ToolTip="Add Color Cluster"/>
                                         </Grid>
                                     </Border>
                                     
