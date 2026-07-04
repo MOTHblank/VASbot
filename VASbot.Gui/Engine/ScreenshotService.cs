@@ -111,11 +111,23 @@ namespace VASbot.Gui.Engine
                     g.ReleaseHdc(hdc);
                 }
 
-                using (var stream = new System.IO.MemoryStream())
+                // Direct memory copy instead of slow MemoryStream encoding/decoding
+                var bmpData = bmp.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try
                 {
-                    bmp.Save(stream, ImageFormat.Bmp);
-                    stream.Seek(0, System.IO.SeekOrigin.Begin);
-                    return SKBitmap.Decode(stream);
+                    var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+                    var skBitmap = new SKBitmap(info);
+
+                    long bytesToCopy = (long)bmpData.Stride * height;
+                    unsafe
+                    {
+                        Buffer.MemoryCopy((void*)bmpData.Scan0, (void*)skBitmap.GetPixels(), bytesToCopy, bytesToCopy);
+                    }
+                    return skBitmap;
+                }
+                finally
+                {
+                    bmp.UnlockBits(bmpData);
                 }
             }
         }
