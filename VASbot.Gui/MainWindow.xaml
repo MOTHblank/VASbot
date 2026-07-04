@@ -254,15 +254,15 @@
                         </Grid.RowDefinitions>
                         <Border Background="#1a1a1a" Padding="8,4">
                             <StackPanel Orientation="Horizontal">
-                                <Button Content="New" Command="{Binding ScriptEditor.NewScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
-                                <Button Content="Open" Command="{Binding ScriptEditor.OpenScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
-                                <Button Content="Save" Command="{Binding ScriptEditor.SaveScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
-                                <Button Content="Save As..." Command="{Binding ScriptEditor.SaveScriptAsCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10"/>
+                                <Button Content="New" Command="{Binding ScriptEditor.NewScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" AutomationProperties.Name="New Script" ToolTip="New Script"/>
+                                <Button Content="Open" Command="{Binding ScriptEditor.OpenScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" AutomationProperties.Name="Open Script" ToolTip="Open Script"/>
+                                <Button Content="Save" Command="{Binding ScriptEditor.SaveScriptCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" AutomationProperties.Name="Save Script" ToolTip="Save Script"/>
+                                <Button Content="Save As..." Command="{Binding ScriptEditor.SaveScriptAsCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" AutomationProperties.Name="Save Script As" ToolTip="Save Script As"/>
                                 
                                 <Separator Margin="10,0" Opacity="0.2"/>
-                                <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..."/>
-                                <Button Content="Save as Snippet" Click="SaveSnippet_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#2c3e50" Foreground="White"/>
-                                <Button Content="Insert Image..." Click="InsertImage_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#16a085" Foreground="White" Margin="4,0"/>
+                                <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..." AutomationProperties.Name="Snippet Name"/>
+                                <Button Content="Save as Snippet" Click="SaveSnippet_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#2c3e50" Foreground="White" AutomationProperties.Name="Save as Snippet" ToolTip="Save as Snippet"/>
+                                <Button Content="Insert Image..." Click="InsertImage_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#16a085" Foreground="White" Margin="4,0" AutomationProperties.Name="Insert Image" ToolTip="Insert Image"/>
                                 <Button Content="📖 API Drawer" Click="ToggleDrawer_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#8e44ad" Foreground="White" Margin="4,0" AutomationProperties.Name="Toggle API Drawer" ToolTip="Toggle API Drawer"/>
                             </StackPanel>
                         </Border>
@@ -553,7 +553,7 @@
                                                                         <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12"/>
                                                                         <Border Grid.Column="1" Background="{Binding Value}" CornerRadius="2" Margin="4,0,0,0" BorderBrush="#444" BorderThickness="1"/>
                                                                         <Button Grid.Column="2" Content="..." Padding="0" Margin="4,0,0,0" Height="28"
-                                                                                AutomationProperties.Name="Pick Color"
+                                                                                AutomationProperties.Name="Pick Color" ToolTip="Pick Color"
                                                                                 Command="{Binding DataContext.Templates.PickColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                                 CommandParameter="{Binding}"/>
                                                                     </Grid>
@@ -596,7 +596,7 @@
                                                      AcceptsReturn="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="120"/>
                                         </Border>
 
-                                        <Button Content="INSERT CODE" Click="InsertTemplate_Click" HorizontalAlignment="Stretch" Margin="0,10,0,0" Style="{StaticResource AccentButtonStyle}" FontWeight="Bold" Height="35"/>
+                                        <Button Content="INSERT CODE" Click="InsertTemplate_Click" HorizontalAlignment="Stretch" Margin="0,10,0,0" Style="{StaticResource AccentButtonStyle}" FontWeight="Bold" Height="35" AutomationProperties.Name="Insert Code" ToolTip="Insert Code"/>
                                     </StackPanel>
                                 </GroupBox>
                             </StackPanel>
@@ -842,8 +842,10 @@
                                     </Grid.RowDefinitions>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <Button Content="RESTART BRAIN" Command="{Binding Sidecar.RestartSidecarCommand}" 
-                                                Background="#c0392b" Foreground="White" FontSize="10" FontWeight="Bold"/>
-                                        <Button Content="Clear Logs" Command="{Binding Sidecar.ClearLogsCommand}" Margin="10,0,0,0" FontSize="10"/>
+                                                Background="#c0392b" Foreground="White" FontSize="10" FontWeight="Bold"
+                                                AutomationProperties.Name="Restart Sidecar" ToolTip="Restart Sidecar"/>
+                                        <Button Content="Clear Logs" Command="{Binding Sidecar.ClearLogsCommand}" Margin="10,0,0,0" FontSize="10"
+                                                AutomationProperties.Name="Clear Logs" ToolTip="Clear Logs"/>
                                     </StackPanel>
                                     <TextBox Grid.Row="1" Text="{Binding Sidecar.LogsText, Mode=OneWay}" 
                                              IsReadOnly="True" Background="#050505" Foreground="#f39c12" 
