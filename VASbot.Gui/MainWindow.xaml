@@ -177,9 +177,9 @@
                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">grid</System:String>
                                     </ComboBox>
                                     <TextBlock Text="Min:" Foreground="#888" FontSize="9" VerticalAlignment="Center" Margin="6,0,2,0"/>
-                                    <TextBox Text="{Binding Capture.DetectMinSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0"/>
+                                    <TextBox Text="{Binding Capture.DetectMinSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0" AutomationProperties.Name="Detect Min Size" ToolTip="Detect Min Size"/>
                                     <TextBlock Text="Max:" Foreground="#888" FontSize="9" VerticalAlignment="Center" Margin="6,0,2,0"/>
-                                    <TextBox Text="{Binding Capture.DetectMaxSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0"/>
+                                    <TextBox Text="{Binding Capture.DetectMaxSize, UpdateSourceTrigger=PropertyChanged}" Width="25" Height="22" FontSize="9" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="2,0" AutomationProperties.Name="Detect Max Size" ToolTip="Detect Max Size"/>
                                     <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="55" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" Margin="4,0,2,0" AutomationProperties.Name="Detect Shapes" ToolTip="Detect Shapes"/>
                                 </StackPanel>
                                 
@@ -461,7 +461,7 @@
                                          ui:ControlHelper.PlaceholderText="Search actions..."
                                          Margin="0,0,0,12" Height="32" Padding="8,4" FontSize="12"
                                          Background="#222" Foreground="#fff" BorderBrush="#3a3a3a"
-                                         VerticalContentAlignment="Center" />
+                                         VerticalContentAlignment="Center" AutomationProperties.Name="Search actions" ToolTip="Search actions"/>
 
                                 <ItemsControl ItemsSource="{Binding Templates.GroupedTemplates}" Margin="0,0,0,12">
                                     <ItemsControl.ItemTemplate>
@@ -550,7 +550,7 @@
                                                                 <DataTemplate x:Key="ColorPicker">
                                                                     <Grid>
                                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="30"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
-                                                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12"/>
+                                                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" AutomationProperties.Name="Template Parameter Value" ToolTip="Template Parameter Value"/>
                                                                         <Border Grid.Column="1" Background="{Binding Value}" CornerRadius="2" Margin="4,0,0,0" BorderBrush="#444" BorderThickness="1"/>
                                                                         <Button Grid.Column="2" Content="..." Padding="0" Margin="4,0,0,0" Height="28"
                                                                                 AutomationProperties.Name="Pick Color" ToolTip="Pick Color"
@@ -565,7 +565,7 @@
                                                                     </ComboBox>
                                                                 </DataTemplate>
                                                                 <DataTemplate x:Key="DefaultEditor">
-                                                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12"/>
+                                                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" AutomationProperties.Name="Template Parameter Value" ToolTip="Template Parameter Value"/>
                                                                 </DataTemplate>
                                                             </ContentControl.Resources>
                                                             <ContentControl.Style>
@@ -593,7 +593,8 @@
                                                      Background="Transparent" BorderThickness="0" Foreground="#00FFCC" 
                                                      FontFamily="Consolas" FontSize="11" TextWrapping="NoWrap" 
                                                      IsReadOnly="True" IsReadOnlyCaretVisible="True" 
-                                                     AcceptsReturn="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="120"/>
+                                                     AcceptsReturn="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="120"
+                                                     AutomationProperties.Name="Code Preview" ToolTip="Code Preview"/>
                                         </Border>
 
                                         <Button Content="INSERT CODE" Click="InsertTemplate_Click" HorizontalAlignment="Stretch" Margin="0,10,0,0" Style="{StaticResource AccentButtonStyle}" FontWeight="Bold" Height="35" AutomationProperties.Name="Insert Code" ToolTip="Insert Code"/>
@@ -634,11 +635,11 @@
 
                                                 <!-- Min Size -->
                                                 <TextBlock Text="Min:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                                                <TextBox Text="{Binding Capture.DetectMinSize, UpdateSourceTrigger=PropertyChanged}" Width="35" Height="22" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                                <TextBox Text="{Binding Capture.DetectMinSize, UpdateSourceTrigger=PropertyChanged}" Width="35" Height="22" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" AutomationProperties.Name="Detect Min Size" ToolTip="Detect Min Size"/>
 
                                                 <!-- Max Size -->
                                                 <TextBlock Text="Max:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                                                <TextBox Text="{Binding Capture.DetectMaxSize, UpdateSourceTrigger=PropertyChanged}" Width="35" Height="22" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                                <TextBox Text="{Binding Capture.DetectMaxSize, UpdateSourceTrigger=PropertyChanged}" Width="35" Height="22" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" AutomationProperties.Name="Detect Max Size" ToolTip="Detect Max Size"/>
                                             </StackPanel>
 
                                             <!-- Action Buttons -->
@@ -666,7 +667,8 @@
                                                             ToolTip="Click to change region color" AutomationProperties.Name="Change region color"/>
                                                     <TextBox Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" 
                                                              Background="Transparent" BorderThickness="0" Foreground="#ccc" FontSize="10" 
-                                                             VerticalAlignment="Center" LostFocus="RegionName_LostFocus"/>
+                                                             VerticalAlignment="Center" LostFocus="RegionName_LostFocus"
+                                                             AutomationProperties.Name="Region Name" ToolTip="Region Name"/>
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal">
                                                         <Button Command="{Binding DataContext.Capture.SaveRegionAsPngCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}"
@@ -702,7 +704,7 @@
                                             <!-- Active Color State -->
                                             <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,4,0">
                                                 <TextBlock Text="Active:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating active/available state"/>
-                                                <TextBox Text="{Binding Capture.SelectedRegion.ActiveColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus"/>
+                                                <TextBox Text="{Binding Capture.SelectedRegion.ActiveColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus" AutomationProperties.Name="Active Color" ToolTip="Active Color"/>
                                                 <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionActiveColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
                                                         AutomationProperties.Name="Pick active color from screen"
                                                         Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick active color from screen"/>
@@ -711,7 +713,7 @@
                                             <!-- Depleted Color State -->
                                             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="4,0,0,0">
                                                 <TextBlock Text="Depleted:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating depleted/empty state"/>
-                                                <TextBox Text="{Binding Capture.SelectedRegion.DepletedColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus"/>
+                                                <TextBox Text="{Binding Capture.SelectedRegion.DepletedColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus" AutomationProperties.Name="Depleted Color" ToolTip="Depleted Color"/>
                                                 <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionDepletedColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
                                                         AutomationProperties.Name="Pick depleted color from screen"
                                                         Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick depleted color from screen"/>
@@ -764,7 +766,7 @@
                                             
                                             <!-- Name -->
                                             <TextBlock Text="Name" Foreground="#aaa" FontSize="9" Margin="0,0,0,2"/>
-                                            <TextBox Text="{Binding Capture.SelectedColorCluster.Name, UpdateSourceTrigger=PropertyChanged}" Background="#222" Foreground="#fff" BorderBrush="#444" FontSize="10" Padding="3" Margin="0,0,0,8"/>
+                                            <TextBox Text="{Binding Capture.SelectedColorCluster.Name, UpdateSourceTrigger=PropertyChanged}" Background="#222" Foreground="#fff" BorderBrush="#444" FontSize="10" Padding="3" Margin="0,0,0,8" AutomationProperties.Name="Cluster Name" ToolTip="Cluster Name"/>
                                             
                                             <!-- Proximity Bridge -->
                                             <Grid Margin="0,0,0,2">
@@ -775,7 +777,7 @@
                                                 <TextBlock Text="Proximity Bridge (Dilation)" Foreground="#aaa" FontSize="9"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Capture.SelectedColorCluster.Proximity, StringFormat={}{0}px}" Foreground="#00FFFF" FontSize="9" FontWeight="Bold"/>
                                             </Grid>
-                                            <Slider Minimum="1" Maximum="40" Value="{Binding Capture.SelectedColorCluster.Proximity, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                                            <Slider Minimum="1" Maximum="40" Value="{Binding Capture.SelectedColorCluster.Proximity, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" AutomationProperties.Name="Proximity Bridge" ToolTip="Proximity Bridge Dilation in pixels"/>
                                             
                                             <!-- Tolerance -->
                                             <Grid Margin="0,0,0,2">
@@ -786,7 +788,7 @@
                                                 <TextBlock Text="RGB Tolerance" Foreground="#aaa" FontSize="9"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Capture.SelectedColorCluster.Tolerance}" Foreground="#00FFFF" FontSize="9" FontWeight="Bold"/>
                                             </Grid>
-                                            <Slider Minimum="1" Maximum="100" Value="{Binding Capture.SelectedColorCluster.Tolerance, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                                            <Slider Minimum="1" Maximum="100" Value="{Binding Capture.SelectedColorCluster.Tolerance, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" AutomationProperties.Name="RGB Tolerance" ToolTip="RGB Tolerance"/>
                                             
                                             <!-- Active Checkbox -->
                                             <CheckBox IsChecked="{Binding Capture.SelectedColorCluster.IsActive}" Content="Highlight Overlay" Foreground="#aaa" FontSize="10" Margin="0,0,0,8"/>
@@ -851,7 +853,8 @@
                                              IsReadOnly="True" Background="#050505" Foreground="#f39c12" 
                                              FontSize="9" FontFamily="Consolas" BorderThickness="0"
                                              TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                             TextChanged="Terminal_TextChanged"/>
+                                             TextChanged="Terminal_TextChanged"
+                                             AutomationProperties.Name="Sidecar Logs" ToolTip="Sidecar Logs"/>
                                     <TextBlock Grid.Row="2" Text="{Binding Sidecar.StatusText}" 
                                                FontSize="9" Foreground="#858585" Margin="0,5,0,0"/>
                                 </Grid>
@@ -875,7 +878,8 @@
                          IsReadOnly="True" Background="Transparent" BorderThickness="0" 
                          Foreground="#00FF00" FontFamily="Consolas" FontSize="11"
                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                         TextChanged="Terminal_TextChanged"/>
+                         TextChanged="Terminal_TextChanged"
+                         AutomationProperties.Name="System Terminal Logs" ToolTip="System Terminal Logs"/>
             </Grid>
         </Border>
     </Grid>
