@@ -1,3 +1,6 @@
 ## 2026-07-01 - Added missing AutomationProperties.Name to icon-only buttons
 **Learning:** Found multiple icon-only buttons (like ✕ for deleting items, 🎨 for color picking) that lacked `AutomationProperties.Name`, making them inaccessible to screen readers in this WPF application.
 **Action:** Always add `AutomationProperties.Name` or `ToolTip` to icon-only buttons or custom content buttons to ensure screen reader compatibility, as highlighted in memory.
+## 2026-07-01 - Enhance accessibility for regular toolbar buttons and inputs
+**Learning:** Even buttons with text labels (like "New", "Open", "Save") and standard inputs (like "Snippet Name") in the main toolbar lacked `AutomationProperties.Name` and `ToolTip` attributes. While screen readers might infer the purpose from the content, adding explicit `AutomationProperties.Name` provides a robust, guaranteed accessible name, and tooltips benefit sighted users. This ensures a universally better experience.
+**Action:** Extend the accessibility checks beyond just icon-only buttons. Add `AutomationProperties.Name` and `ToolTip` to all toolbar and critical operational buttons, and add accessible names to input fields to provide full context to assistive technologies.
