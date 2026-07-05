@@ -701,19 +701,56 @@ namespace VASbot.Gui.UI.ViewModels
                     var points = new System.Collections.Generic.List<SKPoint>();
                     int step = 2; // Downsampling by 2 matches original resolution perfectly with high rendering speed
 
-                    for (int y = 0; y < CurrentFrame.Height; y += step)
+                    if (CurrentFrame != null && CurrentFrame.BytesPerPixel == 4)
                     {
-                        for (int x = 0; x < CurrentFrame.Width; x += step)
+                        unsafe
                         {
-                            var pixel = CurrentFrame.GetPixel(x, y);
-                            foreach (var tc in targetColors)
+                            byte* ptr = (byte*)CurrentFrame.GetPixels().ToPointer();
+                            int rowBytes = CurrentFrame.RowBytes;
+                            int frameWidth = CurrentFrame.Width;
+                            int frameHeight = CurrentFrame.Height;
+
+                            for (int y = 0; y < frameHeight; y += step)
                             {
-                                if (Math.Abs(pixel.Red - tc.Red) <= tolerance &&
-                                    Math.Abs(pixel.Green - tc.Green) <= tolerance &&
-                                    Math.Abs(pixel.Blue - tc.Blue) <= tolerance)
+                                byte* rowPtr = ptr + y * rowBytes;
+                                for (int x = 0; x < frameWidth; x += step)
                                 {
-                                    points.Add(new SKPoint(x, y));
-                                    break;
+                                    byte* pixelPtr = rowPtr + x * 4;
+                                    // BGRA format
+                                    byte b = pixelPtr[0];
+                                    byte g = pixelPtr[1];
+                                    byte r = pixelPtr[2];
+
+                                    foreach (var tc in targetColors)
+                                    {
+                                        if (Math.Abs(r - tc.Red) <= tolerance &&
+                                            Math.Abs(g - tc.Green) <= tolerance &&
+                                            Math.Abs(b - tc.Blue) <= tolerance)
+                                        {
+                                            points.Add(new SKPoint(x, y));
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int y = 0; y < CurrentFrame.Height; y += step)
+                        {
+                            for (int x = 0; x < CurrentFrame.Width; x += step)
+                            {
+                                var pixel = CurrentFrame.GetPixel(x, y);
+                                foreach (var tc in targetColors)
+                                {
+                                    if (Math.Abs(pixel.Red - tc.Red) <= tolerance &&
+                                        Math.Abs(pixel.Green - tc.Green) <= tolerance &&
+                                        Math.Abs(pixel.Blue - tc.Blue) <= tolerance)
+                                    {
+                                        points.Add(new SKPoint(x, y));
+                                        break;
+                                    }
                                 }
                             }
                         }
