@@ -38,6 +38,7 @@ except ImportError:
 
 class ScriptStoppedError(BaseException):
     """Custom exception raised when the script execution is stopped."""
+
     pass
 
 
@@ -85,9 +86,9 @@ class GUIProxy:
 
 
 def hex_to_bgr(hex_str):
-    hex_str = hex_str.lstrip('#')
+    hex_str = hex_str.lstrip("#")
     if len(hex_str) == 3:
-        hex_str = ''.join(c * 2 for c in hex_str)
+        hex_str = "".join(c * 2 for c in hex_str)
     r = int(hex_str[0:2], 16)
     g = int(hex_str[2:4], 16)
     b = int(hex_str[4:6], 16)
@@ -98,37 +99,37 @@ class DynamicRegion:
     def __init__(self, bot, label_id, stats, centroid, mask, offset_x, offset_y):
         self.bot = bot
         self.label_id = label_id
-        self._stats = stats          # [left, top, width, height, area]
-        self._centroid = centroid    # (cx, cy)
-        self._mask = mask            # binary mask of this component (cropped to bounding box)
+        self._stats = stats  # [left, top, width, height, area]
+        self._centroid = centroid  # (cx, cy)
+        self._mask = mask  # binary mask of this component (cropped to bounding box)
         self._offset_x = offset_x
         self._offset_y = offset_y
-        
+
     def center(self):
         """Returns absolute screen coordinates of the component centroid."""
         left, top, _, _ = _get_true_hwnd_rect(self.bot._target_hwnd)
         cx = left + self._offset_x + self._centroid[0]
         cy = top + self._offset_y + self._centroid[1]
         return int(cx), int(cy)
-        
+
     def click(self, button="left", human_like=True):
         """Clicks the centroid of the component."""
         cx, cy = self.center()
         self.bot.click(cx, cy, button=button, human_like=human_like)
-        
+
     def bounds(self):
         """Returns (x, y, w, h) client-relative bounding box."""
         return (
-            int(self._offset_x + self._stats[0]), 
-            int(self._offset_y + self._stats[1]), 
-            int(self._stats[2]), 
-            int(self._stats[3])
+            int(self._offset_x + self._stats[0]),
+            int(self._offset_y + self._stats[1]),
+            int(self._stats[2]),
+            int(self._stats[3]),
         )
-        
+
     def area(self):
         """Returns total area of matching pixels in this component."""
         return int(self._stats[4])
-        
+
     def mask(self):
         """Returns the binary mask of this component."""
         return self._mask
@@ -137,25 +138,31 @@ class DynamicRegion:
         """Checks if this component contains a specific color."""
         left, top, w, h, _ = self._stats
         b, g, r = hex_to_bgr(hex_color)
-        
+
         full_frame = self.bot._get_current_frame()
         if full_frame is None:
             return False
-            
+
         if full_frame.shape[2] == 4:
             img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
         else:
             img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
-            
+
         gx = self._offset_x + left
         gy = self._offset_y + top
-        
+
         bgr_crop = img_bgr[gy : gy + h, gx : gx + w]
-        
-        lower = np.array([max(0, b - tolerance), max(0, g - tolerance), max(0, r - tolerance)], dtype=np.uint8)
-        upper = np.array([min(255, b + tolerance), min(255, g + tolerance), min(255, r + tolerance)], dtype=np.uint8)
+
+        lower = np.array(
+            [max(0, b - tolerance), max(0, g - tolerance), max(0, r - tolerance)],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [min(255, b + tolerance), min(255, g + tolerance), min(255, r + tolerance)],
+            dtype=np.uint8,
+        )
         color_mask = cv2.inRange(bgr_crop, lower, upper)
-        
+
         intersection = cv2.bitwise_and(color_mask, color_mask, mask=self._mask)
         return cv2.countNonZero(intersection) > 0
 
@@ -165,17 +172,19 @@ class DynamicRegion:
         full_frame = self.bot._get_current_frame()
         if full_frame is None:
             return False
-            
+
         gx = self._offset_x + left
         gy = self._offset_y + top
         crop = full_frame[gy : gy + h, gx : gx + w].copy()
-        
+
         cv2.imwrite(filepath, crop)
         return True
 
     def highlight(self, duration_sec=1.5):
         """Logs high-level information about the highlighted region."""
-        self.bot.log(f"[Highlight] DynamicRegion at center {self.center()} with bounds {self.bounds()}")
+        self.bot.log(
+            f"[Highlight] DynamicRegion at center {self.center()} with bounds {self.bounds()}"
+        )
 
 
 class BotAPI:
@@ -408,10 +417,12 @@ class BotAPI:
             return None
         try:
             from core.windows_utils import _get_true_hwnd_rect
+
             return _get_true_hwnd_rect(self._target_hwnd)
         except Exception:
             try:
                 from windows_utils import _get_true_hwnd_rect
+
                 return _get_true_hwnd_rect(self._target_hwnd)
             except Exception:
                 return None
@@ -487,7 +498,9 @@ class BotAPI:
             timestamp = time.strftime("%H:%M:%S")
             print(f"[{timestamp}] {message}")
 
-    def click_region(self, region_index, button="left", modifiers=None, human_like=False):
+    def click_region(
+        self, region_index, button="left", modifiers=None, human_like=False
+    ):
         if modifiers is None:
             modifiers = []
         self.check_running()
@@ -611,7 +624,9 @@ class BotAPI:
             self.log(f"Stack: {traceback.format_exc()}")
             return False
 
-    def find_color(self, hex_color, region_index, tolerance=10, verbose=True, focus=True):
+    def find_color(
+        self, hex_color, region_index, tolerance=10, verbose=True, focus=True
+    ):
         self.check_running()
         region = self._resolve_region(region_index)
         if region is None:
@@ -670,14 +685,39 @@ class BotAPI:
                 return None
 
             # ROI is BGRA from Shared Memory or RGB from ImageGrab
-            if roi.shape[2] == 4:  # BGRA
-                roi_rgb = roi[:, :, [2, 1, 0]]
+            if cv2 is not None:
+                # Fast native C++ cv2.inRange (approx 5x faster than np.abs + np.where)
+                if roi.shape[2] == 4:  # BGRA
+                    # Use BGR ordering
+                    target_bgr = (target_rgb[2], target_rgb[1], target_rgb[0])
+                    # Add alpha bounds if 4 channels
+                    lower = np.array(
+                        [max(0, c - tolerance) for c in target_bgr] + [0], dtype=np.uint8
+                    )
+                    upper = np.array(
+                        [min(255, c + tolerance) for c in target_bgr] + [255], dtype=np.uint8
+                    )
+                else:
+                    # RGB
+                    lower = np.array(
+                        [max(0, c - tolerance) for c in target_rgb], dtype=np.uint8
+                    )
+                    upper = np.array(
+                        [min(255, c + tolerance) for c in target_rgb], dtype=np.uint8
+                    )
+                mask = cv2.inRange(roi, lower, upper)
+                matches = np.where(mask > 0)
+                roi_for_debug = roi  # Preserve for debug log if needed
             else:
-                roi_rgb = roi
+                if roi.shape[2] == 4:  # BGRA
+                    roi_rgb = roi[:, :, [2, 1, 0]]
+                else:
+                    roi_rgb = roi
 
-            # Calculate color differences
-            color_diff = np.abs(roi_rgb - target_rgb)
-            matches = np.where(np.all(color_diff <= tolerance, axis=2))
+                # Calculate color differences using numpy
+                color_diff = np.abs(roi_rgb - target_rgb)
+                matches = np.where(np.all(color_diff <= tolerance, axis=2))
+                roi_for_debug = roi_rgb
 
             if len(matches[0]) > 0:
                 # Get FIRST match (top-left most)
@@ -689,7 +729,10 @@ class BotAPI:
                 abs_y = top + y + rel_y
 
                 # Get actual pixel color at click location for debugging
-                actual_color = roi_rgb[rel_y, rel_x]
+                actual_color = roi_for_debug[rel_y, rel_x]
+                if roi.shape[2] == 4 and cv2 is not None:
+                    # In cv2 fast path with BGRA, actual_color is BGRA, log as RGB
+                    actual_color = actual_color[[2, 1, 0]]
 
                 if verbose:
                     self.log(
@@ -700,7 +743,13 @@ class BotAPI:
             else:
                 # Log what colors ARE in the region for debugging
                 if verbose:
-                    if roi_rgb.size > 0:
+                    if roi.size > 0:
+                        # Ensure we log RGB
+                        if roi.shape[2] == 4 and cv2 is not None:
+                            roi_rgb = roi[:, :, [2, 1, 0]]
+                        else:
+                            roi_rgb = roi_for_debug
+
                         avg_color = np.mean(roi_rgb.reshape(-1, 3), axis=0)
                         min_color = np.min(roi_rgb.reshape(-1, 3), axis=0)
                         max_color = np.max(roi_rgb.reshape(-1, 3), axis=0)
@@ -759,8 +808,10 @@ class BotAPI:
         result = self.find_image(template_path, region_index, confidence)
         if result:
             abs_x, abs_y = result
-            self.click(abs_x, abs_y, button=button, modifiers=modifiers, human_like=human_like)
-            
+            self.click(
+                abs_x, abs_y, button=button, modifiers=modifiers, human_like=human_like
+            )
+
             if wait_disappear:
                 start_time = time.time()
                 while time.time() - start_time < timeout:
@@ -788,8 +839,10 @@ class BotAPI:
         result = self.find_text(text, region_index, case_sensitive)
         if result:
             abs_x, abs_y = result
-            self.click(abs_x, abs_y, button=button, modifiers=modifiers, human_like=human_like)
-            
+            self.click(
+                abs_x, abs_y, button=button, modifiers=modifiers, human_like=human_like
+            )
+
             if wait_disappear:
                 start_time = time.time()
                 while time.time() - start_time < timeout:
@@ -826,7 +879,9 @@ class BotAPI:
         )
         return False
 
-    def wait_while_color(self, hex_color, region_index, timeout=30.0, tolerance=10, check_interval=0.15):
+    def wait_while_color(
+        self, hex_color, region_index, timeout=30.0, tolerance=10, check_interval=0.15
+    ):
         self.check_running()
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -844,18 +899,24 @@ class BotAPI:
         region = self._resolve_region(region_index)
         if not region:
             return "unknown"
-            
+
         active_color = region.get("active_color", "")
         depleted_color = region.get("depleted_color", "")
-        
-        if active_color and self.find_color(active_color, region_index, tolerance, verbose=False, focus=False):
+
+        if active_color and self.find_color(
+            active_color, region_index, tolerance, verbose=False, focus=False
+        ):
             return "active"
-        if depleted_color and self.find_color(depleted_color, region_index, tolerance, verbose=False, focus=False):
+        if depleted_color and self.find_color(
+            depleted_color, region_index, tolerance, verbose=False, focus=False
+        ):
             return "depleted"
-            
+
         return "unknown"
 
-    def wait_for_region_state(self, region_index, state, timeout=30.0, tolerance=10, check_interval=0.15):
+    def wait_for_region_state(
+        self, region_index, state, timeout=30.0, tolerance=10, check_interval=0.15
+    ):
         self.check_running()
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -873,17 +934,19 @@ class BotAPI:
         region = self._resolve_region(region_index)
         if not region:
             return False
-            
+
         color = region.get(f"{state}_color", "")
         if not color:
-            self.log(f"Error: State '{state}' is not configured with a color for region {region_index}")
+            self.log(
+                f"Error: State '{state}' is not configured with a color for region {region_index}"
+            )
             return False
-            
+
         return self.find_and_click_color(
             hex_color=color,
             region_index=region_index,
             tolerance=tolerance,
-            button=button
+            button=button,
         )
 
     def hover_color(self, hex_color, region_index, tolerance=10, human_like=True):
@@ -932,7 +995,7 @@ class BotAPI:
 
         # Handle string representing a grid cell like "3.21" or "3_21" or "3:21"
         if isinstance(region_index, str):
-            for sep in ('.', '_', ':'):
+            for sep in (".", "_", ":"):
                 if sep in region_index:
                     parts = region_index.split(sep)
                     if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
@@ -945,9 +1008,13 @@ class BotAPI:
                                 bx, by, bw, bh = cell.bounds()
                                 return {"x": bx, "y": by, "width": bw, "height": bh}
                             else:
-                                self.log(f"Error: Cell index {cell_idx} is out of bounds in grid region {parent_idx}")
+                                self.log(
+                                    f"Error: Cell index {cell_idx} is out of bounds in grid region {parent_idx}"
+                                )
                         else:
-                            self.log(f"Error: No grid detected inside parent region {parent_idx}")
+                            self.log(
+                                f"Error: No grid detected inside parent region {parent_idx}"
+                            )
                         return None
             if region_index.isdigit():
                 region_index = int(region_index)
@@ -967,14 +1034,20 @@ class BotAPI:
                             bx, by, bw, bh = cell.bounds()
                             return {"x": bx, "y": by, "width": bw, "height": bh}
                         else:
-                            self.log(f"Error: Cell index {cell_idx} is out of bounds in grid region {parent_idx}")
+                            self.log(
+                                f"Error: Cell index {cell_idx} is out of bounds in grid region {parent_idx}"
+                            )
                     else:
-                        self.log(f"Error: No grid detected inside parent region {parent_idx}")
+                        self.log(
+                            f"Error: No grid detected inside parent region {parent_idx}"
+                        )
                     return None
 
         if isinstance(region_index, int):
             if region_index >= len(self.regions):
-                self.log(f"Error: Region index {region_index} does not exist. Total: {len(self.regions)}")
+                self.log(
+                    f"Error: Region index {region_index} does not exist. Total: {len(self.regions)}"
+                )
                 return None
             return self.regions[region_index]
         if isinstance(region_index, dict):
@@ -986,7 +1059,12 @@ class BotAPI:
             h = region_index.get("height", region_index.get("h", 0))
             return {"x": x, "y": y, "width": w, "height": h}
         if isinstance(region_index, (list, tuple)) and len(region_index) == 4:
-            return {"x": region_index[0], "y": region_index[1], "width": region_index[2], "height": region_index[3]}
+            return {
+                "x": region_index[0],
+                "y": region_index[1],
+                "width": region_index[2],
+                "height": region_index[3],
+            }
         self.log(f"Error: Invalid region representation {region_index}")
         return None
 
@@ -1090,6 +1168,7 @@ class BotAPI:
 
             # Compute fast hash of the region to avoid redundant Tesseract OCR processes
             import hashlib
+
             roi_hash = hashlib.md5(roi.tobytes()).hexdigest()
 
             self.log(f"Scanning region {region_index} ({w}x{h}) for text '{text}'...")
@@ -1103,13 +1182,23 @@ class BotAPI:
             # Pass 1: 2x Interpolated Gray (retains detail, best for small fonts)
             # Pass 2: 2x Interpolated + Otsu Thresholding (best for high contrast backgrounds)
             # Pass 3: 2x Interpolated + Inverted Otsu (best for light text on dark background)
-            
+
             scale_factor = 2.0
-            scaled_img = cv2.resize(cv_img, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
-            
-            _, binarized = cv2.threshold(scaled_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            _, binarized_inv = cv2.threshold(scaled_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-            
+            scaled_img = cv2.resize(
+                cv_img,
+                (0, 0),
+                fx=scale_factor,
+                fy=scale_factor,
+                interpolation=cv2.INTER_CUBIC,
+            )
+
+            _, binarized = cv2.threshold(
+                scaled_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            )
+            _, binarized_inv = cv2.threshold(
+                scaled_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+            )
+
             passes = [
                 (scaled_img, "--psm 3", "2x Scale Interpolated (PSM 3)"),
                 (scaled_img, "--psm 6", "2x Scale Interpolated (PSM 6)"),
@@ -1117,17 +1206,18 @@ class BotAPI:
                 (binarized, "--psm 3", "2x Scale + Otsu Binarization (PSM 3)"),
                 (binarized, "--psm 6", "2x Scale + Otsu Binarization (PSM 6)"),
                 (binarized_inv, "--psm 3", "2x Scale + Inverted Otsu (PSM 3)"),
-                (binarized_inv, "--psm 6", "2x Scale + Inverted Otsu (PSM 6)")
+                (binarized_inv, "--psm 6", "2x Scale + Inverted Otsu (PSM 6)"),
             ]
-            
+
             query_words = [q for q in text.split() if q.strip()]
             if not query_words:
                 return None
             n_query = len(query_words)
 
             import re
+
             def clean_str(s):
-                return re.sub(r'[^a-z0-9]', '', s.lower())
+                return re.sub(r"[^a-z0-9]", "", s.lower())
 
             clean_query = clean_str(text)
 
@@ -1139,13 +1229,19 @@ class BotAPI:
                 cache_key = (roi_hash, pass_idx)
                 if cache_key in self._ocr_cache:
                     if self._debug_mode:
-                        self.log(f"Retrieving OCR result from frame-hash cache (Pass: {pass_name})")
+                        self.log(
+                            f"Retrieving OCR result from frame-hash cache (Pass: {pass_name})"
+                        )
                     data = self._ocr_cache[cache_key]
                 else:
                     if self._debug_mode:
                         self.log(f"Running OCR Pass: {pass_name}")
-                    data = pytesseract.image_to_data(processed_img, config=config_str, output_type=pytesseract.Output.DICT)
-                    
+                    data = pytesseract.image_to_data(
+                        processed_img,
+                        config=config_str,
+                        output_type=pytesseract.Output.DICT,
+                    )
+
                     # FIFO eviction if cache size exceeds 1000 items (approx 140 images with all 7 passes)
                     if len(self._ocr_cache) >= 1000:
                         try:
@@ -1155,7 +1251,7 @@ class BotAPI:
                     self._ocr_cache[cache_key] = data
 
                 found_words = [w for w in data["text"] if w.strip()]
-                
+
                 if self._debug_mode:
                     self.log(f"[{pass_name}] found words: {found_words}")
 
@@ -1192,8 +1288,11 @@ class BotAPI:
                             sub_words = words_in_data[i : i + window_size]
                             joined_sub = "".join(sub_words)
                             clean_joined = clean_str(joined_sub)
-                            
-                            if clean_joined and (clean_query in clean_joined or clean_joined in clean_query):
+
+                            if clean_joined and (
+                                clean_query in clean_joined
+                                or clean_joined in clean_query
+                            ):
                                 found_match = True
                                 matched_start = i
                                 matched_len = window_size
@@ -1203,10 +1302,22 @@ class BotAPI:
 
                 if found_match:
                     # Reconstruct bounding box in the scaled image coords
-                    left_coords = [data["left"][idx] for idx in range(matched_start, matched_start + matched_len)]
-                    top_coords = [data["top"][idx] for idx in range(matched_start, matched_start + matched_len)]
-                    right_coords = [data["left"][idx] + data["width"][idx] for idx in range(matched_start, matched_start + matched_len)]
-                    bottom_coords = [data["top"][idx] + data["height"][idx] for idx in range(matched_start, matched_start + matched_len)]
+                    left_coords = [
+                        data["left"][idx]
+                        for idx in range(matched_start, matched_start + matched_len)
+                    ]
+                    top_coords = [
+                        data["top"][idx]
+                        for idx in range(matched_start, matched_start + matched_len)
+                    ]
+                    right_coords = [
+                        data["left"][idx] + data["width"][idx]
+                        for idx in range(matched_start, matched_start + matched_len)
+                    ]
+                    bottom_coords = [
+                        data["top"][idx] + data["height"][idx]
+                        for idx in range(matched_start, matched_start + matched_len)
+                    ]
 
                     min_l = min(left_coords)
                     min_t = min(top_coords)
@@ -1225,7 +1336,9 @@ class BotAPI:
                     abs_x = left + region["x"] + rel_x
                     abs_y = top + region["y"] + rel_y
 
-                    self.log(f"Found text '{text}' via {pass_name} at ({abs_x}, {abs_y})")
+                    self.log(
+                        f"Found text '{text}' via {pass_name} at ({abs_x}, {abs_y})"
+                    )
                     return abs_x, abs_y
 
             self.log(f"Text '{text}' not found in region.")
@@ -1271,7 +1384,7 @@ class BotAPI:
                 alpha = template_img[:, :, 3]
                 # Only treat as transparent if there are actual non-opaque pixels
                 if np.any(alpha < 255):
-                    template = template_img[:, :, :3] # BGR channels
+                    template = template_img[:, :, :3]  # BGR channels
                     mask = alpha
                     has_alpha = True
                 else:
@@ -1318,7 +1431,9 @@ class BotAPI:
 
             if has_alpha:
                 # SQDIFF_NORMED with mask: best match is at min_val (perfect match is 0.0)
-                res = cv2.matchTemplate(search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask)
+                res = cv2.matchTemplate(
+                    search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask
+                )
                 min_val, max_val, min_loc, max_pos = cv2.minMaxLoc(res)
                 match_val = 1.0 - min_val
                 best_pos = min_loc
@@ -1348,7 +1463,9 @@ class BotAPI:
             self.log(f"Vision Error: {e}")
             return None
 
-    def find_all_images(self, template_path, region_index=None, confidence=0.8, max_results=100):
+    def find_all_images(
+        self, template_path, region_index=None, confidence=0.8, max_results=100
+    ):
         self.check_running()
         try:
             import cv2
@@ -1427,7 +1544,9 @@ class BotAPI:
 
             # Match template
             if has_alpha:
-                res = cv2.matchTemplate(search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask)
+                res = cv2.matchTemplate(
+                    search_area, template, cv2.TM_SQDIFF_NORMED, mask=mask
+                )
                 locs = np.where(res <= (1.0 - confidence))
                 scores = 1.0 - res[locs]
             else:
@@ -1438,7 +1557,15 @@ class BotAPI:
             h, w = template.shape[:2]
             candidates = []
             for y_val, x_val, score in zip(locs[0], locs[1], scores):
-                candidates.append([int(x_val), int(y_val), int(x_val + w), int(y_val + h), float(score)])
+                candidates.append(
+                    [
+                        int(x_val),
+                        int(y_val),
+                        int(x_val + w),
+                        int(y_val + h),
+                        float(score),
+                    ]
+                )
 
             # Sort by score descending
             candidates = sorted(candidates, key=lambda c: c[4], reverse=True)
@@ -1455,11 +1582,11 @@ class BotAPI:
                     iy1 = max(best[1], cand[1])
                     ix2 = min(best[2], cand[2])
                     iy2 = min(best[3], cand[3])
-                    
+
                     iw = max(0, ix2 - ix1)
                     ih = max(0, iy2 - iy1)
                     inter_area = iw * ih
-                    
+
                     if inter_area > 0:
                         best_area = (best[2] - best[0]) * (best[3] - best[1])
                         cand_area = (cand[2] - cand[0]) * (cand[3] - cand[1])
@@ -1478,7 +1605,9 @@ class BotAPI:
                 results.append((center_x, center_y))
 
             if results:
-                self.log(f"Found {len(results)} matches for '{os.path.basename(template_path)}'")
+                self.log(
+                    f"Found {len(results)} matches for '{os.path.basename(template_path)}'"
+                )
             return results
         except Exception as e:
             self.log(f"Vision Error in find_all_images: {e}")
@@ -1527,11 +1656,11 @@ class BotAPI:
         Connected-Component Labeling (CCL) based Color Cluster Segmentation.
         Segments the frame, clusters pixels, bridges gaps within 'proximity' pixels,
         and filters components to only keep those containing all specified colors.
-        
+
         Returns a list of DynamicRegion objects.
         """
         self.check_running()
-        
+
         # 1. Resolve colors, proximity and tolerance
         colors = []
         p_val = proximity
@@ -1551,13 +1680,17 @@ class BotAPI:
                 if t_val is None:
                     t_val = matched["tolerance"]
             else:
-                self.log(f"Warning: Predefined cluster '{name_or_colors}' not found. Treating as single color.")
+                self.log(
+                    f"Warning: Predefined cluster '{name_or_colors}' not found. Treating as single color."
+                )
                 colors = [name_or_colors]
         elif isinstance(name_or_colors, list):
             colors = name_or_colors
 
         if not colors:
-            self.log("Vision Error: No colors specified for color clusters segmentation.")
+            self.log(
+                "Vision Error: No colors specified for color clusters segmentation."
+            )
             return []
 
         if p_val is None:
@@ -1569,7 +1702,9 @@ class BotAPI:
         cache_key = (self._frame_counter, tuple(colors), p_val, t_val, region_index)
         if cache_key in self._ccl_cache:
             if self._debug_mode:
-                self.log(f"Retrieving color cluster results from frame cache (Key: {cache_key})")
+                self.log(
+                    f"Retrieving color cluster results from frame cache (Key: {cache_key})"
+                )
             return self._ccl_cache[cache_key]
 
         # 2. Get frame
@@ -1600,8 +1735,14 @@ class BotAPI:
         masks = []
         for hex_col in colors:
             b, g, r = hex_to_bgr(hex_col)
-            lower = np.array([max(0, b - t_val), max(0, g - t_val), max(0, r - t_val)], dtype=np.uint8)
-            upper = np.array([min(255, b + t_val), min(255, g + t_val), min(255, r + t_val)], dtype=np.uint8)
+            lower = np.array(
+                [max(0, b - t_val), max(0, g - t_val), max(0, r - t_val)],
+                dtype=np.uint8,
+            )
+            upper = np.array(
+                [min(255, b + t_val), min(255, g + t_val), min(255, r + t_val)],
+                dtype=np.uint8,
+            )
             mask = cv2.inRange(search_area, lower, upper)
             masks.append(mask)
 
@@ -1620,13 +1761,15 @@ class BotAPI:
             dilated_mask = combined_mask
 
         # 6. Run native Connected Component Labeling
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(dilated_mask)
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+            dilated_mask
+        )
 
         # 7. Check color co-existence on each component with native C++ optimizations
         valid_regions = []
-        for k in range(1, num_labels): # Skip background label (0)
+        for k in range(1, num_labels):  # Skip background label (0)
             left, top, w, h, area = stats[k]
-            
+
             # Fast check: skip very small components immediately
             if area < 4:
                 continue
@@ -1655,12 +1798,14 @@ class BotAPI:
                         centroid=centroid,
                         mask=comp_mask_crop,
                         offset_x=offset_x,
-                        offset_y=offset_y
+                        offset_y=offset_y,
                     )
                 )
 
         if self._debug_mode:
-            self.log(f"find_color_clusters found {len(valid_regions)} matches out of {num_labels - 1} connected components.")
+            self.log(
+                f"find_color_clusters found {len(valid_regions)} matches out of {num_labels - 1} connected components."
+            )
 
         # Cache results before returning
         self._ccl_cache[cache_key] = valid_regions
@@ -1676,7 +1821,13 @@ class BotAPI:
         return regions[0] if regions else None
 
     def click_color_cluster(
-        self, name_or_colors, proximity=None, tolerance=None, region_index=None, button="left", human_like=True
+        self,
+        name_or_colors,
+        proximity=None,
+        tolerance=None,
+        region_index=None,
+        button="left",
+        human_like=True,
     ):
         """Finds the first matching cluster and clicks its centroid."""
         region = self.find_color_cluster(
@@ -1686,10 +1837,14 @@ class BotAPI:
             region.click(button=button, human_like=human_like)
             return True
         else:
-            self.log(f"Vision Error: click_color_cluster could not find cluster '{name_or_colors}'")
+            self.log(
+                f"Vision Error: click_color_cluster could not find cluster '{name_or_colors}'"
+            )
             return False
 
-    def detect_shapes(self, shape_type="all", min_size=15, max_size=None, region_index=None):
+    def detect_shapes(
+        self, shape_type="all", min_size=15, max_size=None, region_index=None
+    ):
         """
         Detects circles, rectangles, or grid cells using OpenCV contour analysis.
         Returns a list of dicts: {"type": ..., "x": ..., "y": ..., "width": ..., "height": ..., "confidence": ...}
@@ -1697,7 +1852,9 @@ class BotAPI:
         self.check_running()
         full_frame = self._get_current_frame()
         if full_frame is None:
-            self.log("Vision Error: Could not retrieve screen frame for shape detection.")
+            self.log(
+                "Vision Error: Could not retrieve screen frame for shape detection."
+            )
             return []
 
         # Convert full frame to BGR
@@ -1726,74 +1883,90 @@ class BotAPI:
         edges = cv2.Canny(blurred, 50, 150)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-        contours_edge, _ = cv2.findContours(closed_edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours_edge, _ = cv2.findContours(
+            closed_edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         # 2. Adaptive Thresholding (perfect for extracting separate grid cells sharing borders)
         thresh_adaptive = cv2.adaptiveThreshold(
             blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
         )
-        contours_thresh, _ = cv2.findContours(thresh_adaptive, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours_thresh, _ = cv2.findContours(
+            thresh_adaptive, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         # Process all contours
         all_contours = list(contours_edge) + list(contours_thresh)
-        
+
         detected = []
         rectangles = []  # candidate rectangles for Grid solver
-        
+
         for cnt in all_contours:
             x, y, w, h = cv2.boundingRect(cnt)
             if w < min_size or h < min_size:
                 continue
             if max_size is not None and (w > max_size or h > max_size):
                 continue
-                
+
             perimeter = cv2.arcLength(cnt, True)
             area = cv2.contourArea(cnt)
             if perimeter == 0:
                 continue
-                
+
             # 1. Circle Check
-            circularity = 4 * np.pi * area / (perimeter ** 2)
-            
+            circularity = 4 * np.pi * area / (perimeter**2)
+
             # Aspect ratio check (Circles must have aspect ratio close to 1.0)
             aspect_ratio = float(w) / h if h > 0 else 0
-            is_aspect_circle = (0.80 <= aspect_ratio <= 1.25)
-            
+            is_aspect_circle = 0.80 <= aspect_ratio <= 1.25
+
             # Enclosing circle check
             (cx, cy), r = cv2.minEnclosingCircle(cnt)
-            circle_area = np.pi * (r ** 2)
+            circle_area = np.pi * (r**2)
             area_ratio = area / circle_area if circle_area > 0 else 0
-            
-            if (shape_type == "all" or shape_type == "circle") and is_aspect_circle and (circularity > 0.80 or area_ratio > 0.82):
+
+            if (
+                (shape_type == "all" or shape_type == "circle")
+                and is_aspect_circle
+                and (circularity > 0.80 or area_ratio > 0.82)
+            ):
                 cw = int(r * 2)
                 ch = int(r * 2)
                 cx_box = int(cx - r)
                 cy_box = int(cy - r)
-                
+
                 if cw >= min_size and ch >= min_size:
-                    detected.append({
-                        "type": "circle",
-                        "x": offset_x + cx_box,
-                        "y": offset_y + cy_box,
-                        "width": cw,
-                        "height": ch,
-                        "confidence": float(max(circularity, area_ratio))
-                    })
+                    detected.append(
+                        {
+                            "type": "circle",
+                            "x": offset_x + cx_box,
+                            "y": offset_y + cy_box,
+                            "width": cw,
+                            "height": ch,
+                            "confidence": float(max(circularity, area_ratio)),
+                        }
+                    )
                     continue
-            
+
             # 2. Rectangle/Polygon Check
             # Extent (coverage of the bounding box)
             extent = area / (w * h) if w * h > 0 else 0
             approx = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
-            
+
             is_rect_shape = False
-            if (len(approx) == 4 and cv2.isContourConvex(approx)) or (extent > 0.85 and len(approx) >= 4 and len(approx) <= 8):
+            if (len(approx) == 4 and cv2.isContourConvex(approx)) or (
+                extent > 0.85 and len(approx) >= 4 and len(approx) <= 8
+            ):
                 # Avoid extremely thin lines by checking aspect ratio
                 if 0.05 <= aspect_ratio <= 20:
                     is_rect_shape = True
-            
+
             if is_rect_shape:
-                if (shape_type == "all" or shape_type == "rectangle" or shape_type == "grid"):
+                if (
+                    shape_type == "all"
+                    or shape_type == "rectangle"
+                    or shape_type == "grid"
+                ):
                     rectangles.append((x, y, w, h, float(extent)))
 
         # Grid Clustering Solver
@@ -1805,18 +1978,21 @@ class BotAPI:
                 for group in rects_by_size:
                     rep_w = sum(item[2] for item in group) / len(group)
                     rep_h = sum(item[3] for item in group) / len(group)
-                    if abs(rw - rep_w) < rep_w * 0.18 and abs(rh - rep_h) < rep_h * 0.18:
+                    if (
+                        abs(rw - rep_w) < rep_w * 0.18
+                        and abs(rh - rep_h) < rep_h * 0.18
+                    ):
                         group.append(r)
                         added = True
                         break
                 if not added:
                     rects_by_size.append([r])
-            
+
             for group in rects_by_size:
                 if len(group) < 3:
                     continue
                 sorted_group = sort_grid_cells(group)
-                
+
                 rows = []
                 for cell in sorted_group:
                     cx, cy, cw, ch, cextent = cell
@@ -1829,11 +2005,11 @@ class BotAPI:
                             break
                     if not added:
                         rows.append([cell])
-                
+
                 # Check grid alignment structure
                 row_lengths = [len(r_list) for r_list in rows]
                 max_row_len = max(row_lengths) if row_lengths else 0
-                
+
                 is_valid_grid = False
                 if len(rows) == 1 and len(rows[0]) >= 3:
                     is_valid_grid = True
@@ -1842,31 +2018,35 @@ class BotAPI:
                 elif len(rows) >= 2 and max_row_len >= 2:
                     if all(abs(count - max_row_len) <= 1 for count in row_lengths):
                         is_valid_grid = True
-                
+
                 if is_valid_grid:
                     for r_list in rows:
                         for cell in r_list:
                             cx, cy, cw, ch, cextent = cell
-                            detected.append({
-                                "type": "grid_cell",
-                                "x": offset_x + cx,
-                                "y": offset_y + cy,
-                                "width": cw,
-                                "height": ch,
-                                "confidence": cextent
-                            })
+                            detected.append(
+                                {
+                                    "type": "grid_cell",
+                                    "x": offset_x + cx,
+                                    "y": offset_y + cy,
+                                    "width": cw,
+                                    "height": ch,
+                                    "confidence": cextent,
+                                }
+                            )
 
         if shape_type in ("all", "rectangle"):
             for r in rectangles:
                 rx, ry, rw, rh, rextent = r
-                detected.append({
-                    "type": "rectangle",
-                    "x": offset_x + rx,
-                    "y": offset_y + ry,
-                    "width": rw,
-                    "height": rh,
-                    "confidence": rextent
-                })
+                detected.append(
+                    {
+                        "type": "rectangle",
+                        "x": offset_x + rx,
+                        "y": offset_y + ry,
+                        "width": rw,
+                        "height": rh,
+                        "confidence": rextent,
+                    }
+                )
 
         # Deduplicate overlapping shapes of the same type
         unique_detected = []
@@ -1874,15 +2054,30 @@ class BotAPI:
             is_dup = False
             for u in unique_detected:
                 if d["type"] == u["type"]:
-                    dist_x = abs((d["x"] + d["width"]/2.0) - (u["x"] + u["width"]/2.0))
-                    dist_y = abs((d["y"] + d["height"]/2.0) - (u["y"] + u["height"]/2.0))
+                    dist_x = abs(
+                        (d["x"] + d["width"] / 2.0) - (u["x"] + u["width"] / 2.0)
+                    )
+                    dist_y = abs(
+                        (d["y"] + d["height"] / 2.0) - (u["y"] + u["height"] / 2.0)
+                    )
                     size_diff_w = abs(d["width"] - u["width"]) / max(1, u["width"])
                     size_diff_h = abs(d["height"] - u["height"]) / max(1, u["height"])
-                    
-                    if dist_x < 10 and dist_y < 10 and size_diff_w < 0.22 and size_diff_h < 0.22:
+
+                    if (
+                        dist_x < 10
+                        and dist_y < 10
+                        and size_diff_w < 0.22
+                        and size_diff_h < 0.22
+                    ):
                         is_dup = True
                         if d["confidence"] > u["confidence"]:
-                            u["x"], u["y"], u["width"], u["height"], u["confidence"] = d["x"], d["y"], d["width"], d["height"], d["confidence"]
+                            u["x"], u["y"], u["width"], u["height"], u["confidence"] = (
+                                d["x"],
+                                d["y"],
+                                d["width"],
+                                d["height"],
+                                d["confidence"],
+                            )
                         break
             if not is_dup:
                 unique_detected.append(d)
@@ -1894,11 +2089,20 @@ class BotAPI:
             if d["type"] == "rectangle":
                 has_overlap = False
                 for g in grid_cells:
-                    dist_x = abs((d["x"] + d["width"]/2.0) - (g["x"] + g["width"]/2.0))
-                    dist_y = abs((d["y"] + d["height"]/2.0) - (g["y"] + g["height"]/2.0))
+                    dist_x = abs(
+                        (d["x"] + d["width"] / 2.0) - (g["x"] + g["width"] / 2.0)
+                    )
+                    dist_y = abs(
+                        (d["y"] + d["height"] / 2.0) - (g["y"] + g["height"] / 2.0)
+                    )
                     size_diff_w = abs(d["width"] - g["width"]) / max(1, g["width"])
                     size_diff_h = abs(d["height"] - g["height"]) / max(1, g["height"])
-                    if dist_x < 8 and dist_y < 8 and size_diff_w < 0.20 and size_diff_h < 0.20:
+                    if (
+                        dist_x < 8
+                        and dist_y < 8
+                        and size_diff_w < 0.20
+                        and size_diff_h < 0.20
+                    ):
                         has_overlap = True
                         break
                 if has_overlap:
@@ -1907,7 +2111,9 @@ class BotAPI:
 
         return final_detected
 
-    def find_shapes(self, shape_type="circle", min_size=15, max_size=None, region_index=None):
+    def find_shapes(
+        self, shape_type="circle", min_size=15, max_size=None, region_index=None
+    ):
         """
         Returns a list of DynamicRegion objects representing detected shapes.
         """
@@ -1916,16 +2122,16 @@ class BotAPI:
             shape_type=shape_type,
             min_size=min_size,
             max_size=max_size,
-            region_index=region_index
+            region_index=region_index,
         )
-        
+
         valid_regions = []
         for i, s in enumerate(shapes):
             cx, cy, cw, ch = s["x"], s["y"], s["width"], s["height"]
             stats = [cx, cy, cw, ch, cw * ch]
             centroid = (cx + cw / 2.0, cy + ch / 2.0)
             mask = np.ones((ch, cw), dtype=np.uint8) * 255
-            
+
             valid_regions.append(
                 DynamicRegion(
                     bot=self,
@@ -1934,23 +2140,35 @@ class BotAPI:
                     centroid=centroid,
                     mask=mask,
                     offset_x=0,
-                    offset_y=0
+                    offset_y=0,
                 )
             )
         return valid_regions
 
-    def find_grid(self, min_cells=4, size_tolerance=0.15, region_index=None, max_size=None):
+    def find_grid(
+        self, min_cells=4, size_tolerance=0.15, region_index=None, max_size=None
+    ):
         """
         Returns a DynamicGrid object representing the largest detected grid, or None.
         """
         self.check_running()
-        shapes = self.detect_shapes(shape_type="grid", min_size=15, max_size=max_size, region_index=region_index)
-        
+        shapes = self.detect_shapes(
+            shape_type="grid", min_size=15, max_size=max_size, region_index=region_index
+        )
+
         grid_cells = [s for s in shapes if s["type"] == "grid_cell"]
         if not grid_cells:
             # Fallback: check raw rectangles and try solver
-            rect_shapes = self.detect_shapes(shape_type="rectangle", min_size=15, max_size=max_size, region_index=region_index)
-            rects = [(s["x"], s["y"], s["width"], s["height"], s.get("confidence", 1.0)) for s in rect_shapes]
+            rect_shapes = self.detect_shapes(
+                shape_type="rectangle",
+                min_size=15,
+                max_size=max_size,
+                region_index=region_index,
+            )
+            rects = [
+                (s["x"], s["y"], s["width"], s["height"], s.get("confidence", 1.0))
+                for s in rect_shapes
+            ]
             if len(rects) >= min_cells:
                 rects_by_size = []
                 for r in rects:
@@ -1959,34 +2177,49 @@ class BotAPI:
                     for group in rects_by_size:
                         rep_w = sum(item[2] for item in group) / len(group)
                         rep_h = sum(item[3] for item in group) / len(group)
-                        if abs(rw - rep_w) < rep_w * size_tolerance and abs(rh - rep_h) < rep_h * size_tolerance:
+                        if (
+                            abs(rw - rep_w) < rep_w * size_tolerance
+                            and abs(rh - rep_h) < rep_h * size_tolerance
+                        ):
                             group.append(r)
                             added = True
                             break
                     if not added:
                         rects_by_size.append([r])
-                
+
                 for group in rects_by_size:
                     if len(group) >= min_cells:
-                        grid_cells = [{"x": r[0], "y": r[1], "width": r[2], "height": r[3], "confidence": r[4] if len(r) > 4 else 1.0} for r in group]
+                        grid_cells = [
+                            {
+                                "x": r[0],
+                                "y": r[1],
+                                "width": r[2],
+                                "height": r[3],
+                                "confidence": r[4] if len(r) > 4 else 1.0,
+                            }
+                            for r in group
+                        ]
                         break
-                        
+
         if len(grid_cells) < min_cells:
             return None
-            
-        cell_coords = [(c["x"], c["y"], c["width"], c["height"], c.get("confidence", 1.0)) for c in grid_cells]
+
+        cell_coords = [
+            (c["x"], c["y"], c["width"], c["height"], c.get("confidence", 1.0))
+            for c in grid_cells
+        ]
         sorted_coords = sort_grid_cells(cell_coords)
-        
+
         xs = [c[0] for c in sorted_coords]
         ys = [c[1] for c in sorted_coords]
         right_coords = [c[0] + c[2] for c in sorted_coords]
         bottom_coords = [c[1] + c[3] for c in sorted_coords]
-        
+
         min_x = min(xs)
         min_y = min(ys)
         max_x = max(right_coords)
         max_y = max(bottom_coords)
-        
+
         rows = []
         for cell in sorted_coords:
             cx, cy, cw, ch, cextent = cell
@@ -1999,10 +2232,10 @@ class BotAPI:
                     break
             if not added:
                 rows.append([cell])
-                
+
         num_rows = len(rows)
         num_cols = max(len(r_list) for r_list in rows) if rows else 0
-        
+
         return DynamicGrid(
             bot=self,
             x=min_x,
@@ -2011,37 +2244,90 @@ class BotAPI:
             h=max_y - min_y,
             rows=num_rows,
             cols=num_cols,
-            cells=sorted_coords
+            cells=sorted_coords,
         )
 
-    def click_shape(self, shape_type="circle", min_size=15, max_size=None, region_index=None, index=0, button="left", modifiers=None, human_like=False):
+    def click_shape(
+        self,
+        shape_type="circle",
+        min_size=15,
+        max_size=None,
+        region_index=None,
+        index=0,
+        button="left",
+        modifiers=None,
+        human_like=False,
+    ):
         """
         Detects shapes on screen and clicks the shape at the specified index.
         Single-line shortcut for: find_shapes(shape_type, min_size, max_size, region_index)[index].click()
         """
         self.check_running()
-        shapes = self.find_shapes(shape_type=shape_type, min_size=min_size, max_size=max_size, region_index=region_index)
+        shapes = self.find_shapes(
+            shape_type=shape_type,
+            min_size=min_size,
+            max_size=max_size,
+            region_index=region_index,
+        )
         if not shapes:
             self.log(f"Vision Error: No shapes of type '{shape_type}' detected.")
             return False
         if index >= len(shapes):
-            self.log(f"Vision Error: Shape index {index} is out of bounds. Detected {len(shapes)} shapes.")
+            self.log(
+                f"Vision Error: Shape index {index} is out of bounds. Detected {len(shapes)} shapes."
+            )
             return False
-        
+
         shapes[index].click(button=button, human_like=human_like)
         return True
 
-    def click_circle(self, min_size=15, max_size=None, region_index=None, index=0, button="left", modifiers=None, human_like=False):
+    def click_circle(
+        self,
+        min_size=15,
+        max_size=None,
+        region_index=None,
+        index=0,
+        button="left",
+        modifiers=None,
+        human_like=False,
+    ):
         """
         Shortcut to click a detected circle on the screen in a single line.
         """
-        return self.click_shape(shape_type="circle", min_size=min_size, max_size=max_size, region_index=region_index, index=index, button=button, modifiers=modifiers, human_like=human_like)
+        return self.click_shape(
+            shape_type="circle",
+            min_size=min_size,
+            max_size=max_size,
+            region_index=region_index,
+            index=index,
+            button=button,
+            modifiers=modifiers,
+            human_like=human_like,
+        )
 
-    def click_rectangle(self, min_size=15, max_size=None, region_index=None, index=0, button="left", modifiers=None, human_like=False):
+    def click_rectangle(
+        self,
+        min_size=15,
+        max_size=None,
+        region_index=None,
+        index=0,
+        button="left",
+        modifiers=None,
+        human_like=False,
+    ):
         """
         Shortcut to click a detected rectangle on the screen in a single line.
         """
-        return self.click_shape(shape_type="rectangle", min_size=min_size, max_size=max_size, region_index=region_index, index=index, button=button, modifiers=modifiers, human_like=human_like)
+        return self.click_shape(
+            shape_type="rectangle",
+            min_size=min_size,
+            max_size=max_size,
+            region_index=region_index,
+            index=index,
+            button=button,
+            modifiers=modifiers,
+            human_like=human_like,
+        )
 
     def wait_for_change(self, region_index, threshold=0.02, timeout=10):
         """
@@ -2050,118 +2336,134 @@ class BotAPI:
         self.check_running()
         region = self._resolve_region(region_index)
         if region is None:
-            self.log(f"Motion Trigger Error: Region index {region_index} could not be resolved.")
+            self.log(
+                f"Motion Trigger Error: Region index {region_index} could not be resolved."
+            )
             return False
 
         rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
-        
+
         full_frame = self._get_current_frame()
         if full_frame is None:
             self.log("Motion Trigger Error: Reference frame could not be retrieved.")
             return False
-            
+
         ref_crop = full_frame[ry : ry + rh, rx : rx + rw]
         if ref_crop.shape[2] == 4:
             ref_gray = cv2.cvtColor(ref_crop, cv2.COLOR_BGRA2GRAY)
         else:
             ref_gray = cv2.cvtColor(ref_crop, cv2.COLOR_RGB2GRAY)
-            
+
         start_time = time.time()
         self.log(f"Waiting for visual change inside region {region_index}...")
-        
+
         while time.time() - start_time < timeout:
             if not self.is_running:
                 raise ScriptStoppedError()
-                
+
             time.sleep(0.05)
-            
+
             current_frame = self._get_current_frame()
             if current_frame is None:
                 continue
-                
+
             curr_crop = current_frame[ry : ry + rh, rx : rx + rw]
             if curr_crop.shape[2] == 4:
                 curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_BGRA2GRAY)
             else:
                 curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_RGB2GRAY)
-                
+
             diff = cv2.absdiff(curr_gray, ref_gray)
             _, thresh = cv2.threshold(diff, 20, 255, cv2.THRESH_BINARY)
-            
+
             change_pixels = cv2.countNonZero(thresh)
             total_pixels = rw * rh
             ratio = float(change_pixels) / total_pixels
-            
+
             if ratio >= threshold:
-                self.log(f"Motion Detected! Visual change of {ratio:.1%} exceeded threshold {threshold:.1%}.")
+                self.log(
+                    f"Motion Detected! Visual change of {ratio:.1%} exceeded threshold {threshold:.1%}."
+                )
                 return True
-                
-        self.log(f"Timeout: No change detected inside region {region_index} after {timeout} seconds.")
+
+        self.log(
+            f"Timeout: No change detected inside region {region_index} after {timeout} seconds."
+        )
         return False
 
-    def wait_for_no_change(self, region_index, threshold=0.01, timeout=10, duration=1.0):
+    def wait_for_no_change(
+        self, region_index, threshold=0.01, timeout=10, duration=1.0
+    ):
         """
         Blocks execution until the specified region becomes stable/static.
         """
         self.check_running()
         region = self._resolve_region(region_index)
         if region is None:
-            self.log(f"Motion Trigger Error: Region index {region_index} could not be resolved.")
+            self.log(
+                f"Motion Trigger Error: Region index {region_index} could not be resolved."
+            )
             return False
 
         rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
-        
+
         start_time = time.time()
         stable_start = None
-        
+
         full_frame = self._get_current_frame()
         if full_frame is None:
             self.log("Motion Trigger Error: Initial frame could not be retrieved.")
             return False
-            
+
         last_crop = full_frame[ry : ry + rh, rx : rx + rw]
         if last_crop.shape[2] == 4:
             last_gray = cv2.cvtColor(last_crop, cv2.COLOR_BGRA2GRAY)
         else:
             last_gray = cv2.cvtColor(last_crop, cv2.COLOR_RGB2GRAY)
-            
-        self.log(f"Waiting for region {region_index} to stabilize (no change for {duration}s)...")
-        
+
+        self.log(
+            f"Waiting for region {region_index} to stabilize (no change for {duration}s)..."
+        )
+
         while time.time() - start_time < timeout:
             if not self.is_running:
                 raise ScriptStoppedError()
-                
+
             time.sleep(0.05)
-            
+
             current_frame = self._get_current_frame()
             if current_frame is None:
                 continue
-                
+
             curr_crop = current_frame[ry : ry + rh, rx : rx + rw]
             if curr_crop.shape[2] == 4:
                 curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_BGRA2GRAY)
             else:
                 curr_gray = cv2.cvtColor(curr_crop, cv2.COLOR_RGB2GRAY)
-                
+
             diff = cv2.absdiff(curr_gray, last_gray)
             _, thresh = cv2.threshold(diff, 20, 255, cv2.THRESH_BINARY)
-            
+
             change_pixels = cv2.countNonZero(thresh)
             total_pixels = rw * rh
             ratio = float(change_pixels) / total_pixels
-            
+
             last_gray = curr_gray
-            
+
             if ratio < threshold:
                 if stable_start is None:
                     stable_start = time.time()
                 elif time.time() - stable_start >= duration:
-                    self.log(f"Region {region_index} is stable! Change ratio {ratio:.2%} remained below {threshold:.1%} for {duration}s.")
+                    self.log(
+                        f"Region {region_index} is stable! Change ratio {ratio:.2%} remained below {threshold:.1%} for {duration}s."
+                    )
                     return True
             else:
                 stable_start = None
-                
-        self.log(f"Timeout: Region {region_index} did not stabilize after {timeout} seconds.")
+
+        self.log(
+            f"Timeout: Region {region_index} did not stabilize after {timeout} seconds."
+        )
         return False
 
 
@@ -2180,7 +2482,7 @@ def sort_grid_cells(cells):
                 break
         if not added:
             rows.append([c])
-            
+
     sorted_cells = []
     rows = sorted(rows, key=lambda r: sum(item[1] for item in r) / len(r))
     for r in rows:
@@ -2209,15 +2511,17 @@ class DynamicGrid:
         Returns a DynamicRegion for the cell at 1-based index (e.g. 1 to 28).
         """
         if cell_index < 1 or cell_index > len(self.cells):
-            self.bot.log(f"Grid Error: Cell index {cell_index} out of bounds (1 to {len(self.cells)}).")
+            self.bot.log(
+                f"Grid Error: Cell index {cell_index} out of bounds (1 to {len(self.cells)})."
+            )
             return None
-            
+
         cx, cy, cw, ch = self.cells[cell_index - 1]
-        
+
         stats = [cx, cy, cw, ch, cw * ch]
         centroid = (cx + cw / 2.0, cy + ch / 2.0)
         mask = np.ones((ch, cw), dtype=np.uint8) * 255
-        
+
         return DynamicRegion(
             bot=self.bot,
             label_id=cell_index,
@@ -2225,6 +2529,5 @@ class DynamicGrid:
             centroid=centroid,
             mask=mask,
             offset_x=0,
-            offset_y=0
+            offset_y=0,
         )
-
