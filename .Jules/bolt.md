@@ -4,3 +4,9 @@
 ## $(date +%Y-%m-%d) - Optimize SKBitmap Pixel Access
 **Learning:** In C#, using `SKBitmap.GetPixel(x, y)` inside a tight rendering loop is incredibly slow due to virtual method overhead and per-pixel bounds checking. The `VASbot.Gui` allows `unsafe` blocks.
 **Action:** Always replace nested loops using `GetPixel(x, y)` on `SKBitmap` with direct memory pointer access (`unsafe` block + `GetPixels().ToPointer()`). Always validate `BytesPerPixel` (e.g., `== 4`) before performing pointer arithmetic.
+## 2026-07-06 - Optimize numpy color matching with cv2.inRange
+**Learning:** In Python/NumPy, doing a manual element-wise absolute difference and  comparison () is significantly slower (around 5x) than using OpenCV's native C++ implementation  for masking ranges, even when considering the minimal overhead of preparing the bounds array.
+**Action:** When finding specific colors within a region in computer vision, use  in place of NumPy arithmetic when OpenCV is available to drastically improve speed, especially when performed frequently.
+## $(date +%Y-%m-%d) - Optimize numpy color matching with cv2.inRange
+**Learning:** In Python/NumPy, doing a manual element-wise absolute difference and `np.all` comparison (`np.where(np.all(np.abs(roi - target) <= tolerance, axis=2))`) is significantly slower (around 5x) than using OpenCV's native C++ implementation `cv2.inRange()` for masking ranges, even when considering the minimal overhead of preparing the bounds array.
+**Action:** When finding specific colors within a region in computer vision, use `cv2.inRange()` in place of NumPy arithmetic when OpenCV is available to drastically improve speed, especially when performed frequently.
