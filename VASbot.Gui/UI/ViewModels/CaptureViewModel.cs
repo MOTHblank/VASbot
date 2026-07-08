@@ -737,19 +737,75 @@ namespace VASbot.Gui.UI.ViewModels
                     }
                     else
                     {
-                        for (int y = 0; y < CurrentFrame.Height; y += step)
+                        // Fallback implementation for non-BGRA formats, using unsafe pointer if possible
+                        unsafe
                         {
-                            for (int x = 0; x < CurrentFrame.Width; x += step)
+                            byte* ptr = (byte*)CurrentFrame!.GetPixels().ToPointer();
+                            int rowBytes = CurrentFrame.RowBytes;
+                            int bpp = CurrentFrame.BytesPerPixel;
+                            int frameWidth = CurrentFrame.Width;
+                            int frameHeight = CurrentFrame.Height;
+
+                            if (ptr != null && bpp > 0)
                             {
-                                var pixel = CurrentFrame.GetPixel(x, y);
-                                foreach (var tc in targetColors)
+                                for (int y = 0; y < frameHeight; y += step)
                                 {
-                                    if (Math.Abs(pixel.Red - tc.Red) <= tolerance &&
-                                        Math.Abs(pixel.Green - tc.Green) <= tolerance &&
-                                        Math.Abs(pixel.Blue - tc.Blue) <= tolerance)
+                                    byte* rowPtr = ptr + y * rowBytes;
+                                    for (int x = 0; x < frameWidth; x += step)
                                     {
-                                        points.Add(new SKPoint(x, y));
-                                        break;
+                                        byte* pixelPtr = rowPtr + x * bpp;
+                                        // Check if color type is unknown, then we must rely on GetPixel or make assumption
+                                        byte r = 0, g = 0, b = 0;
+                                        if (CurrentFrame!.ColorType == SKColorType.Rgba8888 || CurrentFrame.ColorType == SKColorType.Rgb888x)
+                                        {
+                                            r = pixelPtr[0];
+                                            g = pixelPtr[1];
+                                            b = pixelPtr[2];
+                                        }
+                                        else if (CurrentFrame.ColorType == SKColorType.Bgra8888)
+                                        {
+                                            b = pixelPtr[0];
+                                            g = pixelPtr[1];
+                                            r = pixelPtr[2];
+                                        }
+                                        else
+                                        {
+                                            var pixel = CurrentFrame.GetPixel(x, y);
+                                            r = pixel.Red;
+                                            g = pixel.Green;
+                                            b = pixel.Blue;
+                                        }
+
+                                        foreach (var tc in targetColors)
+                                        {
+                                            if (Math.Abs(r - tc.Red) <= tolerance &&
+                                                Math.Abs(g - tc.Green) <= tolerance &&
+                                                Math.Abs(b - tc.Blue) <= tolerance)
+                                            {
+                                                points.Add(new SKPoint(x, y));
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else if (CurrentFrame != null)
+                            {
+                                for (int y = 0; y < CurrentFrame.Height; y += step)
+                                {
+                                    for (int x = 0; x < CurrentFrame.Width; x += step)
+                                    {
+                                        var pixel = CurrentFrame.GetPixel(x, y);
+                                        foreach (var tc in targetColors)
+                                        {
+                                            if (Math.Abs(pixel.Red - tc.Red) <= tolerance &&
+                                                Math.Abs(pixel.Green - tc.Green) <= tolerance &&
+                                                Math.Abs(pixel.Blue - tc.Blue) <= tolerance)
+                                            {
+                                                points.Add(new SKPoint(x, y));
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -985,7 +1041,29 @@ namespace VASbot.Gui.UI.ViewModels
 
             if (x >= 0 && x < CurrentFrame.Width && y >= 0 && y < CurrentFrame.Height)
             {
-                var color = CurrentFrame.GetPixel(x, y);
+                SKColor color;
+                if (CurrentFrame.BytesPerPixel == 4)
+                {
+                    unsafe
+                    {
+                        byte* ptr = (byte*)CurrentFrame.GetPixels().ToPointer();
+                        byte* pixelPtr = ptr + y * CurrentFrame.RowBytes + x * 4;
+
+                        if (CurrentFrame.ColorType == SKColorType.Rgba8888 || CurrentFrame.ColorType == SKColorType.Rgb888x)
+                        {
+                            color = new SKColor(pixelPtr[0], pixelPtr[1], pixelPtr[2], pixelPtr[3]);
+                        }
+                        else
+                        {
+                            color = new SKColor(pixelPtr[2], pixelPtr[1], pixelPtr[0], pixelPtr[3]);
+                        }
+                    }
+                }
+                else
+                {
+                    color = CurrentFrame.GetPixel(x, y);
+                }
+
                 PickedColor = $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
                 Status = $"Color Picked: {PickedColor} at ({x}, {y})";
                 
