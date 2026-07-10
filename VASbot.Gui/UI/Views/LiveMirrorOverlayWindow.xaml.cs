@@ -398,6 +398,28 @@ namespace VASbot.Gui.UI.Views
                 int y = (int)imgPos.Y;
                 if (x >= 0 && x < _viewModel.Capture.CurrentFrame.Width && y >= 0 && y < _viewModel.Capture.CurrentFrame.Height)
                 {
+                    SKColor color;
+                    if (_viewModel.Capture.CurrentFrame.BytesPerPixel == 4)
+                    {
+                        unsafe
+                        {
+                            byte* ptr = (byte*)_viewModel.Capture.CurrentFrame.GetPixels().ToPointer();
+                            byte* pixelPtr = ptr + y * _viewModel.Capture.CurrentFrame.RowBytes + x * 4;
+
+                            if (_viewModel.Capture.CurrentFrame.ColorType == SKColorType.Rgba8888 || _viewModel.Capture.CurrentFrame.ColorType == SKColorType.Rgb888x)
+                            {
+                                color = new SKColor(pixelPtr[0], pixelPtr[1], pixelPtr[2], pixelPtr[3]);
+                            }
+                            else
+                            {
+                                color = new SKColor(pixelPtr[2], pixelPtr[1], pixelPtr[0], pixelPtr[3]);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        color = _viewModel.Capture.CurrentFrame.GetPixel(x, y);
+                    }
                     // ⚡ Bolt: Use fast pixel access to eliminate P/Invoke overhead on this high-frequency UI thread event
                     var color = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(_viewModel.Capture.CurrentFrame, x, y);
                     _viewModel.Capture.TelemetryColorHex = $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";

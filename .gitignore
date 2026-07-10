@@ -7,6 +7,8 @@ python/.venv/
 .idea/
 vascripts/
 img/
+__pycache__/
+*.pyc
 
 # Python
 __pycache__/
