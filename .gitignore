@@ -31,3 +31,4 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+python/**/__pycache__/*.pyc

@@ -396,16 +396,12 @@ class Bot:
     def type_text(self, text, delay=0.05):
         """Types the given text using unicode characters."""
         if delay <= 0:
-            inputs = []
-            for char in text:
-                key_input_down = KeyBdInput(
-                    wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE
-                )
-                key_input_up = KeyBdInput(
-                    wVk=0, wScan=ord(char), dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
-                )
-                inputs.append(Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_down)))
-                inputs.append(Input(type=INPUT_KEYBOARD, ii=Input_I(ki=key_input_up)))
+            # ⚡ Bolt: Fast list comprehension to batch input events instead of repeated appends
+            inputs = [
+                Input(type=INPUT_KEYBOARD, ii=Input_I(ki=KeyBdInput(wVk=0, wScan=ord(char), dwFlags=flag)))
+                for char in text
+                for flag in (KEYEVENTF_UNICODE, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP)
+            ]
             if inputs:
                 self._send_input(inputs)
         else:
