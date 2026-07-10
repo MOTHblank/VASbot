@@ -94,6 +94,37 @@ def hex_to_bgr(hex_str):
     b = int(hex_str[4:6], 16)
     return (b, g, r)
 
+_bounds_cache = {}
+
+def _get_color_bounds(hex_color_or_tuple, tolerance, has_alpha=False):
+    """
+    Computes lower and upper numpy arrays for cv2.inRange and caches the result
+    to prevent repeated np.array allocations in high frequency loops.
+    Accepts hex color string or a tuple (B,G,R) / (R,G,B).
+    """
+    if isinstance(hex_color_or_tuple, list):
+        hex_color_or_tuple = tuple(hex_color_or_tuple)
+
+    cache_key = (hex_color_or_tuple, tolerance, has_alpha)
+    if cache_key in _bounds_cache:
+        return _bounds_cache[cache_key]
+
+    if isinstance(hex_color_or_tuple, str):
+        c1, c2, c3 = hex_to_bgr(hex_color_or_tuple)
+    else:
+        c1, c2, c3 = hex_color_or_tuple
+
+    if has_alpha:
+        lower = np.array([max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance), 0], dtype=np.uint8)
+        upper = np.array([min(255, c1 + tolerance), min(255, c2 + tolerance), min(255, c3 + tolerance), 255], dtype=np.uint8)
+    else:
+        lower = np.array([max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance)], dtype=np.uint8)
+        upper = np.array([min(255, c1 + tolerance), min(255, c2 + tolerance), min(255, c3 + tolerance)], dtype=np.uint8)
+
+    res = (lower, upper)
+    _bounds_cache[cache_key] = res
+    return res
+
 
 class DynamicRegion:
     def __init__(self, bot, label_id, stats, centroid, mask, offset_x, offset_y):
@@ -153,14 +184,7 @@ class DynamicRegion:
 
         bgr_crop = img_bgr[gy : gy + h, gx : gx + w]
 
-        lower = np.array(
-            [max(0, b - tolerance), max(0, g - tolerance), max(0, r - tolerance)],
-            dtype=np.uint8,
-        )
-        upper = np.array(
-            [min(255, b + tolerance), min(255, g + tolerance), min(255, r + tolerance)],
-            dtype=np.uint8,
-        )
+        lower, upper = _get_color_bounds(hex_color, tolerance, has_alpha=False)
         color_mask = cv2.inRange(bgr_crop, lower, upper)
 
         intersection = cv2.bitwise_and(color_mask, color_mask, mask=self._mask)
@@ -690,21 +714,10 @@ class BotAPI:
                 if roi.shape[2] == 4:  # BGRA
                     # Use BGR ordering
                     target_bgr = (target_rgb[2], target_rgb[1], target_rgb[0])
-                    # Add alpha bounds if 4 channels
-                    lower = np.array(
-                        [max(0, c - tolerance) for c in target_bgr] + [0], dtype=np.uint8
-                    )
-                    upper = np.array(
-                        [min(255, c + tolerance) for c in target_bgr] + [255], dtype=np.uint8
-                    )
+                    lower, upper = _get_color_bounds(target_bgr, tolerance, has_alpha=True)
                 else:
                     # RGB
-                    lower = np.array(
-                        [max(0, c - tolerance) for c in target_rgb], dtype=np.uint8
-                    )
-                    upper = np.array(
-                        [min(255, c + tolerance) for c in target_rgb], dtype=np.uint8
-                    )
+                    lower, upper = _get_color_bounds(target_rgb, tolerance, has_alpha=False)
                 mask = cv2.inRange(roi, lower, upper)
                 matches = np.where(mask > 0)
                 roi_for_debug = roi  # Preserve for debug log if needed
@@ -1734,15 +1747,7 @@ class BotAPI:
         # 4. Generate binary masks for each color
         masks = []
         for hex_col in colors:
-            b, g, r = hex_to_bgr(hex_col)
-            lower = np.array(
-                [max(0, b - t_val), max(0, g - t_val), max(0, r - t_val)],
-                dtype=np.uint8,
-            )
-            upper = np.array(
-                [min(255, b + t_val), min(255, g + t_val), min(255, r + t_val)],
-                dtype=np.uint8,
-            )
+            lower, upper = _get_color_bounds(hex_col, t_val, has_alpha=False)
             mask = cv2.inRange(search_area, lower, upper)
             masks.append(mask)
 
