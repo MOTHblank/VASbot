@@ -56,7 +56,7 @@
                     <ui:SimpleStackPanel Orientation="Horizontal" Spacing="12">
                         <ComboBox ItemsSource="{Binding Capture.WindowList}" 
                                   SelectedItem="{Binding Capture.SelectedWindow}"
-                                  Width="350" ui:ControlHelper.PlaceholderText="Select Target Window...">
+                                  Width="350" ui:ControlHelper.PlaceholderText="Select Target Window..." AutomationProperties.Name="Target Window" ToolTip="Select Target Window">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,2">
@@ -74,7 +74,7 @@
                         <Button Content="⏹ STOP" Command="{Binding ScriptEditor.StopScriptCommand}" AutomationProperties.Name="Stop Script" Background="#c0392b" Foreground="White" FontWeight="Bold" Width="90" ToolTip="F6 - Stop script"/>
                         <Button Content="☠️ KILL" Click="Killswitch_Click" AutomationProperties.Name="Force Kill Everything" Background="#8b0000" Foreground="White" FontWeight="Bold" Width="70" ToolTip="F12 - Force kill everything"/>
                         <ToggleButton Content="⏺ REC" Command="{Binding ScriptEditor.ToggleRecordingCommand}" 
-                                      AutomationProperties.Name="Toggle Recording"
+                                      AutomationProperties.Name="Toggle Recording" ToolTip="Toggle Recording"
                                       IsChecked="{Binding ScriptEditor.IsRecording, Mode=OneWay}"
                                       Background="{Binding ScriptEditor.IsRecording, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="80"/>
@@ -82,7 +82,7 @@
                         <Separator Margin="10,0" Opacity="0.2"/>
                         
                         <ToggleButton Content="🎬 LIVE MIRROR" IsChecked="{Binding Capture.IsReflecting}" 
-                                      AutomationProperties.Name="Toggle Live Mirror"
+                                      AutomationProperties.Name="Toggle Live Mirror" ToolTip="Toggle Live Mirror"
                                       Background="{Binding Capture.IsReflecting, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="130"/>
                         
@@ -165,12 +165,12 @@
                                 <!-- Layer Toggles -->
                                 <TextBlock Text="LAYERS:" Foreground="#888" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,10,0"/>
                                 
-                                <ToggleButton IsChecked="{Binding Capture.IsRegionsVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Static Regions">Regions</ToggleButton>
-                                <ToggleButton IsChecked="{Binding Capture.IsShapesVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Detected Shapes">Shapes</ToggleButton>
+                                <ToggleButton AutomationProperties.Name="Toggle Static Regions" IsChecked="{Binding Capture.IsRegionsVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Static Regions">Regions</ToggleButton>
+                                <ToggleButton AutomationProperties.Name="Toggle Detected Shapes" IsChecked="{Binding Capture.IsShapesVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Detected Shapes">Shapes</ToggleButton>
                                 
                                 <!-- Conditional Shape Settings inside HUD -->
                                 <StackPanel Orientation="Horizontal" Visibility="{Binding Capture.IsShapesVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="4,0,0,0">
-                                    <ComboBox SelectedValue="{Binding Capture.DetectShapeType, UpdateSourceTrigger=PropertyChanged}" Width="75" Height="22" FontSize="9" Padding="2,0" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0">
+                                    <ComboBox SelectedValue="{Binding Capture.DetectShapeType, UpdateSourceTrigger=PropertyChanged}" Width="75" Height="22" FontSize="9" Padding="2,0" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" AutomationProperties.Name="Detect Shape Type" ToolTip="Detect Shape Type">
                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">all</System:String>
                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">circle</System:String>
                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">rectangle</System:String>
@@ -183,8 +183,8 @@
                                     <Button Content="🔮 DETECT" Command="{Binding Capture.DetectShapesCommand}" Height="22" Width="55" Style="{StaticResource AccentButtonStyle}" FontSize="9" FontWeight="Bold" Margin="4,0,2,0" AutomationProperties.Name="Detect Shapes" ToolTip="Detect Shapes"/>
                                 </StackPanel>
                                 
-                                <ToggleButton IsChecked="{Binding Capture.IsClustersVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Color Clusters">Clusters</ToggleButton>
-                                <ToggleButton IsChecked="{Binding Capture.IsUiaVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle UIA Highlights">UIA</ToggleButton>
+                                <ToggleButton AutomationProperties.Name="Toggle Color Clusters" IsChecked="{Binding Capture.IsClustersVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle Color Clusters">Clusters</ToggleButton>
+                                <ToggleButton AutomationProperties.Name="Toggle UIA Highlights" IsChecked="{Binding Capture.IsUiaVisible}" Padding="8,3" Height="22" FontSize="9" FontWeight="SemiBold" Background="#222222" Foreground="#D0D0D0" BorderBrush="#44FFFFFF" BorderThickness="1" Margin="2,0" ToolTip="Toggle UIA Highlights">UIA</ToggleButton>
                                 
                                 <Separator Width="1" Height="14" Background="#33FFFFFF" Margin="10,0"/>
                                 
@@ -260,7 +260,7 @@
                                 <Button Content="Save As..." Command="{Binding ScriptEditor.SaveScriptAsCommand}" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" AutomationProperties.Name="Save Script As" ToolTip="Save Script As"/>
                                 
                                 <Separator Margin="10,0" Opacity="0.2"/>
-                                <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..." AutomationProperties.Name="Snippet Name"/>
+                                <TextBox x:Name="SnippetNameInput" Width="100" Height="22" FontSize="10" Margin="4,0" ui:ControlHelper.PlaceholderText="Snippet Name..." AutomationProperties.Name="Snippet Name" ToolTip="Snippet Name"/>
                                 <Button Content="Save as Snippet" Click="SaveSnippet_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#2c3e50" Foreground="White" AutomationProperties.Name="Save as Snippet" ToolTip="Save as Snippet"/>
                                 <Button Content="Insert Image..." Click="InsertImage_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#16a085" Foreground="White" Margin="4,0" AutomationProperties.Name="Insert Image" ToolTip="Insert Image"/>
                                 <Button Content="📖 API Drawer" Click="ToggleDrawer_Click" Style="{StaticResource ToolbarButtonStyle}" FontSize="10" Background="#8e44ad" Foreground="White" Margin="4,0" AutomationProperties.Name="Toggle API Drawer" ToolTip="Toggle API Drawer"/>
@@ -281,7 +281,8 @@
                                                            Background="#121212" Foreground="#E0E0E0"
                                                            ShowLineNumbers="True" SyntaxHighlighting="Python"
                                                            TextChanged="ScriptEditor_TextChanged"
-                                                           PreviewMouseMove="ScriptEditor_PreviewMouseMove" />
+                                                           PreviewMouseMove="ScriptEditor_PreviewMouseMove"
+                                                           AutomationProperties.Name="Script Editor" ToolTip="Script Editor" />
                                                             
                                     <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#222" 
                                                   Visibility="{Binding ElementName=SnippetDrawer, Path=Visibility}"/>
@@ -529,17 +530,17 @@
                                                             <ContentControl.Resources>
                                                                 <DataTemplate x:Key="RegionPicker">
                                                                     <ComboBox ItemsSource="{Binding DataContext.Templates.AvailableRegions, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                              SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" IsEditable="True"/>
+                                                                              SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" IsEditable="True" AutomationProperties.Name="Select Region" ToolTip="Select Region"/>
                                                                 </DataTemplate>
                                                                 <DataTemplate x:Key="ButtonPicker">
-                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12">
+                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" AutomationProperties.Name="Template Parameter Value" ToolTip="Template Parameter Value">
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">left</System:String>
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">right</System:String>
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">middle</System:String>
                                                                     </ComboBox>
                                                                 </DataTemplate>
                                                                 <DataTemplate x:Key="ModifierPicker">
-                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12">
+                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" AutomationProperties.Name="Template Parameter Value" ToolTip="Template Parameter Value">
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">[]</System:String>
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">['ctrl']</System:String>
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">['shift']</System:String>
@@ -559,7 +560,7 @@
                                                                     </Grid>
                                                                 </DataTemplate>
                                                                 <DataTemplate x:Key="BoolPicker">
-                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12">
+                                                                    <ComboBox SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" AutomationProperties.Name="Template Parameter Value" ToolTip="Template Parameter Value">
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">True</System:String>
                                                                         <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">False</System:String>
                                                                     </ComboBox>
@@ -626,7 +627,7 @@
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <!-- Shape Type -->
                                                 <TextBlock Text="Type:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                <ComboBox SelectedValue="{Binding Capture.DetectShapeType, UpdateSourceTrigger=PropertyChanged}" Width="70" Height="22" FontSize="9" Padding="2,0">
+                                                <ComboBox SelectedValue="{Binding Capture.DetectShapeType, UpdateSourceTrigger=PropertyChanged}" Width="70" Height="22" FontSize="9" Padding="2,0" AutomationProperties.Name="Detect Shape Type" ToolTip="Detect Shape Type">
                                                     <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">all</System:String>
                                                     <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">circle</System:String>
                                                     <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">rectangle</System:String>
@@ -791,7 +792,7 @@
                                             <Slider Minimum="1" Maximum="100" Value="{Binding Capture.SelectedColorCluster.Tolerance, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" AutomationProperties.Name="RGB Tolerance" ToolTip="RGB Tolerance"/>
                                             
                                             <!-- Active Checkbox -->
-                                            <CheckBox IsChecked="{Binding Capture.SelectedColorCluster.IsActive}" Content="Highlight Overlay" Foreground="#aaa" FontSize="10" Margin="0,0,0,8"/>
+                                            <CheckBox AutomationProperties.Name="Highlight Overlay" ToolTip="Highlight Overlay" IsChecked="{Binding Capture.SelectedColorCluster.IsActive}" Content="Highlight Overlay" Foreground="#aaa" FontSize="10" Margin="0,0,0,8"/>
                                             
                                             <!-- Colors -->
                                             <TextBlock Text="Colors (Use Eyedropper 💧 to sample)" Foreground="#aaa" FontSize="9" Margin="0,4,0,4"/>

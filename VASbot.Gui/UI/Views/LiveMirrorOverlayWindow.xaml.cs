@@ -420,6 +420,8 @@ namespace VASbot.Gui.UI.Views
                     {
                         color = _viewModel.Capture.CurrentFrame.GetPixel(x, y);
                     }
+                    // ⚡ Bolt: Use fast pixel access to eliminate P/Invoke overhead on this high-frequency UI thread event
+                    var color = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(_viewModel.Capture.CurrentFrame, x, y);
                     _viewModel.Capture.TelemetryColorHex = $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
                 }
             }
