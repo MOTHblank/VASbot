@@ -827,6 +827,7 @@
                                                 <TextBlock.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="Direct Click (Sidecar)" 
+                                                                  AutomationProperties.Name="Direct Click via Sidecar" ToolTip="Execute a direct click using the Sidecar API"
                                                                   Command="{Binding DataContext.AutomationTree.ClickNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                   CommandParameter="{Binding}"/>
                                                     </ContextMenu>
