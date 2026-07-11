@@ -268,7 +268,7 @@
                         </Border>
                         
                         <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0,5,0,0">
-                            <TabItem Header="CODE">
+                            <TabItem Header="CODE" AutomationProperties.Name="Code Editor" ToolTip="Code Editor Workspace">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -297,7 +297,7 @@
                                             <TextBlock Text="API HELPER DRAWER" FontWeight="Bold" FontSize="11" Foreground="#888" Margin="0,0,0,10"/>
                                              
                                             <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0">
-                                                <TabItem Header="CORE" FontSize="10" Padding="6,4">
+                                                <TabItem Header="CORE" FontSize="10" Padding="6,4" AutomationProperties.Name="Core API Snippets" ToolTip="Core Automation API Snippets">
                                                     <ListBox x:Name="CoreSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                                         <ListBox.ItemContainerStyle>
                                                             <Style TargetType="ListBoxItem">
@@ -344,7 +344,7 @@
                                                     </ListBox>
                                                 </TabItem>
                                                  
-                                                <TabItem Header="VISION" FontSize="10" Padding="6,4">
+                                                <TabItem Header="VISION" FontSize="10" Padding="6,4" AutomationProperties.Name="Vision API Snippets" ToolTip="Computer Vision API Snippets">
                                                     <ListBox x:Name="VisionSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                                         <ListBox.ItemContainerStyle>
                                                             <Style TargetType="ListBoxItem">
@@ -385,7 +385,7 @@
                                                     </ListBox>
                                                 </TabItem>
                                                  
-                                                <TabItem Header="UI AUTO" FontSize="10" Padding="6,4">
+                                                <TabItem Header="UI AUTO" FontSize="10" Padding="6,4" AutomationProperties.Name="UI Automation API Snippets" ToolTip="UI Automation API Snippets">
                                                     <ListBox x:Name="UiSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                                         <ListBox.ItemContainerStyle>
                                                             <Style TargetType="ListBoxItem">
@@ -436,7 +436,7 @@
                                     </Border>
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="VISUAL GRAPH">
+                            <TabItem Header="VISUAL GRAPH" AutomationProperties.Name="Visual Graph Editor" ToolTip="Visual Node Graph Editor">
                                 <local:VisualEditorView DataContext="{Binding VisualEditor}"/>
                             </TabItem>
                         </TabControl>
@@ -608,7 +608,7 @@
 
                         <!-- BOTTOM TABS (Regions / UIA) -->
                         <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0,1,0,0" BorderBrush="#222">
-                            <TabItem Header="📍 REGIONS">
+                            <TabItem Header="📍 REGIONS" AutomationProperties.Name="Regions Configuration" ToolTip="Manage Region Configurations">
                                 <Grid Background="#151515">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -723,7 +723,7 @@
                                     </Border>
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="🎨 CLUSTERS">
+                            <TabItem Header="🎨 CLUSTERS" AutomationProperties.Name="Color Clusters Configuration" ToolTip="Manage Color Cluster Configurations">
                                 <Grid Background="#151515">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="2*"/>
@@ -819,7 +819,7 @@
                                     </ScrollViewer>
                                 </Grid>
                             </TabItem>
-                            <TabItem Header="🌳 UIA TREE">
+                            <TabItem Header="🌳 UIA TREE" AutomationProperties.Name="UI Automation Tree" ToolTip="Target Window UI Automation Elements Tree">
                                 <TreeView ItemsSource="{Binding AutomationTree.RootNodes}" Background="#151515" BorderThickness="0" SelectedItemChanged="AutomationTree_SelectedItemChanged">
                                     <TreeView.ItemTemplate>
                                         <HierarchicalDataTemplate ItemsSource="{Binding Children}">
@@ -836,7 +836,7 @@
                                     </TreeView.ItemTemplate>
                                 </TreeView>
                             </TabItem>
-                            <TabItem Header="⚙️ SIDECAR">
+                            <TabItem Header="⚙️ SIDECAR" AutomationProperties.Name="Sidecar Terminal" ToolTip="Python Sidecar Execution Logs and Control">
                                 <Grid Margin="10">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>

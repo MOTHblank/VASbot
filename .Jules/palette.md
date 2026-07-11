@@ -11,3 +11,6 @@
 ## 2026-07-08 - Accessibility naming for custom/third-party input controls
 **Learning:** Third-party controls like `avalonedit:TextEditor` used for script editing need explicit `AutomationProperties.Name` and `ToolTip` attributes just as much as native WPF inputs to ensure screen readers can announce their purpose effectively.
 **Action:** Always add `AutomationProperties.Name` and `ToolTip` to any input component (e.g. `TextEditor`) to ensure robustness in screen reader announcements and general usability.
+## 2026-07-09 - Accessible names and tooltips for TabItems
+**Learning:** Found that `TabItem` headers, especially those using emojis (like "📍 REGIONS") or very short acronyms (like "UIA TREE"), lack clear context for screen readers and can be ambiguous to visual users. Explicitly setting `AutomationProperties.Name` is required to provide a clean, descriptive name (stripping emojis), and `ToolTip` adds necessary context for all users navigating complex, multi-workspace interfaces.
+**Action:** Always define `AutomationProperties.Name` and `ToolTip` for `TabItem` controls in XAML, particularly when their headers are visually abbreviated or include non-text characters, ensuring robust navigation accessibility.
