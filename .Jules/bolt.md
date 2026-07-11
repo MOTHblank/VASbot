@@ -10,6 +10,9 @@
 ## $(date +%Y-%m-%d) - Optimize numpy color matching with cv2.inRange
 **Learning:** In Python/NumPy, doing a manual element-wise absolute difference and `np.all` comparison (`np.where(np.all(np.abs(roi - target) <= tolerance, axis=2))`) is significantly slower (around 5x) than using OpenCV's native C++ implementation `cv2.inRange()` for masking ranges, even when considering the minimal overhead of preparing the bounds array.
 **Action:** When finding specific colors within a region in computer vision, use `cv2.inRange()` in place of NumPy arithmetic when OpenCV is available to drastically improve speed, especially when performed frequently.
+## 2026-07-10 - Optimize color bound arrays for cv2.inRange
+**Learning:** In Python/NumPy computer vision scripts, creating bounding array objects via `np.array(...)` in high-frequency tight vision loops (like `find_color` and `find_color_clusters`) creates unnecessary overhead and frequent memory allocations that degrade performance.
+**Action:** When generating `lower` and `upper` boundary arrays for `cv2.inRange` based on color ranges, cache the generated arrays in a dictionary keyed by `(color_value, tolerance, has_alpha)` to reuse them without reallocation.
 ## $(date +%Y-%m-%d) - Optimize batch array construction in Python loops
 **Learning:** In Python, repeatedly calling `.append()` inside a loop to construct an array (e.g., generating `Input` structs for Windows API) introduces significant interpreter overhead per iteration, especially for long sequences of text.
 **Action:** When constructing arrays dynamically without interleaved delays, use list comprehensions (or generators) rather than repeated `.append()` calls. It avoids method lookup overhead and allows the C-backend list builder to pre-allocate memory more efficiently.
