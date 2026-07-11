@@ -10,3 +10,6 @@
 ## $(date +%Y-%m-%d) - Optimize numpy color matching with cv2.inRange
 **Learning:** In Python/NumPy, doing a manual element-wise absolute difference and `np.all` comparison (`np.where(np.all(np.abs(roi - target) <= tolerance, axis=2))`) is significantly slower (around 5x) than using OpenCV's native C++ implementation `cv2.inRange()` for masking ranges, even when considering the minimal overhead of preparing the bounds array.
 **Action:** When finding specific colors within a region in computer vision, use `cv2.inRange()` in place of NumPy arithmetic when OpenCV is available to drastically improve speed, especially when performed frequently.
+## 2026-07-06 - Cache numpy arrays for high-frequency OpenCV bounds
+**Learning:** In high-frequency vision loops (like `find_color`), constructing `np.array` boundary definitions over and over for `cv2.inRange` introduces significant and unnecessary memory allocation overhead when checking for the same target colors.
+**Action:** Use `@lru_cache` to memoize the creation of these bounding numpy arrays based on the color tuple and tolerance values. This completely bypasses repetitive `np.array` instantiation overhead in tight computer vision loops.
