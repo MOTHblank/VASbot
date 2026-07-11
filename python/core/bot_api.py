@@ -3,6 +3,26 @@ import numpy as np
 import ctypes
 import random
 from ctypes import wintypes
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1024)
+def _get_color_bounds(color_tuple, tolerance, alpha=False):
+    if alpha:
+        lower = np.array(
+            [max(0, c - tolerance) for c in color_tuple] + [0], dtype=np.uint8
+        )
+        upper = np.array(
+            [min(255, c + tolerance) for c in color_tuple] + [255], dtype=np.uint8
+        )
+    else:
+        lower = np.array(
+            [max(0, c - tolerance) for c in color_tuple], dtype=np.uint8
+        )
+        upper = np.array(
+            [min(255, c + tolerance) for c in color_tuple], dtype=np.uint8
+        )
+    return lower, upper
 
 try:
     import cv2
@@ -184,6 +204,7 @@ class DynamicRegion:
 
         bgr_crop = img_bgr[gy : gy + h, gx : gx + w]
 
+        lower, upper = _get_color_bounds((b, g, r), tolerance)
         lower, upper = _get_color_bounds(hex_color, tolerance, has_alpha=False)
         color_mask = cv2.inRange(bgr_crop, lower, upper)
 
@@ -713,6 +734,12 @@ class BotAPI:
                 # Fast native C++ cv2.inRange (approx 5x faster than np.abs + np.where)
                 if roi.shape[2] == 4:  # BGRA
                     # Use BGR ordering
+                    target_bgr = tuple((target_rgb[2], target_rgb[1], target_rgb[0]))
+                    # Add alpha bounds if 4 channels
+                    lower, upper = _get_color_bounds(target_bgr, tolerance, alpha=True)
+                else:
+                    # RGB
+                    lower, upper = _get_color_bounds(tuple(target_rgb), tolerance, alpha=False)
                     target_bgr = (target_rgb[2], target_rgb[1], target_rgb[0])
                     lower, upper = _get_color_bounds(target_bgr, tolerance, has_alpha=True)
                 else:
@@ -1747,6 +1774,8 @@ class BotAPI:
         # 4. Generate binary masks for each color
         masks = []
         for hex_col in colors:
+            b, g, r = hex_to_bgr(hex_col)
+            lower, upper = _get_color_bounds((b, g, r), t_val)
             lower, upper = _get_color_bounds(hex_col, t_val, has_alpha=False)
             mask = cv2.inRange(search_area, lower, upper)
             masks.append(mask)
