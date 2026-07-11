@@ -13,3 +13,9 @@
 ## 2026-07-06 - Cache numpy arrays for high-frequency OpenCV bounds
 **Learning:** In high-frequency vision loops (like `find_color`), constructing `np.array` boundary definitions over and over for `cv2.inRange` introduces significant and unnecessary memory allocation overhead when checking for the same target colors.
 **Action:** Use `@lru_cache` to memoize the creation of these bounding numpy arrays based on the color tuple and tolerance values. This completely bypasses repetitive `np.array` instantiation overhead in tight computer vision loops.
+## 2026-07-10 - Optimize color bound arrays for cv2.inRange
+**Learning:** In Python/NumPy computer vision scripts, creating bounding array objects via `np.array(...)` in high-frequency tight vision loops (like `find_color` and `find_color_clusters`) creates unnecessary overhead and frequent memory allocations that degrade performance.
+**Action:** When generating `lower` and `upper` boundary arrays for `cv2.inRange` based on color ranges, cache the generated arrays in a dictionary keyed by `(color_value, tolerance, has_alpha)` to reuse them without reallocation.
+## $(date +%Y-%m-%d) - Optimize batch array construction in Python loops
+**Learning:** In Python, repeatedly calling `.append()` inside a loop to construct an array (e.g., generating `Input` structs for Windows API) introduces significant interpreter overhead per iteration, especially for long sequences of text.
+**Action:** When constructing arrays dynamically without interleaved delays, use list comprehensions (or generators) rather than repeated `.append()` calls. It avoids method lookup overhead and allows the C-backend list builder to pre-allocate memory more efficiently.
