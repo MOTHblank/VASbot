@@ -18,3 +18,7 @@
 ## 2024-07-10 - WPF AutomationProperties.Name Missing From List Controls
 **Learning:** List and Hierarchy UI elements (TreeView, ListBox) in this application must explicitly declare `AutomationProperties.Name` and `ToolTip` like all other interactable UI elements for screen readers, but were commonly missed.
 **Action:** When adding or verifying accessibility in XAML, check ALL interactive element types, including container interactive types like MenuItems, ListBoxes, TreeViews, and ScrollViewers.
+
+## 2026-07-11 - WPF Container Controls (GridSplitter, Expander) Missing Accessibility Attributes
+**Learning:** Found that container and structural interactive UI elements like `GridSplitter` and `Expander` in WPF applications often lack `AutomationProperties.Name` and `ToolTip` attributes. These elements need explicitly set attributes so screen readers can accurately announce structural interactive capabilities, and tooltips provide direct visual hints for elements that don't have explicit text.
+**Action:** When auditing WPF XAML for accessibility, extend checks beyond standard inputs and list controls to include structural interactives like `GridSplitter` and `Expander`, ensuring they explicitly define both `AutomationProperties.Name` and `ToolTip`.
