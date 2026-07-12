@@ -14,3 +14,7 @@
 ## 2026-07-09 - Accessible names and tooltips for TabItems
 **Learning:** Found that `TabItem` headers, especially those using emojis (like "📍 REGIONS") or very short acronyms (like "UIA TREE"), lack clear context for screen readers and can be ambiguous to visual users. Explicitly setting `AutomationProperties.Name` is required to provide a clean, descriptive name (stripping emojis), and `ToolTip` adds necessary context for all users navigating complex, multi-workspace interfaces.
 **Action:** Always define `AutomationProperties.Name` and `ToolTip` for `TabItem` controls in XAML, particularly when their headers are visually abbreviated or include non-text characters, ensuring robust navigation accessibility.
+
+## 2024-07-10 - WPF AutomationProperties.Name Missing From List Controls
+**Learning:** List and Hierarchy UI elements (TreeView, ListBox) in this application must explicitly declare `AutomationProperties.Name` and `ToolTip` like all other interactable UI elements for screen readers, but were commonly missed.
+**Action:** When adding or verifying accessibility in XAML, check ALL interactive element types, including container interactive types like MenuItems, ListBoxes, TreeViews, and ScrollViewers.

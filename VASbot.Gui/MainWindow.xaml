@@ -298,7 +298,7 @@
                                              
                                             <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0">
                                                 <TabItem Header="CORE" FontSize="10" Padding="6,4" AutomationProperties.Name="Core API Snippets" ToolTip="Core Automation API Snippets">
-                                                    <ListBox x:Name="CoreSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                    <ListBox x:Name="CoreSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Core Snippets List" ToolTip="List of core automation snippets">
                                                         <ListBox.ItemContainerStyle>
                                                             <Style TargetType="ListBoxItem">
                                                                 <Setter Property="Padding" Value="6,4"/>
@@ -345,7 +345,7 @@
                                                 </TabItem>
                                                  
                                                 <TabItem Header="VISION" FontSize="10" Padding="6,4" AutomationProperties.Name="Vision API Snippets" ToolTip="Computer Vision API Snippets">
-                                                    <ListBox x:Name="VisionSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                    <ListBox x:Name="VisionSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Vision Snippets List" ToolTip="List of vision automation snippets">
                                                         <ListBox.ItemContainerStyle>
                                                             <Style TargetType="ListBoxItem">
                                                                 <Setter Property="Padding" Value="6,4"/>
@@ -386,7 +386,7 @@
                                                 </TabItem>
                                                  
                                                 <TabItem Header="UI AUTO" FontSize="10" Padding="6,4" AutomationProperties.Name="UI Automation API Snippets" ToolTip="UI Automation API Snippets">
-                                                    <ListBox x:Name="UiSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                    <ListBox x:Name="UiSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="UI Snippets List" ToolTip="List of UI automation snippets">
                                                         <ListBox.ItemContainerStyle>
                                                             <Style TargetType="ListBoxItem">
                                                                 <Setter Property="Padding" Value="6,4"/>
@@ -455,7 +455,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- ACTION BUILDER (Refined Fonts) -->
-                        <ScrollViewer Padding="12">
+                        <ScrollViewer Padding="12" AutomationProperties.Name="Template configuration scroll view" ToolTip="Scroll view for template settings">
                             <StackPanel>
                                 <TextBlock Text="ACTION BUILDER" Style="{StaticResource StudioHeader}"/>
                                 <TextBox Text="{Binding Templates.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
@@ -475,7 +475,7 @@
                                                 <ListBox ItemsSource="{Binding Templates}"
                                                          SelectedItem="{Binding DataContext.Templates.SelectedTemplate, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                                          Background="Transparent" BorderThickness="0" Margin="0" Padding="0"
-                                                         HorizontalContentAlignment="Stretch">
+                                                         HorizontalContentAlignment="Stretch" AutomationProperties.Name="Action Templates List" ToolTip="List of available action templates">
                                                     <ListBox.ItemContainerStyle>
                                                         <Style TargetType="ListBoxItem">
                                                             <Setter Property="Padding" Value="8,6"/>
@@ -653,7 +653,7 @@
                                     </Border>
 
                                     <!-- Regions List -->
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding Capture.Regions}" SelectedItem="{Binding Capture.SelectedRegion}" Background="Transparent" BorderThickness="0">
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding Capture.Regions}" SelectedItem="{Binding Capture.SelectedRegion}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Capture Regions List" ToolTip="List of defined capture regions">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid Margin="0,2">
@@ -738,7 +738,7 @@
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             
-                                            <ListBox ItemsSource="{Binding Capture.ColorClusters}" SelectedItem="{Binding Capture.SelectedColorCluster}" Background="Transparent" BorderThickness="0">
+                                            <ListBox ItemsSource="{Binding Capture.ColorClusters}" SelectedItem="{Binding Capture.SelectedColorCluster}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Color Clusters List" ToolTip="List of defined color clusters">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <Grid Margin="0,2">
@@ -761,7 +761,7 @@
                                     </Border>
                                     
                                     <!-- Right Column: Detail Panel -->
-                                    <ScrollViewer Grid.Column="1" Padding="6">
+                                    <ScrollViewer Grid.Column="1" Padding="6" AutomationProperties.Name="Cluster configuration scroll view" ToolTip="Scroll view for cluster settings">
                                         <StackPanel>
                                             <TextBlock Text="CLUSTER CONFIGURATION" Foreground="#888" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
                                             
@@ -796,7 +796,7 @@
                                             
                                             <!-- Colors -->
                                             <TextBlock Text="Colors (Use Eyedropper 💧 to sample)" Foreground="#aaa" FontSize="9" Margin="0,4,0,4"/>
-                                            <ListBox ItemsSource="{Binding Capture.SelectedColorCluster.Colors}" Background="#222" BorderBrush="#444" BorderThickness="1" MinHeight="60" MaxHeight="100">
+                                            <ListBox ItemsSource="{Binding Capture.SelectedColorCluster.Colors}" Background="#222" BorderBrush="#444" BorderThickness="1" MinHeight="60" MaxHeight="100" AutomationProperties.Name="Cluster Colors List" ToolTip="List of colors in the selected cluster">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <Grid Margin="0,1">
@@ -820,7 +820,7 @@
                                 </Grid>
                             </TabItem>
                             <TabItem Header="🌳 UIA TREE" AutomationProperties.Name="UI Automation Tree" ToolTip="Target Window UI Automation Elements Tree">
-                                <TreeView ItemsSource="{Binding AutomationTree.RootNodes}" Background="#151515" BorderThickness="0" SelectedItemChanged="AutomationTree_SelectedItemChanged">
+                                <TreeView ItemsSource="{Binding AutomationTree.RootNodes}" Background="#151515" BorderThickness="0" SelectedItemChanged="AutomationTree_SelectedItemChanged" AutomationProperties.Name="UI Automation Elements Tree" ToolTip="Tree view of UI Automation elements">
                                     <TreeView.ItemTemplate>
                                         <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                             <TextBlock Text="{Binding Name}" FontSize="10" Foreground="#aaa">
