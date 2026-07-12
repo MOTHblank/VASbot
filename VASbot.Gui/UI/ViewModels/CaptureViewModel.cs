@@ -770,7 +770,7 @@ namespace VASbot.Gui.UI.ViewModels
                                         }
                                         else
                                         {
-                                            var pixel = CurrentFrame.GetPixel(x, y);
+                                            var pixel = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(CurrentFrame, x, y);
                                             r = pixel.Red;
                                             g = pixel.Green;
                                             b = pixel.Blue;
@@ -792,13 +792,10 @@ namespace VASbot.Gui.UI.ViewModels
                             else if (CurrentFrame != null)
                             {
                                 for (int y = 0; y < CurrentFrame.Height; y += step)
-                                // ⚡ Bolt: Fast pixel access for tight image scanning loop
-                                var pixel = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(CurrentFrame, x, y);
-                                foreach (var tc in targetColors)
                                 {
                                     for (int x = 0; x < CurrentFrame.Width; x += step)
                                     {
-                                        var pixel = CurrentFrame.GetPixel(x, y);
+                                        var pixel = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(CurrentFrame, x, y);
                                         foreach (var tc in targetColors)
                                         {
                                             if (Math.Abs(pixel.Red - tc.Red) <= tolerance &&
@@ -1064,10 +1061,8 @@ namespace VASbot.Gui.UI.ViewModels
                 }
                 else
                 {
-                    color = CurrentFrame.GetPixel(x, y);
+                    color = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(CurrentFrame, x, y);
                 }
-
-                var color = VASbot.Gui.Engine.SKBitmapExtensions.GetPixelFast(CurrentFrame, x, y);
                 PickedColor = $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
                 Status = $"Color Picked: {PickedColor} at ({x}, {y})";
                 

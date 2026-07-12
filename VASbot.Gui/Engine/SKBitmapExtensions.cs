@@ -14,7 +14,7 @@ namespace VASbot.Gui.Engine
                 return SKColors.Empty;
             }
 
-            if (bitmap.BytesPerPixel == 4 && bitmap.ColorType == SKColorType.Bgra8888)
+            if (bitmap.BytesPerPixel == 4)
             {
                 unsafe
                 {
@@ -22,16 +22,18 @@ namespace VASbot.Gui.Engine
                     int rowBytes = bitmap.RowBytes;
                     byte* pixelPtr = ptr + y * rowBytes + x * 4;
 
-                    byte b = pixelPtr[0];
-                    byte g = pixelPtr[1];
-                    byte r = pixelPtr[2];
-                    byte a = pixelPtr[3];
-
-                    return new SKColor(r, g, b, a);
+                    if (bitmap.ColorType == SKColorType.Rgba8888 || bitmap.ColorType == SKColorType.Rgb888x)
+                    {
+                        return new SKColor(pixelPtr[0], pixelPtr[1], pixelPtr[2], pixelPtr[3]);
+                    }
+                    else // BGRA or assume BGRA
+                    {
+                        return new SKColor(pixelPtr[2], pixelPtr[1], pixelPtr[0], pixelPtr[3]);
+                    }
                 }
             }
 
-            // Fallback to slow native method for other formats
+            // Fallback to slow native method for non 4-byte formats
             return bitmap.GetPixel(x, y);
         }
     }
