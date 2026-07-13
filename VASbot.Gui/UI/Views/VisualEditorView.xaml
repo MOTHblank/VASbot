@@ -12,6 +12,7 @@
         <!-- Node Template -->
         <DataTemplate DataType="{x:Type models:VisualNode}">
             <Border Width="{Binding Width}" Height="{Binding Height}" Background="#2c3e50" CornerRadius="5" BorderBrush="#34495e" BorderThickness="2"
+                    AutomationProperties.Name="{Binding Title}" ToolTip="{Binding Title}"
                     MouseLeftButtonDown="Node_MouseDown" MouseLeftButtonUp="Node_MouseUp" MouseMove="Node_MouseMove">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -29,7 +30,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Ellipse Width="12" Height="12" Fill="#2ecc71" Stroke="#ecf0f1" StrokeThickness="1" 
-                                             Margin="0,5" ToolTip="{Binding Name}"
+                                             Margin="0,5" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
                                              MouseLeftButtonDown="Pin_MouseDown" MouseLeftButtonUp="Pin_MouseUp"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -40,7 +41,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Ellipse Width="12" Height="12" Fill="#e74c3c" Stroke="#ecf0f1" StrokeThickness="1" 
-                                             Margin="0,5" ToolTip="{Binding Name}"
+                                             Margin="0,5" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
                                              MouseLeftButtonDown="Pin_MouseDown" MouseLeftButtonUp="Pin_MouseUp"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -76,6 +77,7 @@
 
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Visual graph canvas scroll view" ToolTip="Scroll view for visual graph canvas">
             <Canvas x:Name="GraphCanvas" Width="2000" Height="2000" Background="#1e1e1e" 
+                    AutomationProperties.Name="Visual Editor Graph Canvas"
                     MouseLeftButtonUp="Canvas_MouseUp" MouseMove="Canvas_MouseMove">
                 <Canvas.ContextMenu>
                     <ContextMenu ItemsSource="{Binding AvailableTemplates}">
