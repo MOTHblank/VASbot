@@ -6,23 +6,7 @@ from ctypes import wintypes
 from functools import lru_cache
 
 
-@lru_cache(maxsize=1024)
-def _get_color_bounds(color_tuple, tolerance, alpha=False):
-    if alpha:
-        lower = np.array(
-            [max(0, c - tolerance) for c in color_tuple] + [0], dtype=np.uint8
-        )
-        upper = np.array(
-            [min(255, c + tolerance) for c in color_tuple] + [255], dtype=np.uint8
-        )
-    else:
-        lower = np.array(
-            [max(0, c - tolerance) for c in color_tuple], dtype=np.uint8
-        )
-        upper = np.array(
-            [min(255, c + tolerance) for c in color_tuple], dtype=np.uint8
-        )
-    return lower, upper
+
 
 try:
     import cv2
@@ -116,7 +100,7 @@ def hex_to_bgr(hex_str):
 
 _bounds_cache = {}
 
-def _get_color_bounds(hex_color_or_tuple, tolerance, has_alpha=False):
+def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     """
     Computes lower and upper numpy arrays for cv2.inRange and caches the result
     to prevent repeated np.array allocations in high frequency loops.
@@ -205,7 +189,7 @@ class DynamicRegion:
         bgr_crop = img_bgr[gy : gy + h, gx : gx + w]
 
         lower, upper = _get_color_bounds((b, g, r), tolerance)
-        lower, upper = _get_color_bounds(hex_color, tolerance, has_alpha=False)
+        lower, upper = _get_color_bounds(hex_color, tolerance, alpha=False)
         color_mask = cv2.inRange(bgr_crop, lower, upper)
 
         intersection = cv2.bitwise_and(color_mask, color_mask, mask=self._mask)
@@ -740,11 +724,6 @@ class BotAPI:
                 else:
                     # RGB
                     lower, upper = _get_color_bounds(tuple(target_rgb), tolerance, alpha=False)
-                    target_bgr = (target_rgb[2], target_rgb[1], target_rgb[0])
-                    lower, upper = _get_color_bounds(target_bgr, tolerance, has_alpha=True)
-                else:
-                    # RGB
-                    lower, upper = _get_color_bounds(target_rgb, tolerance, has_alpha=False)
                 mask = cv2.inRange(roi, lower, upper)
                 matches = np.where(mask > 0)
                 roi_for_debug = roi  # Preserve for debug log if needed
@@ -1595,54 +1574,27 @@ class BotAPI:
                 scores = res[locs]
 
             h, w = template.shape[:2]
-            candidates = []
+
+            # Use cv2.dnn.NMSBoxes for ultra-fast C++ based Non-Maximum Suppression
+            bboxes = []
+            confidences = []
             for y_val, x_val, score in zip(locs[0], locs[1], scores):
-                candidates.append(
-                    [
-                        int(x_val),
-                        int(y_val),
-                        int(x_val + w),
-                        int(y_val + h),
-                        float(score),
-                    ]
-                )
+                bboxes.append([int(x_val), int(y_val), w, h])
+                confidences.append(float(score))
 
-            # Sort by score descending
-            candidates = sorted(candidates, key=lambda c: c[4], reverse=True)
+            indices = cv2.dnn.NMSBoxes(bboxes, confidences, score_threshold=confidence if not has_alpha else 0.0, nms_threshold=0.3)
 
-            # Apply Non-Maximum Suppression (NMS) to remove overlapping results
-            keep = []
-            while candidates and len(keep) < max_results:
-                best = candidates.pop(0)
-                keep.append(best)
-                new_candidates = []
-                for cand in candidates:
-                    # Calculate intersection coordinates
-                    ix1 = max(best[0], cand[0])
-                    iy1 = max(best[1], cand[1])
-                    ix2 = min(best[2], cand[2])
-                    iy2 = min(best[3], cand[3])
-
-                    iw = max(0, ix2 - ix1)
-                    ih = max(0, iy2 - iy1)
-                    inter_area = iw * ih
-
-                    if inter_area > 0:
-                        best_area = (best[2] - best[0]) * (best[3] - best[1])
-                        cand_area = (cand[2] - cand[0]) * (cand[3] - cand[1])
-                        union_area = best_area + cand_area - inter_area
-                        iou = inter_area / union_area
-                        if iou > 0.3:  # Overlap threshold
-                            continue
-                    new_candidates.append(cand)
-                candidates = new_candidates
+            keep_boxes = []
+            if len(indices) > 0:
+                for i in indices.flatten()[:max_results]:
+                    box = bboxes[i]
+                    keep_boxes.append([box[0], box[1], box[0] + box[2], box[1] + box[3]])
 
             left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
-            results = []
-            for box in keep:
-                center_x = left + offset_x + box[0] + w // 2
-                center_y = top + offset_y + box[1] + h // 2
-                results.append((center_x, center_y))
+            results = [
+                (left + offset_x + box[0] + w // 2, top + offset_y + box[1] + h // 2)
+                for box in keep_boxes
+            ]
 
             if results:
                 self.log(
@@ -1776,7 +1728,7 @@ class BotAPI:
         for hex_col in colors:
             b, g, r = hex_to_bgr(hex_col)
             lower, upper = _get_color_bounds((b, g, r), t_val)
-            lower, upper = _get_color_bounds(hex_col, t_val, has_alpha=False)
+            lower, upper = _get_color_bounds(hex_col, t_val, alpha=False)
             mask = cv2.inRange(search_area, lower, upper)
             masks.append(mask)
 

@@ -19,3 +19,6 @@
 ## $(date +%Y-%m-%d) - Optimize batch array construction in Python loops
 **Learning:** In Python, repeatedly calling `.append()` inside a loop to construct an array (e.g., generating `Input` structs for Windows API) introduces significant interpreter overhead per iteration, especially for long sequences of text.
 **Action:** When constructing arrays dynamically without interleaved delays, use list comprehensions (or generators) rather than repeated `.append()` calls. It avoids method lookup overhead and allows the C-backend list builder to pre-allocate memory more efficiently.
+## 2024-05-24 - [Optimize Non-Maximum Suppression (NMS)]
+**Learning:** Pure Python nested loops for filtering overlapping bounding boxes via Non-Maximum Suppression (NMS) creates an O(N^2) performance bottleneck during template matching. OpenCV's `cv2.dnn.NMSBoxes` provides a highly optimized native C++ implementation that runs significantly (~40x) faster.
+**Action:** Replace manual NMS loops with `cv2.dnn.NMSBoxes` to improve bounding box filtering performance.
