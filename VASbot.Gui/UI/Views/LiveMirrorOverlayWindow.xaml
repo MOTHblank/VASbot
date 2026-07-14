@@ -11,6 +11,7 @@
         WindowStartupLocation="Manual">
     <Grid Background="Transparent">
         <skia:SKElement x:Name="SkiaElement"
+                        AutomationProperties.Name="Live Overlay Mirror Canvas"
                         PaintSurface="SkiaElement_PaintSurface"
                         MouseDown="SkiaElement_MouseDown"
                         MouseMove="SkiaElement_MouseMove"

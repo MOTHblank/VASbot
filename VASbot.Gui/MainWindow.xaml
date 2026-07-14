@@ -88,21 +88,24 @@
                         
                         <ToggleButton Content="🖥️ OVERLAY" IsChecked="{Binding Capture.IsOverlayMirrorActive}" 
                                       AutomationProperties.Name="Toggle Overlay Mirror"
+                                      ToolTip="Popout a transparent overlay directly on top of the target window client area"
                                       Background="{Binding Capture.IsOverlayMirrorActive, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="100"
-                                      ToolTip="Popout a transparent overlay directly on top of the target window client area"/>
+                                      />
 
                         <ToggleButton Content="🖱️ CLICK-THRU" IsChecked="{Binding Capture.IsOverlayClickThrough}" 
                                       Visibility="{Binding Capture.IsOverlayMirrorActive, Converter={StaticResource BooleanToVisibilityConverter}}"
                                       AutomationProperties.Name="Toggle Overlay Click-Through"
+                                      ToolTip="Enable click-through so clicks pass directly to the target window. Disable to select/create regions on the overlay."
                                       Background="{Binding Capture.IsOverlayClickThrough, Converter={StaticResource BooleanToRedConverter}}"
                                       Foreground="White" FontWeight="Bold" Width="115"
-                                      ToolTip="Enable click-through so clicks pass directly to the target window. Disable to select/create regions on the overlay."/>
+                                      />
                         
                         <Button Content="📸 SNAP" Command="{Binding Capture.StaticCaptureCommand}" 
                                 AutomationProperties.Name="Take Static Screenshot"
                                 Visibility="{Binding Capture.IsReflecting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
-                                ToolTip="Take a manual printscreen"/>
+                                ToolTip="Take a manual printscreen"
+                                />
 
                         <Separator Margin="10,0" Opacity="0.2"/>
 
@@ -110,7 +113,8 @@
                         <StackPanel Orientation="Horizontal">
                             <ToggleButton Content="💧" IsChecked="{Binding Capture.IsEyedropperActive}"
                                           AutomationProperties.Name="Toggle Eyedropper"
-                                          ToolTip="Eyedropper: Pick color from image" Width="40"/>
+                                          ToolTip="Eyedropper: Pick color from image"
+                                          Width="40"/>
                             <Border Width="30" Height="24" Background="{Binding Capture.PickedColor}" 
                                     BorderBrush="#444" BorderThickness="1" Margin="8,0,8,0" CornerRadius="2"
                                     ToolTip="Active Pen Color"/>
@@ -150,6 +154,7 @@
                     <!-- Canvas Area -->
                     <Grid Grid.Row="0" Background="#000" ClipToBounds="True">
                         <skia:SKElement x:Name="SkiaElement" 
+                                        AutomationProperties.Name="Studio Viewport Canvas"
                                         PaintSurface="SkiaElement_PaintSurface"
                                         MouseDown="SkiaElement_MouseDown"
                                         MouseMove="SkiaElement_MouseMove"
@@ -473,8 +478,8 @@
                                                       Margin="0,0,0,6"
                                                       Background="#202020" BorderBrush="#2a2a2a" BorderThickness="1"
                                                       Padding="0"
-                                                      AutomationProperties.Name="{Binding HeaderText}"
-                                                      ToolTip="{Binding HeaderText}">
+                                                      AutomationProperties.Name="{Binding HeaderText}" ToolTip="{Binding HeaderText}"
+                                                      >
                                                 <ListBox ItemsSource="{Binding Templates}"
                                                          SelectedItem="{Binding DataContext.Templates.SelectedTemplate, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                                          Background="Transparent" BorderThickness="0" Margin="0" Padding="0"
@@ -710,8 +715,8 @@
                                                 <TextBlock Text="Active:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating active/available state"/>
                                                 <TextBox Text="{Binding Capture.SelectedRegion.ActiveColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus" AutomationProperties.Name="Active Color" ToolTip="Active Color"/>
                                                 <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionActiveColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
-                                                        AutomationProperties.Name="Pick active color from screen"
-                                                        Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick active color from screen"/>
+                                                        AutomationProperties.Name="Pick active color from screen" ToolTip="Pick active color from screen"
+                                                        Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc"/>
                                             </StackPanel>
 
                                             <!-- Depleted Color State -->
@@ -719,8 +724,8 @@
                                                 <TextBlock Text="Depleted:" Foreground="#aaa" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Color indicating depleted/empty state"/>
                                                 <TextBox Text="{Binding Capture.SelectedRegion.DepletedColor, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="20" FontSize="9" Background="#222" Foreground="#fff" BorderBrush="#444" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" LostFocus="RegionName_LostFocus" AutomationProperties.Name="Depleted Color" ToolTip="Depleted Color"/>
                                                 <Button Content="🎨" Command="{Binding DataContext.Capture.PickRegionDepletedColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Capture.SelectedRegion}" 
-                                                        AutomationProperties.Name="Pick depleted color from screen"
-                                                        Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc" ToolTip="Pick depleted color from screen"/>
+                                                        AutomationProperties.Name="Pick depleted color from screen" ToolTip="Pick depleted color from screen"
+                                                        Height="20" Width="20" Margin="2,0,0,0" FontSize="9" Background="#2d2d2d" BorderBrush="#444" Foreground="#ccc"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
