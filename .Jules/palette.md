@@ -28,3 +28,7 @@
 ## 2024-05-18 - Missing Accessibility Attributes on Complex Canvas elements
 **Learning:** `skia:SKElement` items and elements within `ItemsPanelTemplate` inside XAML templates usually lack direct `AutomationProperties.Name` and `ToolTip` bindings since they dynamically host other UI parts, which breaks accessibility constraints. StackPanels inside DataTemplates require properties just like other standard elements if they hold interactive lists.
 **Action:** Always scan custom drawn elements (`skia:SKElement`), templated panels (`Canvas`), and structurally nested layout containers (`StackPanel` within `ComboBoxItem`) for missing properties using recursive search and update them to meet requirements.
+
+## 2026-07-14 - Explicit Cursors on Canvas Shapes
+**Learning:** Custom draggable and interactable UI shapes on a WPF Canvas (like custom node editors) lack native hover cursors, making them functionally invisible/undiscoverable as interactive elements to users without explicit `Cursor` properties.
+**Action:** Always ensure that any custom Canvas-drawn objects that handle mouse drag/click events explicitly declare `Cursor="SizeAll"`, `Cursor="Hand"`, or `Cursor="Cross"` appropriately.
