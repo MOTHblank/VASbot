@@ -59,7 +59,7 @@
                                   Width="350" ui:ControlHelper.PlaceholderText="Select Target Window..." AutomationProperties.Name="Target Window" ToolTip="Select Target Window">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="0,2">
+                                    <StackPanel Margin="0,2" AutomationProperties.Name="{Binding Title}" ToolTip="{Binding Title}">
                                         <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="12"/>
                                         <TextBlock Text="{Binding ClassName}" FontSize="9" Foreground="#858585"/>
                                     </StackPanel>
@@ -155,6 +155,7 @@
                     <Grid Grid.Row="0" Background="#000" ClipToBounds="True">
                         <skia:SKElement x:Name="SkiaElement" 
                                         AutomationProperties.Name="Studio Viewport Canvas"
+                                        ToolTip="Studio Viewport Canvas"
                                         PaintSurface="SkiaElement_PaintSurface"
                                         MouseDown="SkiaElement_MouseDown"
                                         MouseMove="SkiaElement_MouseMove"

@@ -77,7 +77,7 @@
 
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Visual graph canvas scroll view" ToolTip="Scroll view for visual graph canvas">
             <Canvas x:Name="GraphCanvas" Width="2000" Height="2000" Background="#1e1e1e" 
-                    AutomationProperties.Name="Visual Editor Graph Canvas"
+                    AutomationProperties.Name="Visual Editor Graph Canvas" ToolTip="Visual Editor Graph Canvas"
                     MouseLeftButtonUp="Canvas_MouseUp" MouseMove="Canvas_MouseMove">
                 <Canvas.ContextMenu>
                     <ContextMenu ItemsSource="{Binding AvailableTemplates}">
@@ -93,7 +93,7 @@
                 <ItemsControl ItemsSource="{Binding Connections}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <Canvas/>
+                            <Canvas AutomationProperties.Name="Connections Layer Canvas" ToolTip="Connections Layer Canvas"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -112,7 +112,7 @@
                 <ItemsControl ItemsSource="{Binding Nodes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <Canvas/>
+                            <Canvas AutomationProperties.Name="Nodes Layer Canvas" ToolTip="Nodes Layer Canvas"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemContainerStyle>
