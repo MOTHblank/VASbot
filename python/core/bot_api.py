@@ -5,9 +5,6 @@ import random
 from ctypes import wintypes
 from functools import lru_cache
 
-
-
-
 try:
     import cv2
 except ImportError:
@@ -98,7 +95,44 @@ def hex_to_bgr(hex_str):
     b = int(hex_str[4:6], 16)
     return (b, g, r)
 
-_bounds_cache = {}
+
+@lru_cache(maxsize=128)
+def _get_color_bounds_cached(color_val, tolerance, alpha):
+    if isinstance(color_val, str):
+        c1, c2, c3 = hex_to_bgr(color_val)
+    else:
+        c1, c2, c3 = color_val
+
+    if alpha:
+        lower = np.array(
+            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance), 0],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [
+                min(255, c1 + tolerance),
+                min(255, c2 + tolerance),
+                min(255, c3 + tolerance),
+                255,
+            ],
+            dtype=np.uint8,
+        )
+    else:
+        lower = np.array(
+            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance)],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [
+                min(255, c1 + tolerance),
+                min(255, c2 + tolerance),
+                min(255, c3 + tolerance),
+            ],
+            dtype=np.uint8,
+        )
+
+    return (lower, upper)
+
 
 def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     """
@@ -109,25 +143,7 @@ def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     if isinstance(hex_color_or_tuple, list):
         hex_color_or_tuple = tuple(hex_color_or_tuple)
 
-    cache_key = (hex_color_or_tuple, tolerance, has_alpha)
-    if cache_key in _bounds_cache:
-        return _bounds_cache[cache_key]
-
-    if isinstance(hex_color_or_tuple, str):
-        c1, c2, c3 = hex_to_bgr(hex_color_or_tuple)
-    else:
-        c1, c2, c3 = hex_color_or_tuple
-
-    if has_alpha:
-        lower = np.array([max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance), 0], dtype=np.uint8)
-        upper = np.array([min(255, c1 + tolerance), min(255, c2 + tolerance), min(255, c3 + tolerance), 255], dtype=np.uint8)
-    else:
-        lower = np.array([max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance)], dtype=np.uint8)
-        upper = np.array([min(255, c1 + tolerance), min(255, c2 + tolerance), min(255, c3 + tolerance)], dtype=np.uint8)
-
-    res = (lower, upper)
-    _bounds_cache[cache_key] = res
-    return res
+    return _get_color_bounds_cached(hex_color_or_tuple, tolerance, alpha)
 
 
 class DynamicRegion:
@@ -723,7 +739,9 @@ class BotAPI:
                     lower, upper = _get_color_bounds(target_bgr, tolerance, alpha=True)
                 else:
                     # RGB
-                    lower, upper = _get_color_bounds(tuple(target_rgb), tolerance, alpha=False)
+                    lower, upper = _get_color_bounds(
+                        tuple(target_rgb), tolerance, alpha=False
+                    )
                 mask = cv2.inRange(roi, lower, upper)
                 matches = np.where(mask > 0)
                 roi_for_debug = roi  # Preserve for debug log if needed
@@ -1582,13 +1600,20 @@ class BotAPI:
                 bboxes.append([int(x_val), int(y_val), w, h])
                 confidences.append(float(score))
 
-            indices = cv2.dnn.NMSBoxes(bboxes, confidences, score_threshold=confidence if not has_alpha else 0.0, nms_threshold=0.3)
+            indices = cv2.dnn.NMSBoxes(
+                bboxes,
+                confidences,
+                score_threshold=confidence if not has_alpha else 0.0,
+                nms_threshold=0.3,
+            )
 
             keep_boxes = []
             if len(indices) > 0:
                 for i in indices.flatten()[:max_results]:
                     box = bboxes[i]
-                    keep_boxes.append([box[0], box[1], box[0] + box[2], box[1] + box[3]])
+                    keep_boxes.append(
+                        [box[0], box[1], box[0] + box[2], box[1] + box[3]]
+                    )
 
             left, top, _, _ = _get_true_hwnd_rect(self._target_hwnd)
             results = [
