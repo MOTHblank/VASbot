@@ -5,23 +5,28 @@ import sys
 # Mock windows-specific modules before importing
 mock_ctypes = MagicMock()
 mock_wintypes = MagicMock()
+
+
 # Using mock_ctypes instead of MagicMock as base class to avoid metaclass conflict
 class MockStruct(object):
     pass
+
+
 mock_ctypes.Structure = MockStruct
 
-sys.modules['ctypes'] = mock_ctypes
-sys.modules['ctypes.wintypes'] = mock_wintypes
-sys.modules['win32gui'] = MagicMock()
-sys.modules['win32con'] = MagicMock()
-sys.modules['win32api'] = MagicMock()
-sys.modules['win32process'] = MagicMock()
+sys.modules["ctypes"] = mock_ctypes
+sys.modules["ctypes.wintypes"] = mock_wintypes
+sys.modules["win32gui"] = MagicMock()
+sys.modules["win32con"] = MagicMock()
+sys.modules["win32api"] = MagicMock()
+sys.modules["win32process"] = MagicMock()
 
 # Mock pywinauto as well since it has the metaclass conflict on Linux
-sys.modules['pywinauto'] = MagicMock()
+sys.modules["pywinauto"] = MagicMock()
 
 # Now we can import ScriptRunner
 from core.script_runner import ScriptRunner
+
 
 class TestScriptRunnerIsRunning(unittest.TestCase):
     def setUp(self):
@@ -49,5 +54,6 @@ class TestScriptRunnerIsRunning(unittest.TestCase):
 
         self.assertTrue(self.runner.is_running())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

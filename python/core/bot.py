@@ -307,7 +307,14 @@ class Bot:
         # Positive values scroll forward/up, negative values scroll backward/down
         mouseData = int(clicks * 120)
         self._send_input(
-            [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=MOUSEEVENTF_WHEEL, mouseData=mouseData)))]
+            [
+                Input(
+                    type=INPUT_MOUSE,
+                    ii=Input_I(
+                        mi=MouseInput(dwFlags=MOUSEEVENTF_WHEEL, mouseData=mouseData)
+                    ),
+                )
+            ]
         )
 
     def key_down(self, key):
@@ -317,7 +324,9 @@ class Bot:
                 [
                     Input(
                         type=INPUT_KEYBOARD,
-                        ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYDOWN)),
+                        ii=Input_I(
+                            ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYDOWN)
+                        ),
                     )
                 ]
             )
@@ -329,7 +338,9 @@ class Bot:
                 [
                     Input(
                         type=INPUT_KEYBOARD,
-                        ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYUP)),
+                        ii=Input_I(
+                            ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYUP)
+                        ),
                     )
                 ]
             )
@@ -398,7 +409,10 @@ class Bot:
         if delay <= 0:
             # ⚡ Bolt: Fast list comprehension to batch input events instead of repeated appends
             inputs = [
-                Input(type=INPUT_KEYBOARD, ii=Input_I(ki=KeyBdInput(wVk=0, wScan=ord(char), dwFlags=flag)))
+                Input(
+                    type=INPUT_KEYBOARD,
+                    ii=Input_I(ki=KeyBdInput(wVk=0, wScan=ord(char), dwFlags=flag)),
+                )
                 for char in text
                 for flag in (KEYEVENTF_UNICODE, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP)
             ]

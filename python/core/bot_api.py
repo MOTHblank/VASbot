@@ -96,6 +96,7 @@ def hex_to_bgr(hex_str):
     return (b, g, r)
 
 
+_bounds_cache = {}
 @lru_cache(maxsize=128)
 def _get_color_bounds_cached(color_val, tolerance, alpha):
     if isinstance(color_val, str):
@@ -134,6 +135,7 @@ def _get_color_bounds_cached(color_val, tolerance, alpha):
     return (lower, upper)
 
 
+
 def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     """
     Computes lower and upper numpy arrays for cv2.inRange and caches the result
@@ -143,6 +145,46 @@ def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     if isinstance(hex_color_or_tuple, list):
         hex_color_or_tuple = tuple(hex_color_or_tuple)
 
+    cache_key = (hex_color_or_tuple, tolerance, alpha)
+    if cache_key in _bounds_cache:
+        return _bounds_cache[cache_key]
+
+    if isinstance(hex_color_or_tuple, str):
+        c1, c2, c3 = hex_to_bgr(hex_color_or_tuple)
+    else:
+        c1, c2, c3 = hex_color_or_tuple
+
+    if alpha:
+        lower = np.array(
+            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance), 0],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [
+                min(255, c1 + tolerance),
+                min(255, c2 + tolerance),
+                min(255, c3 + tolerance),
+                255,
+            ],
+            dtype=np.uint8,
+        )
+    else:
+        lower = np.array(
+            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance)],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [
+                min(255, c1 + tolerance),
+                min(255, c2 + tolerance),
+                min(255, c3 + tolerance),
+            ],
+            dtype=np.uint8,
+        )
+
+    res = (lower, upper)
+    _bounds_cache[cache_key] = res
+    return res
     return _get_color_bounds_cached(hex_color_or_tuple, tolerance, alpha)
 
 
@@ -194,15 +236,16 @@ class DynamicRegion:
         if full_frame is None:
             return False
 
-        if full_frame.shape[2] == 4:
-            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
-        else:
-            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
-
         gx = self._offset_x + left
         gy = self._offset_y + top
 
-        bgr_crop = img_bgr[gy : gy + h, gx : gx + w]
+        # Crop FIRST, then convert color to save massive CPU overhead
+        frame_crop = full_frame[gy : gy + h, gx : gx + w]
+
+        if frame_crop.shape[2] == 4:
+            bgr_crop = cv2.cvtColor(frame_crop, cv2.COLOR_BGRA2BGR)
+        else:
+            bgr_crop = cv2.cvtColor(frame_crop, cv2.COLOR_RGB2BGR)
 
         lower, upper = _get_color_bounds((b, g, r), tolerance)
         lower, upper = _get_color_bounds(hex_color, tolerance, alpha=False)
@@ -1439,22 +1482,23 @@ class BotAPI:
                 self.log("Vision Error: Could not get screen frame.")
                 return None
 
-            # Convert full frame to BGR for matching (assuming BGRA from shared memory)
-            if full_frame.shape[2] == 4:
-                img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
-            else:
-                img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
-
             if region_index is not None:
                 region = self._resolve_region(region_index)
                 if region is None:
                     return None
                 x, y, w, h = region["x"], region["y"], region["width"], region["height"]
-                search_area = img_bgr[y : y + h, x : x + w]
+                # Crop FIRST to save CPU overhead
+                search_area_raw = full_frame[y : y + h, x : x + w]
                 offset_x, offset_y = region["x"], region["y"]
             else:
-                search_area = img_bgr
+                search_area_raw = full_frame
                 offset_x, offset_y = 0, 0
+
+            # Convert cropped frame to BGR for matching (assuming BGRA from shared memory)
+            if search_area_raw.shape[2] == 4:
+                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
+            else:
+                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
 
             # Ensure template is smaller than search area
             sh, sw = search_area.shape[:2]
@@ -1553,21 +1597,21 @@ class BotAPI:
                 self.log("Vision Error: Could not get screen frame.")
                 return []
 
-            if full_frame.shape[2] == 4:
-                img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
-            else:
-                img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
-
             if region_index is not None:
                 region = self._resolve_region(region_index)
                 if region is None:
                     return []
                 x, y, w, h = region["x"], region["y"], region["width"], region["height"]
-                search_area = img_bgr[y : y + h, x : x + w]
+                search_area_raw = full_frame[y : y + h, x : x + w]
                 offset_x, offset_y = region["x"], region["y"]
             else:
-                search_area = img_bgr
+                search_area_raw = full_frame
                 offset_x, offset_y = 0, 0
+
+            if search_area_raw.shape[2] == 4:
+                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
+            else:
+                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
 
             # Ensure template is smaller than search area
             sh, sw = search_area.shape[:2]
@@ -1730,23 +1774,23 @@ class BotAPI:
             self.log("Vision Error: Could not retrieve screen frame.")
             return []
 
-        # Convert full frame to BGR
-        if full_frame.shape[2] == 4:
-            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
-        else:
-            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
-
         # 3. Handle ROI (region_index)
         if region_index is not None:
             region = self._resolve_region(region_index)
             if region is None:
                 return []
             rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
-            search_area = img_bgr[ry : ry + rh, rx : rx + rw]
+            search_area_raw = full_frame[ry : ry + rh, rx : rx + rw]
             offset_x, offset_y = rx, ry
         else:
-            search_area = img_bgr
+            search_area_raw = full_frame
             offset_x, offset_y = 0, 0
+
+        # Convert cropped frame to BGR
+        if search_area_raw.shape[2] == 4:
+            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
+        else:
+            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
 
         # 4. Generate binary masks for each color
         masks = []
@@ -1868,23 +1912,23 @@ class BotAPI:
             )
             return []
 
-        # Convert full frame to BGR
-        if full_frame.shape[2] == 4:
-            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_BGRA2BGR)
-        else:
-            img_bgr = cv2.cvtColor(full_frame, cv2.COLOR_RGB2BGR)
-
         # Handle ROI
         if region_index is not None:
             region = self._resolve_region(region_index)
             if region is None:
                 return []
             rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
-            search_area = img_bgr[ry : ry + rh, rx : rx + rw]
+            search_area_raw = full_frame[ry : ry + rh, rx : rx + rw]
             offset_x, offset_y = rx, ry
         else:
-            search_area = img_bgr
+            search_area_raw = full_frame
             offset_x, offset_y = 0, 0
+
+        # Convert cropped frame to BGR
+        if search_area_raw.shape[2] == 4:
+            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
+        else:
+            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
 
         # Grayscale, Gaussian Blur
         gray = cv2.cvtColor(search_area, cv2.COLOR_BGR2GRAY)
