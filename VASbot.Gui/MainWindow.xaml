@@ -160,7 +160,7 @@
                                         MouseDown="SkiaElement_MouseDown"
                                         MouseMove="SkiaElement_MouseMove"
                                         MouseUp="SkiaElement_MouseUp"
-                                        MouseWheel="SkiaElement_MouseWheel"/>
+                                        MouseWheel="SkiaElement_MouseWheel" Cursor="Cross"/>
                         
                         <!-- FLOATING VIEWPORT HUD -->
                         <Border VerticalAlignment="Top" HorizontalAlignment="Center" 

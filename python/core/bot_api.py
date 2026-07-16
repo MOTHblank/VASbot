@@ -97,6 +97,43 @@ def hex_to_bgr(hex_str):
 
 
 _bounds_cache = {}
+@lru_cache(maxsize=128)
+def _get_color_bounds_cached(color_val, tolerance, alpha):
+    if isinstance(color_val, str):
+        c1, c2, c3 = hex_to_bgr(color_val)
+    else:
+        c1, c2, c3 = color_val
+
+    if alpha:
+        lower = np.array(
+            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance), 0],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [
+                min(255, c1 + tolerance),
+                min(255, c2 + tolerance),
+                min(255, c3 + tolerance),
+                255,
+            ],
+            dtype=np.uint8,
+        )
+    else:
+        lower = np.array(
+            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance)],
+            dtype=np.uint8,
+        )
+        upper = np.array(
+            [
+                min(255, c1 + tolerance),
+                min(255, c2 + tolerance),
+                min(255, c3 + tolerance),
+            ],
+            dtype=np.uint8,
+        )
+
+    return (lower, upper)
+
 
 
 def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
@@ -148,6 +185,7 @@ def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     res = (lower, upper)
     _bounds_cache[cache_key] = res
     return res
+    return _get_color_bounds_cached(hex_color_or_tuple, tolerance, alpha)
 
 
 class DynamicRegion:
