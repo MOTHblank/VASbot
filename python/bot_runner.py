@@ -247,7 +247,7 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
         def run_thread():
             try:
                 # Diagnostic: log the first 3 lines of the script
-                lines = request.code.split('\n')
+                lines = request.code.split("\n")
                 for i, line in enumerate(lines[:3]):
                     log_queue.put(f"[DEBUG] Line {i+1}: {line.strip()}")
                 exec(request.code, globals_dict)
@@ -331,23 +331,24 @@ class BotServicer(bot_pb2_grpc.BotServiceServicer):
             shapes = self.bot.detect_shapes(
                 shape_type=request.shape_type,
                 min_size=request.min_size,
-                max_size=request.max_size if request.max_size > 0 else None
+                max_size=request.max_size if request.max_size > 0 else None,
             )
             proto_shapes = []
             for s in shapes:
-                proto_shapes.append(bot_pb2.DetectedShape(
-                    type=s["type"],
-                    x=s["x"],
-                    y=s["y"],
-                    width=s["width"],
-                    height=s["height"],
-                    confidence=s.get("confidence", 1.0)
-                ))
+                proto_shapes.append(
+                    bot_pb2.DetectedShape(
+                        type=s["type"],
+                        x=s["x"],
+                        y=s["y"],
+                        width=s["width"],
+                        height=s["height"],
+                        confidence=s.get("confidence", 1.0),
+                    )
+                )
             return bot_pb2.ShapeDetectionResponse(shapes=proto_shapes)
         except Exception as e:
             print(f"[Sidecar] DetectShapes Error: {e}")
             return bot_pb2.ShapeDetectionResponse(shapes=[])
-
 
 
 def serve():

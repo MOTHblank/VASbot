@@ -22,3 +22,7 @@
 ## 2024-05-24 - [Optimize Non-Maximum Suppression (NMS)]
 **Learning:** Pure Python nested loops for filtering overlapping bounding boxes via Non-Maximum Suppression (NMS) creates an O(N^2) performance bottleneck during template matching. OpenCV's `cv2.dnn.NMSBoxes` provides a highly optimized native C++ implementation that runs significantly (~40x) faster.
 **Action:** Replace manual NMS loops with `cv2.dnn.NMSBoxes` to improve bounding box filtering performance.
+
+## 2026-07-16 - Apply ROI before cvtColor
+**Learning:** In Python/OpenCV vision processing, applying cvtColor (like BGRA2BGR) to the entire 1080p frame before cropping to a small ROI processes millions of unnecessary pixels, creating a severe CPU bottleneck.
+**Action:** Always crop the numpy array to the target Region of Interest (ROI) first, and then apply color space conversions only on the much smaller cropped array.

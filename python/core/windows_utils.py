@@ -55,7 +55,10 @@ def _get_true_hwnd_rect(hwnd):
         print(f"Error in _get_true_hwnd_rect (ctypes): {e}")
         # Fallback to GetWindowRect if everything else fails
         try:
-            user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+            user32.GetWindowRect.argtypes = [
+                wintypes.HWND,
+                ctypes.POINTER(wintypes.RECT),
+            ]
             rect = wintypes.RECT()
             user32.GetWindowRect(hwnd, ctypes.byref(rect))
             return rect.left, rect.top, rect.right, rect.bottom
