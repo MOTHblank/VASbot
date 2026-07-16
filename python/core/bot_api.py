@@ -145,46 +145,6 @@ def _get_color_bounds(hex_color_or_tuple, tolerance, alpha=False):
     if isinstance(hex_color_or_tuple, list):
         hex_color_or_tuple = tuple(hex_color_or_tuple)
 
-    cache_key = (hex_color_or_tuple, tolerance, alpha)
-    if cache_key in _bounds_cache:
-        return _bounds_cache[cache_key]
-
-    if isinstance(hex_color_or_tuple, str):
-        c1, c2, c3 = hex_to_bgr(hex_color_or_tuple)
-    else:
-        c1, c2, c3 = hex_color_or_tuple
-
-    if alpha:
-        lower = np.array(
-            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance), 0],
-            dtype=np.uint8,
-        )
-        upper = np.array(
-            [
-                min(255, c1 + tolerance),
-                min(255, c2 + tolerance),
-                min(255, c3 + tolerance),
-                255,
-            ],
-            dtype=np.uint8,
-        )
-    else:
-        lower = np.array(
-            [max(0, c1 - tolerance), max(0, c2 - tolerance), max(0, c3 - tolerance)],
-            dtype=np.uint8,
-        )
-        upper = np.array(
-            [
-                min(255, c1 + tolerance),
-                min(255, c2 + tolerance),
-                min(255, c3 + tolerance),
-            ],
-            dtype=np.uint8,
-        )
-
-    res = (lower, upper)
-    _bounds_cache[cache_key] = res
-    return res
     return _get_color_bounds_cached(hex_color_or_tuple, tolerance, alpha)
 
 
@@ -230,7 +190,6 @@ class DynamicRegion:
     def contains(self, hex_color, tolerance=25):
         """Checks if this component contains a specific color."""
         left, top, w, h, _ = self._stats
-        b, g, r = hex_to_bgr(hex_color)
 
         full_frame = self.bot._get_current_frame()
         if full_frame is None:
@@ -247,7 +206,6 @@ class DynamicRegion:
         else:
             bgr_crop = cv2.cvtColor(frame_crop, cv2.COLOR_RGB2BGR)
 
-        lower, upper = _get_color_bounds((b, g, r), tolerance)
         lower, upper = _get_color_bounds(hex_color, tolerance, alpha=False)
         color_mask = cv2.inRange(bgr_crop, lower, upper)
 
@@ -1197,37 +1155,6 @@ class BotAPI:
 
         if not getattr(self, "_tesseract_available", False):
             self.log(getattr(self, "_tesseract_error", "Unknown Tesseract error"))
-
-        # Keep original fallback checks for maximum robust redundancy
-        tesseract_paths = [
-            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-            os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe"),
-        ]
-
-        from subprocess import run, PIPE
-
-        in_path = False
-        try:
-            run(["tesseract", "--version"], stdout=PIPE, stderr=PIPE)
-            in_path = True
-        except FileNotFoundError:
-            pass
-        except Exception as e:
-            self.log(f"Vision Warning: Tesseract PATH check failed: {e}")
-
-        if not in_path:
-            for path in tesseract_paths:
-                if os.path.exists(path):
-                    pytesseract.pytesseract.tesseract_cmd = path
-                    break
-
-        try:
-            pytesseract.get_tesseract_version()
-        except pytesseract.TesseractNotFoundError:
-            self.log(
-                "Vision Error: Tesseract OCR engine not found. Please ensure it is installed and in your PATH, or at C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-            )
             return None
 
         region = self._resolve_region(region_index)
@@ -1427,6 +1354,67 @@ class BotAPI:
             self.log(f"OCR Error: {e}")
             return None
 
+    def _get_search_area(self, full_frame, region_index):
+        import cv2
+        if region_index is not None:
+            region = self._resolve_region(region_index)
+            if region is None:
+                return None, 0, 0
+            x, y, w, h = region["x"], region["y"], region["width"], region["height"]
+            search_area_raw = full_frame[y : y + h, x : x + w]
+            offset_x, offset_y = x, y
+        else:
+            search_area_raw = full_frame
+            offset_x, offset_y = 0, 0
+
+        if search_area_raw.shape[2] == 4:
+            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
+        else:
+            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
+
+        return search_area, offset_x, offset_y
+
+    def _load_template(self, template_path):
+        import cv2
+        import os
+        # Check template cache (cache tuples of (template, mask, has_alpha))
+        if template_path in self._template_cache:
+            cache_val = self._template_cache[template_path]
+            # Handle legacy cache format where only template was cached
+            if isinstance(cache_val, tuple) and len(cache_val) == 3:
+                return cache_val
+            else:
+                return (cache_val, None, False)
+
+        if not os.path.exists(template_path):
+            self.log(f"Error: Template image not found at {template_path}")
+            return None, None, False
+
+        # Read unchanged to preserve alpha channel
+        template_img = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
+        if template_img is None:
+            self.log("Error: Failed to load template image.")
+            return None, None, False
+
+        has_alpha = False
+        mask = None
+        if len(template_img.shape) == 3 and template_img.shape[2] == 4:
+            # Extract alpha channel
+            alpha = template_img[:, :, 3]
+            # Only treat as transparent if there are actual non-opaque pixels
+            if np.any(alpha < 255):
+                template = template_img[:, :, :3]  # BGR channels
+                mask = alpha
+                has_alpha = True
+            else:
+                template = template_img[:, :, :3]
+        else:
+            template = template_img
+
+        res = (template, mask, has_alpha)
+        self._template_cache[template_path] = res
+        return res
+
     def find_image(self, template_path, region_index=None, confidence=0.8):
         self.check_running()
         try:
@@ -1436,43 +1424,9 @@ class BotAPI:
             return None
         import os
 
-        # Check template cache (cache tuples of (template, mask, has_alpha))
-        if template_path in self._template_cache:
-            cache_val = self._template_cache[template_path]
-            # Handle legacy cache format where only template was cached
-            if isinstance(cache_val, tuple) and len(cache_val) == 3:
-                template, mask, has_alpha = cache_val
-            else:
-                template = cache_val
-                mask = None
-                has_alpha = False
-        else:
-            if not os.path.exists(template_path):
-                self.log(f"Error: Template image not found at {template_path}")
-                return None
-
-            # Read unchanged to preserve alpha channel
-            template_img = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
-            if template_img is None:
-                self.log("Error: Failed to load template image.")
-                return None
-
-            has_alpha = False
-            mask = None
-            if len(template_img.shape) == 3 and template_img.shape[2] == 4:
-                # Extract alpha channel
-                alpha = template_img[:, :, 3]
-                # Only treat as transparent if there are actual non-opaque pixels
-                if np.any(alpha < 255):
-                    template = template_img[:, :, :3]  # BGR channels
-                    mask = alpha
-                    has_alpha = True
-                else:
-                    template = template_img[:, :, :3]
-            else:
-                template = template_img
-
-            self._template_cache[template_path] = (template, mask, has_alpha)
+        template, mask, has_alpha = self._load_template(template_path)
+        if template is None:
+            return None
 
         self.focus_window()
 
@@ -1482,23 +1436,9 @@ class BotAPI:
                 self.log("Vision Error: Could not get screen frame.")
                 return None
 
-            if region_index is not None:
-                region = self._resolve_region(region_index)
-                if region is None:
-                    return None
-                x, y, w, h = region["x"], region["y"], region["width"], region["height"]
-                # Crop FIRST to save CPU overhead
-                search_area_raw = full_frame[y : y + h, x : x + w]
-                offset_x, offset_y = region["x"], region["y"]
-            else:
-                search_area_raw = full_frame
-                offset_x, offset_y = 0, 0
-
-            # Convert cropped frame to BGR for matching (assuming BGRA from shared memory)
-            if search_area_raw.shape[2] == 4:
-                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
-            else:
-                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
+            search_area, offset_x, offset_y = self._get_search_area(full_frame, region_index)
+            if search_area is None:
+                return None
 
             # Ensure template is smaller than search area
             sh, sw = search_area.shape[:2]
@@ -1555,39 +1495,9 @@ class BotAPI:
             return []
         import os
 
-        # Cache template loading with transparency support
-        if template_path in self._template_cache:
-            cache_val = self._template_cache[template_path]
-            if isinstance(cache_val, tuple) and len(cache_val) == 3:
-                template, mask, has_alpha = cache_val
-            else:
-                template = cache_val
-                mask = None
-                has_alpha = False
-        else:
-            if not os.path.exists(template_path):
-                self.log(f"Error: Template image not found at {template_path}")
-                return []
-
-            template_img = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
-            if template_img is None:
-                self.log("Error: Failed to load template image.")
-                return []
-
-            has_alpha = False
-            mask = None
-            if len(template_img.shape) == 3 and template_img.shape[2] == 4:
-                alpha = template_img[:, :, 3]
-                if np.any(alpha < 255):
-                    template = template_img[:, :, :3]
-                    mask = alpha
-                    has_alpha = True
-                else:
-                    template = template_img[:, :, :3]
-            else:
-                template = template_img
-
-            self._template_cache[template_path] = (template, mask, has_alpha)
+        template, mask, has_alpha = self._load_template(template_path)
+        if template is None:
+            return []
 
         self.focus_window()
 
@@ -1597,21 +1507,9 @@ class BotAPI:
                 self.log("Vision Error: Could not get screen frame.")
                 return []
 
-            if region_index is not None:
-                region = self._resolve_region(region_index)
-                if region is None:
-                    return []
-                x, y, w, h = region["x"], region["y"], region["width"], region["height"]
-                search_area_raw = full_frame[y : y + h, x : x + w]
-                offset_x, offset_y = region["x"], region["y"]
-            else:
-                search_area_raw = full_frame
-                offset_x, offset_y = 0, 0
-
-            if search_area_raw.shape[2] == 4:
-                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
-            else:
-                search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
+            search_area, offset_x, offset_y = self._get_search_area(full_frame, region_index)
+            if search_area is None:
+                return []
 
             # Ensure template is smaller than search area
             sh, sw = search_area.shape[:2]
@@ -1775,28 +1673,13 @@ class BotAPI:
             return []
 
         # 3. Handle ROI (region_index)
-        if region_index is not None:
-            region = self._resolve_region(region_index)
-            if region is None:
-                return []
-            rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
-            search_area_raw = full_frame[ry : ry + rh, rx : rx + rw]
-            offset_x, offset_y = rx, ry
-        else:
-            search_area_raw = full_frame
-            offset_x, offset_y = 0, 0
-
-        # Convert cropped frame to BGR
-        if search_area_raw.shape[2] == 4:
-            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
-        else:
-            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
+        search_area, offset_x, offset_y = self._get_search_area(full_frame, region_index)
+        if search_area is None:
+            return []
 
         # 4. Generate binary masks for each color
         masks = []
         for hex_col in colors:
-            b, g, r = hex_to_bgr(hex_col)
-            lower, upper = _get_color_bounds((b, g, r), t_val)
             lower, upper = _get_color_bounds(hex_col, t_val, alpha=False)
             mask = cv2.inRange(search_area, lower, upper)
             masks.append(mask)
@@ -1913,22 +1796,9 @@ class BotAPI:
             return []
 
         # Handle ROI
-        if region_index is not None:
-            region = self._resolve_region(region_index)
-            if region is None:
-                return []
-            rx, ry, rw, rh = region["x"], region["y"], region["width"], region["height"]
-            search_area_raw = full_frame[ry : ry + rh, rx : rx + rw]
-            offset_x, offset_y = rx, ry
-        else:
-            search_area_raw = full_frame
-            offset_x, offset_y = 0, 0
-
-        # Convert cropped frame to BGR
-        if search_area_raw.shape[2] == 4:
-            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_BGRA2BGR)
-        else:
-            search_area = cv2.cvtColor(search_area_raw, cv2.COLOR_RGB2BGR)
+        search_area, offset_x, offset_y = self._get_search_area(full_frame, region_index)
+        if search_area is None:
+            return []
 
         # Grayscale, Gaussian Blur
         gray = cv2.cvtColor(search_area, cv2.COLOR_BGR2GRAY)
