@@ -361,20 +361,16 @@ class Bot:
         # Settle delay: ensures movement is complete before click action begins
         time.sleep(0.05)
 
-        for mod in modifiers:
-            if mod in KEY_MAP:
-                self._send_input(
-                    [
-                        Input(
-                            type=INPUT_KEYBOARD,
-                            ii=Input_I(
-                                ki=KeyBdInput(
-                                    wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN
-                                )
-                            ),
-                        )
-                    ]
-                )
+        mod_inputs_down = [
+            Input(
+                type=INPUT_KEYBOARD,
+                ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN)),
+            )
+            for mod in modifiers
+            if mod in KEY_MAP
+        ]
+        if mod_inputs_down:
+            self._send_input(mod_inputs_down)
 
         if button == "left":
             down, up = MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP
@@ -391,18 +387,16 @@ class Bot:
             [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=up)))]
         )
 
-        for mod in reversed(modifiers):
-            if mod in KEY_MAP:
-                self._send_input(
-                    [
-                        Input(
-                            type=INPUT_KEYBOARD,
-                            ii=Input_I(
-                                ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYUP)
-                            ),
-                        )
-                    ]
-                )
+        mod_inputs_up = [
+            Input(
+                type=INPUT_KEYBOARD,
+                ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYUP)),
+            )
+            for mod in reversed(modifiers)
+            if mod in KEY_MAP
+        ]
+        if mod_inputs_up:
+            self._send_input(mod_inputs_up)
 
     def type_text(self, text, delay=0.05):
         """Types the given text using unicode characters."""
@@ -438,20 +432,16 @@ class Bot:
         """Presses a key with optional modifiers."""
         if modifiers is None:
             modifiers = []
-        for mod in modifiers:
-            if mod in KEY_MAP:
-                self._send_input(
-                    [
-                        Input(
-                            type=INPUT_KEYBOARD,
-                            ii=Input_I(
-                                ki=KeyBdInput(
-                                    wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN
-                                )
-                            ),
-                        )
-                    ]
-                )
+        mod_inputs_down = [
+            Input(
+                type=INPUT_KEYBOARD,
+                ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN)),
+            )
+            for mod in modifiers
+            if mod in KEY_MAP
+        ]
+        if mod_inputs_down:
+            self._send_input(mod_inputs_down)
 
         if key in KEY_MAP:
             vk_code = KEY_MAP[key]
@@ -475,15 +465,13 @@ class Bot:
                 ]
             )
 
-        for mod in reversed(modifiers):
-            if mod in KEY_MAP:
-                self._send_input(
-                    [
-                        Input(
-                            type=INPUT_KEYBOARD,
-                            ii=Input_I(
-                                ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYUP)
-                            ),
-                        )
-                    ]
-                )
+        mod_inputs_up = [
+            Input(
+                type=INPUT_KEYBOARD,
+                ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYUP)),
+            )
+            for mod in reversed(modifiers)
+            if mod in KEY_MAP
+        ]
+        if mod_inputs_up:
+            self._send_input(mod_inputs_up)
