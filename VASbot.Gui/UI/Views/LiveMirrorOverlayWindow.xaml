@@ -16,6 +16,7 @@
                         PaintSurface="SkiaElement_PaintSurface"
                         MouseDown="SkiaElement_MouseDown"
                         MouseMove="SkiaElement_MouseMove"
-                        MouseUp="SkiaElement_MouseUp"/>
+                        MouseUp="SkiaElement_MouseUp"
+                        Cursor="Cross"/>
     </Grid>
 </Window>
