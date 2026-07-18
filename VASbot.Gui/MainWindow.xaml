@@ -503,7 +503,7 @@
                                                     </ListBox.ItemContainerStyle>
                                                     <ListBox.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Grid Margin="0,2">
+                                                            <Grid Margin="0,2" AutomationProperties.Name="{Binding Name}" ToolTip="{Binding Name}">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                     <ColumnDefinition Width="*"/>
@@ -532,7 +532,7 @@
                                         <ItemsControl ItemsSource="{Binding Templates.CurrentParams}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid Margin="0,0,0,10">
+                                                    <Grid Margin="0,0,0,10" AutomationProperties.Name="{Binding Key, StringFormat='Parameter: {0}'}" ToolTip="{Binding Key, StringFormat='Parameter: {0}'}">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                         <TextBlock Text="{Binding Key}" VerticalAlignment="Center" FontSize="11" Foreground="#888" TextAlignment="Right" Margin="0,0,10,0"/>
                                                         <ContentControl Grid.Column="1" Content="{Binding}">
@@ -665,7 +665,7 @@
                                     <ListBox Grid.Row="1" ItemsSource="{Binding Capture.Regions}" SelectedItem="{Binding Capture.SelectedRegion}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Capture Regions List" ToolTip="List of defined capture regions">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid Margin="0,2">
+                                                <Grid Margin="0,2" AutomationProperties.Name="{Binding Name, StringFormat='Region: {0}'}" ToolTip="{Binding Name, StringFormat='Region: {0}'}">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
@@ -750,7 +750,7 @@
                                             <ListBox ItemsSource="{Binding Capture.ColorClusters}" SelectedItem="{Binding Capture.SelectedColorCluster}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Color Clusters List" ToolTip="List of defined color clusters">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Grid Margin="0,2">
+                                                        <Grid Margin="0,2" AutomationProperties.Name="{Binding Name, StringFormat='Color Cluster: {0}'}" ToolTip="{Binding Name, StringFormat='Color Cluster: {0}'}">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
@@ -808,7 +808,7 @@
                                             <ListBox ItemsSource="{Binding Capture.SelectedColorCluster.Colors}" Background="#222" BorderBrush="#444" BorderThickness="1" MinHeight="60" MaxHeight="100" AutomationProperties.Name="Cluster Colors List" ToolTip="List of colors in the selected cluster">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Grid Margin="0,1">
+                                                        <Grid Margin="0,1" AutomationProperties.Name="{Binding ., StringFormat='Cluster Color: {0}'}" ToolTip="{Binding ., StringFormat='Cluster Color: {0}'}">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="Auto"/>
                                                                 <ColumnDefinition Width="*"/>
@@ -832,7 +832,7 @@
                                 <TreeView ItemsSource="{Binding AutomationTree.RootNodes}" Background="#151515" BorderThickness="0" SelectedItemChanged="AutomationTree_SelectedItemChanged" AutomationProperties.Name="UI Automation Elements Tree" ToolTip="Tree view of UI Automation elements">
                                     <TreeView.ItemTemplate>
                                         <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-                                            <TextBlock Text="{Binding Name}" FontSize="10" Foreground="#aaa">
+                                            <TextBlock Text="{Binding Name}" FontSize="10" Foreground="#aaa" AutomationProperties.Name="{Binding Name}" ToolTip="{Binding Name}">
                                                 <TextBlock.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="Direct Click (Sidecar)" 
