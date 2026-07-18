@@ -32,3 +32,6 @@
 ## 2026-07-14 - Explicit Cursors on Canvas Shapes
 **Learning:** Custom draggable and interactable UI shapes on a WPF Canvas (like custom node editors) lack native hover cursors, making them functionally invisible/undiscoverable as interactive elements to users without explicit `Cursor` properties.
 **Action:** Always ensure that any custom Canvas-drawn objects that handle mouse drag/click events explicitly declare `Cursor="SizeAll"`, `Cursor="Hand"`, or `Cursor="Cross"` appropriately.
+## 2026-07-15 - Explicit Cursors on TextEditor Nodes
+**Learning:** The `avalonedit:TextEditor` component lacks a native `IBeam` cursor when hovering over its surface, which degrades the UX as users don't get visual feedback that the area is a text input field.
+**Action:** Always ensure that any custom text editor elements, especially `avalonedit:TextEditor`, explicitly declare `Cursor="IBeam"` to provide appropriate interactive feedback.

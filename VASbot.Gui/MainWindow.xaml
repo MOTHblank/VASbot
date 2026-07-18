@@ -288,7 +288,7 @@
                                                            ShowLineNumbers="True" SyntaxHighlighting="Python"
                                                            TextChanged="ScriptEditor_TextChanged"
                                                            PreviewMouseMove="ScriptEditor_PreviewMouseMove"
-                                                           AutomationProperties.Name="Script Editor" ToolTip="Script Editor" />
+                                                           AutomationProperties.Name="Script Editor" ToolTip="Script Editor" Cursor="IBeam" />
                                                             
                                     <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#222" 
                                                   Visibility="{Binding ElementName=SnippetDrawer, Path=Visibility}"
