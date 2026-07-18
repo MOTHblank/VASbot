@@ -36,3 +36,6 @@
 ## 2024-05-25 - Batch SendInput calls for modifiers
 **Learning:** In Python, repeatedly calling `_send_input` for individual modifier keys in functions like `click` and `press_key` introduces significant interpreter overhead and P/Invoke overhead, especially when multiple modifiers are used.
 **Action:** Batch `Input` structures for multiple modifier keys into a single list comprehension and send them in a single `_send_input` call. This reduces overhead and is more efficient.
+## 2024-05-25 - Optimize first-match detection in NumPy masks
+**Learning:** When searching for the first true value in a boolean NumPy array or the first non-zero pixel in an OpenCV mask, `np.where(mask > 0)` is very slow because it scans the entire array and allocates large arrays of coordinate indices.
+**Action:** For OpenCV masks, prefer `_, max_val, _, max_loc = cv2.minMaxLoc(mask)`. For pure NumPy boolean arrays, use `np.argmax(mask)`. Both methods are significantly faster as they stop searching early or avoid large memory allocations.
