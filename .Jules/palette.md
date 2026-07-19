@@ -38,3 +38,6 @@
 ## 2024-05-14 - Interactive List Accessibility in WPF
 **Learning:** In WPF, interactive lists (`ListBox`, `ItemsControl`) that use `DataTemplate` or `HierarchicalDataTemplate` to define their items are inaccessible to screen readers if the root element of the template lacks explicit automation properties. Screen readers will often announce them as blank or unlabelled items.
 **Action:** Always add `AutomationProperties.Name` and `ToolTip` directly to the root element (like `Grid` or `Border`) inside `DataTemplate` and `HierarchicalDataTemplate` blocks to ensure screen reader compatibility for each generated item.
+## $(date +%Y-%m-%d) - Adding ARIA attributes to manual ListBoxItem tags
+**Learning:** When defining snippet lists directly using `ListBoxItem` tags instead of an `ItemTemplate`, standard content definitions (like nested StackPanels/TextBlocks) are not inherently descriptive to screen readers.
+**Action:** When manually writing `<ListBoxItem>` tags that rely on visually styled inner children, explicitly add `AutomationProperties.Name` and `ToolTip` to the root `ListBoxItem` itself.
