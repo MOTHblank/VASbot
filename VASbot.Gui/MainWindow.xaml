@@ -312,37 +312,37 @@
                                                                 <Setter Property="Margin" Value="0,2"/>
                                                             </Style>
                                                         </ListBox.ItemContainerStyle>
-                                                        <ListBoxItem Tag="bot.click(x, y, button='left')">
+                                                        <ListBoxItem Tag="bot.click(x, y, button='left')" AutomationProperties.Name="Snippet: bot.click - Click coordinates (x, y)" ToolTip="Snippet: bot.click - Click coordinates (x, y)">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.click" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
                                                                 <TextBlock Text="Click coordinates (x, y)" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.double_click(x, y, button='left')">
+                                                        <ListBoxItem Tag="bot.double_click(x, y, button='left')" AutomationProperties.Name="Snippet: bot.double_click - Double click coordinates" ToolTip="Snippet: bot.double_click - Double click coordinates">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.double_click" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
                                                                 <TextBlock Text="Double click coordinates" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.move_mouse(x, y)">
+                                                        <ListBoxItem Tag="bot.move_mouse(x, y)" AutomationProperties.Name="Snippet: bot.move_mouse - Move mouse to position" ToolTip="Snippet: bot.move_mouse - Move mouse to position">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.move_mouse" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
                                                                 <TextBlock Text="Move mouse to position" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.wait(1.0)">
+                                                        <ListBoxItem Tag="bot.wait(1.0)" AutomationProperties.Name="Snippet: bot.wait - Pause script (seconds)" ToolTip="Snippet: bot.wait - Pause script (seconds)">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.wait" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
                                                                 <TextBlock Text="Pause script (seconds)" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.type_text('hello', delay=0.05)">
+                                                        <ListBoxItem Tag="bot.type_text('hello', delay=0.05)" AutomationProperties.Name="Snippet: bot.type_text - Type raw keyboard text" ToolTip="Snippet: bot.type_text - Type raw keyboard text">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.type_text" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
                                                                 <TextBlock Text="Type raw keyboard text" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.scroll(clicks=5)">
+                                                        <ListBoxItem Tag="bot.scroll(clicks=5)" AutomationProperties.Name="Snippet: bot.scroll - Scroll mouse wheel" ToolTip="Snippet: bot.scroll - Scroll mouse wheel">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.scroll" FontWeight="Bold" Foreground="#00FFCC" FontSize="11"/>
                                                                 <TextBlock Text="Scroll mouse wheel" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
@@ -359,31 +359,31 @@
                                                                 <Setter Property="Margin" Value="0,2"/>
                                                             </Style>
                                                         </ListBox.ItemContainerStyle>
-                                                        <ListBoxItem Tag="bot.click_region(region_index=0)">
+                                                        <ListBoxItem Tag="bot.click_region(region_index=0)" AutomationProperties.Name="Snippet: bot.click_region - Click inside selected region" ToolTip="Snippet: bot.click_region - Click inside selected region">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.click_region" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
                                                                 <TextBlock Text="Click inside selected region" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.find_color('#FF0000', region_index=0, tolerance=10)">
+                                                        <ListBoxItem Tag="bot.find_color('#FF0000', region_index=0, tolerance=10)" AutomationProperties.Name="Snippet: bot.find_color - Find color coords in region" ToolTip="Snippet: bot.find_color - Find color coords in region">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.find_color" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
                                                                 <TextBlock Text="Find color coords in region" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.find_and_click_color('#FF0000', region_index=0)">
+                                                        <ListBoxItem Tag="bot.find_and_click_color('#FF0000', region_index=0)" AutomationProperties.Name="Snippet: bot.find_and_click_color - Find color and click it" ToolTip="Snippet: bot.find_and_click_color - Find color and click it">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.find_and_click_color" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
                                                                 <TextBlock Text="Find color and click it" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="pos = bot.find_image('img/template.png', confidence=0.8)&#x0a;if pos:&#x0a;    bot.click(pos[0], pos[1])">
+                                                        <ListBoxItem Tag="pos = bot.find_image('img/template.png', confidence=0.8)&#x0a;if pos:&#x0a;    bot.click(pos[0], pos[1])" AutomationProperties.Name="Snippet: bot.find_image - Find template PNG image" ToolTip="Snippet: bot.find_image - Find template PNG image">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.find_image" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
                                                                 <TextBlock Text="Find template PNG image" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="text = bot.ocr_region(region_index=0)">
+                                                        <ListBoxItem Tag="text = bot.ocr_region(region_index=0)" AutomationProperties.Name="Snippet: bot.ocr_region - Get text via OCR in region" ToolTip="Snippet: bot.ocr_region - Get text via OCR in region">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.ocr_region" FontWeight="Bold" Foreground="#BB86FC" FontSize="11"/>
                                                                 <TextBlock Text="Get text via OCR in region" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
@@ -400,37 +400,37 @@
                                                                 <Setter Property="Margin" Value="0,2"/>
                                                             </Style>
                                                         </ListBox.ItemContainerStyle>
-                                                        <ListBoxItem Tag="bot.click_element('ButtonName', control_type='Button')">
+                                                        <ListBoxItem Tag="bot.click_element('ButtonName', control_type='Button')" AutomationProperties.Name="Snippet: bot.click_element - Click Win32 UIA element" ToolTip="Snippet: bot.click_element - Click Win32 UIA element">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.click_element" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
                                                                 <TextBlock Text="Click Win32 UIA element" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.type_into('EditName', 'text')">
+                                                        <ListBoxItem Tag="bot.type_into('EditName', 'text')" AutomationProperties.Name="Snippet: bot.type_into - Type into UIA text box" ToolTip="Snippet: bot.type_into - Type into UIA text box">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.type_into" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
                                                                 <TextBlock Text="Type into UIA text box" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="text = bot.get_text('TextName')">
+                                                        <ListBoxItem Tag="text = bot.get_text('TextName')" AutomationProperties.Name="Snippet: bot.get_text - Get text of UIA element" ToolTip="Snippet: bot.get_text - Get text of UIA element">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.get_text" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
                                                                 <TextBlock Text="Get text of UIA element" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.select_dropdown('ComboName', 'Option')">
+                                                        <ListBoxItem Tag="bot.select_dropdown('ComboName', 'Option')" AutomationProperties.Name="Snippet: bot.select_dropdown - Select item in combobox" ToolTip="Snippet: bot.select_dropdown - Select item in combobox">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.select_dropdown" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
                                                                 <TextBlock Text="Select item in combobox" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.check_checkbox('CheckboxName', state=True)">
+                                                        <ListBoxItem Tag="bot.check_checkbox('CheckboxName', state=True)" AutomationProperties.Name="Snippet: bot.check_checkbox - Set checkbox state" ToolTip="Snippet: bot.check_checkbox - Set checkbox state">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.check_checkbox" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
                                                                 <TextBlock Text="Set checkbox state" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </ListBoxItem>
-                                                        <ListBoxItem Tag="bot.wait_for_element('ButtonName')">
+                                                        <ListBoxItem Tag="bot.wait_for_element('ButtonName')" AutomationProperties.Name="Snippet: bot.wait_for_element - Wait for element to appear" ToolTip="Snippet: bot.wait_for_element - Wait for element to appear">
                                                             <StackPanel>
                                                                 <TextBlock Text="bot.wait_for_element" FontWeight="Bold" Foreground="#3498db" FontSize="11"/>
                                                                 <TextBlock Text="Wait for element to appear" FontSize="9" Foreground="#888" TextWrapping="Wrap"/>
