@@ -1548,11 +1548,14 @@ class BotAPI:
             h, w = template.shape[:2]
 
             # Use cv2.dnn.NMSBoxes for ultra-fast C++ based Non-Maximum Suppression
-            bboxes = []
-            confidences = []
-            for y_val, x_val, score in zip(locs[0], locs[1], scores):
-                bboxes.append([int(x_val), int(y_val), w, h])
-                confidences.append(float(score))
+            # ⚡ Bolt: Fast array construction replacing iterative loops
+            if len(scores) > 0:
+                # np.column_stack is significantly faster than repeated .append() in a loop
+                bboxes = np.column_stack((locs[1], locs[0], np.full(len(scores), w, dtype=np.int32), np.full(len(scores), h, dtype=np.int32))).tolist()
+                confidences = scores.tolist()
+            else:
+                bboxes = []
+                confidences = []
 
             indices = cv2.dnn.NMSBoxes(
                 bboxes,
