@@ -39,3 +39,6 @@
 ## 2024-05-25 - Optimize first-match detection in NumPy masks
 **Learning:** When searching for the first true value in a boolean NumPy array or the first non-zero pixel in an OpenCV mask, `np.where(mask > 0)` is very slow because it scans the entire array and allocates large arrays of coordinate indices.
 **Action:** For OpenCV masks, prefer `_, max_val, _, max_loc = cv2.minMaxLoc(mask)`. For pure NumPy boolean arrays, use `np.argmax(mask)`. Both methods are significantly faster as they stop searching early or avoid large memory allocations.
+## 2024-05-14 - Lazy Evaluation for Sequential CV Operations
+**Learning:** In computer vision pipelines with multiple fallback passes (like OCR text recognition trying different scalings and binarizations), eagerly computing all modified image matrices (e.g., via `cv2.threshold`) at the start of the function is a massive CPU bottleneck.
+**Action:** When a method tries multiple visual passes and returns early on success, always use a generator (`yield`) to compute expensive transformations (like Otsu binarization) lazily.

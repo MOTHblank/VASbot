@@ -1211,22 +1211,25 @@ class BotAPI:
                 interpolation=cv2.INTER_CUBIC,
             )
 
-            _, binarized = cv2.threshold(
-                scaled_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-            )
-            _, binarized_inv = cv2.threshold(
-                scaled_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-            )
+            # ⚡ Bolt: Lazy threshold computation (compute Otsu only if simple scaling fails)
+            def generate_passes():
+                yield scaled_img, "--psm 3", "2x Scale Interpolated (PSM 3)"
+                yield scaled_img, "--psm 6", "2x Scale Interpolated (PSM 6)"
+                yield scaled_img, "--psm 11", "2x Scale Interpolated (PSM 11)"
 
-            passes = [
-                (scaled_img, "--psm 3", "2x Scale Interpolated (PSM 3)"),
-                (scaled_img, "--psm 6", "2x Scale Interpolated (PSM 6)"),
-                (scaled_img, "--psm 11", "2x Scale Interpolated (PSM 11)"),
-                (binarized, "--psm 3", "2x Scale + Otsu Binarization (PSM 3)"),
-                (binarized, "--psm 6", "2x Scale + Otsu Binarization (PSM 6)"),
-                (binarized_inv, "--psm 3", "2x Scale + Inverted Otsu (PSM 3)"),
-                (binarized_inv, "--psm 6", "2x Scale + Inverted Otsu (PSM 6)"),
-            ]
+                _, binarized = cv2.threshold(
+                    scaled_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                )
+                yield binarized, "--psm 3", "2x Scale + Otsu Binarization (PSM 3)"
+                yield binarized, "--psm 6", "2x Scale + Otsu Binarization (PSM 6)"
+
+                _, binarized_inv = cv2.threshold(
+                    scaled_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+                )
+                yield binarized_inv, "--psm 3", "2x Scale + Inverted Otsu (PSM 3)"
+                yield binarized_inv, "--psm 6", "2x Scale + Inverted Otsu (PSM 6)"
+
+            passes = generate_passes()
 
             query_words = [q for q in text.split() if q.strip()]
             if not query_words:
