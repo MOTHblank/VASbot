@@ -361,17 +361,6 @@ class Bot:
         # Settle delay: ensures movement is complete before click action begins
         time.sleep(0.05)
 
-        mod_inputs_down = [
-            Input(
-                type=INPUT_KEYBOARD,
-                ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN)),
-            )
-            for mod in modifiers
-            if mod in KEY_MAP
-        ]
-        if mod_inputs_down:
-            self._send_input(mod_inputs_down)
-
         if button == "left":
             down, up = MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP
         elif button == "right":
@@ -379,24 +368,31 @@ class Bot:
         else:  # middle
             down, up = MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP
 
-        self._send_input(
-            [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=down)))]
-        )
-        time.sleep(random.uniform(0.05, 0.1))
-        self._send_input(
-            [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=up)))]
-        )
+        # ⚡ Bolt: Batch modifiers down and mouse down into a single call to minimize interpreter overhead
+        inputs_down = [
+            Input(
+                type=INPUT_KEYBOARD,
+                ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN)),
+            )
+            for mod in modifiers
+            if mod in KEY_MAP
+        ]
+        inputs_down.append(Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=down))))
+        self._send_input(inputs_down)
 
-        mod_inputs_up = [
+        time.sleep(random.uniform(0.05, 0.1))
+
+        # ⚡ Bolt: Batch mouse up and modifiers up into a single call
+        inputs_up = [Input(type=INPUT_MOUSE, ii=Input_I(mi=MouseInput(dwFlags=up)))]
+        inputs_up.extend([
             Input(
                 type=INPUT_KEYBOARD,
                 ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYUP)),
             )
             for mod in reversed(modifiers)
             if mod in KEY_MAP
-        ]
-        if mod_inputs_up:
-            self._send_input(mod_inputs_up)
+        ])
+        self._send_input(inputs_up)
 
     def type_text(self, text, delay=0.05):
         """Types the given text using unicode characters."""
@@ -432,7 +428,9 @@ class Bot:
         """Presses a key with optional modifiers."""
         if modifiers is None:
             modifiers = []
-        mod_inputs_down = [
+
+        # ⚡ Bolt: Batch modifiers down and key down into a single call
+        inputs_down = [
             Input(
                 type=INPUT_KEYBOARD,
                 ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYDOWN)),
@@ -440,38 +438,39 @@ class Bot:
             for mod in modifiers
             if mod in KEY_MAP
         ]
-        if mod_inputs_down:
-            self._send_input(mod_inputs_down)
 
         if key in KEY_MAP:
-            vk_code = KEY_MAP[key]
-            self._send_input(
-                [
-                    Input(
-                        type=INPUT_KEYBOARD,
-                        ii=Input_I(
-                            ki=KeyBdInput(wVk=vk_code, dwFlags=KEYEVENTF_KEYDOWN)
-                        ),
-                    )
-                ]
-            )
-            time.sleep(random.uniform(0.05, 0.1))
-            self._send_input(
-                [
-                    Input(
-                        type=INPUT_KEYBOARD,
-                        ii=Input_I(ki=KeyBdInput(wVk=vk_code, dwFlags=KEYEVENTF_KEYUP)),
-                    )
-                ]
+            inputs_down.append(
+                Input(
+                    type=INPUT_KEYBOARD,
+                    ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYDOWN)),
+                )
             )
 
-        mod_inputs_up = [
+        if inputs_down:
+            self._send_input(inputs_down)
+
+        if key in KEY_MAP:
+            time.sleep(random.uniform(0.05, 0.1))
+
+        # ⚡ Bolt: Batch key up and modifiers up into a single call
+        inputs_up = []
+        if key in KEY_MAP:
+            inputs_up.append(
+                Input(
+                    type=INPUT_KEYBOARD,
+                    ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[key], dwFlags=KEYEVENTF_KEYUP)),
+                )
+            )
+
+        inputs_up.extend([
             Input(
                 type=INPUT_KEYBOARD,
                 ii=Input_I(ki=KeyBdInput(wVk=KEY_MAP[mod], dwFlags=KEYEVENTF_KEYUP)),
             )
             for mod in reversed(modifiers)
             if mod in KEY_MAP
-        ]
-        if mod_inputs_up:
-            self._send_input(mod_inputs_up)
+        ])
+
+        if inputs_up:
+            self._send_input(inputs_up)

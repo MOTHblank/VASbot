@@ -42,3 +42,6 @@
 ## 2024-05-14 - Lazy Evaluation for Sequential CV Operations
 **Learning:** In computer vision pipelines with multiple fallback passes (like OCR text recognition trying different scalings and binarizations), eagerly computing all modified image matrices (e.g., via `cv2.threshold`) at the start of the function is a massive CPU bottleneck.
 **Action:** When a method tries multiple visual passes and returns early on success, always use a generator (`yield`) to compute expensive transformations (like Otsu binarization) lazily.
+## 2024-05-25 - Batch Input structures for SendInput
+**Learning:** In Python, repeatedly calling `ctypes` wrapper functions (like `_send_input`) for individual events (e.g., pressing modifiers down, then the key, then releasing them) introduces significant Python interpreter and P/Invoke boundary overhead. The OS `SendInput` API is designed to accept an array of input events specifically for this reason.
+**Action:** When executing complex keyboard or mouse macros (like `click` or `press_key` with modifiers), batch all related `Input` structures that occur at the same time into a single Python list and execute exactly one `_send_input` call per simultaneous action.
