@@ -273,7 +273,7 @@
                             </StackPanel>
                         </Border>
                         
-                        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0,5,0,0">
+                        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0,5,0,0" AutomationProperties.Name="Main Workspace Tabs" ToolTip="Main Workspace Tabs">
                             <TabItem Header="CODE" AutomationProperties.Name="Code Editor" ToolTip="Code Editor Workspace">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -303,7 +303,7 @@
                                              
                                             <TextBlock Text="API HELPER DRAWER" FontWeight="Bold" FontSize="11" Foreground="#888" Margin="0,0,0,10"/>
                                              
-                                            <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0">
+                                            <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0" AutomationProperties.Name="API Helper Tabs" ToolTip="API Helper Tabs">
                                                 <TabItem Header="CORE" FontSize="10" Padding="6,4" AutomationProperties.Name="Core API Snippets" ToolTip="Core Automation API Snippets">
                                                     <ListBox x:Name="CoreSnippetList" Background="Transparent" BorderThickness="0" MouseDoubleClick="SnippetList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Core Snippets List" ToolTip="List of core automation snippets">
                                                         <ListBox.ItemContainerStyle>
@@ -616,7 +616,7 @@
                         <GridSplitter Grid.Row="1" Height="2" HorizontalAlignment="Stretch" Background="#222" AutomationProperties.Name="Action Builder and Bottom Tabs Splitter" ToolTip="Resize Action Builder and Bottom Tabs" Cursor="SizeNS"/>
 
                         <!-- BOTTOM TABS (Regions / UIA) -->
-                        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0,1,0,0" BorderBrush="#222">
+                        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0,1,0,0" BorderBrush="#222" AutomationProperties.Name="Bottom Panel Tabs" ToolTip="Bottom Panel Tabs">
                             <TabItem Header="📍 REGIONS" AutomationProperties.Name="Regions Configuration" ToolTip="Manage Region Configurations">
                                 <Grid Background="#151515">
                                     <Grid.RowDefinitions>
