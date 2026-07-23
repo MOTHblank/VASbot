@@ -558,7 +558,7 @@
                                                                     </ComboBox>
                                                                 </DataTemplate>
                                                                 <DataTemplate x:Key="ColorPicker">
-                                                                    <Grid>
+                                                                    <Grid AutomationProperties.Name="Color Picker" ToolTip="Color Picker">
                                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="30"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
                                                                         <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="12" AutomationProperties.Name="Template Parameter Value" ToolTip="Template Parameter Value"/>
                                                                         <Border Grid.Column="1" Background="{Binding Value}" CornerRadius="2" Margin="4,0,0,0" BorderBrush="#444" BorderThickness="1"/>
